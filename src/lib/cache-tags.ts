@@ -2,6 +2,7 @@
 export const CACHE_TAG = {
   POSTS: "public-posts",
   PROJECTS: "public-projects",
+  CATEGORIES: "public-categories",
 } as const
 
 export type CacheTag = (typeof CACHE_TAG)[keyof typeof CACHE_TAG]

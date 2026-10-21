@@ -143,10 +143,24 @@
     @apply ring-2 ring-ring;
   }
 
+  /* 前台程式碼區塊：以存檔時寫入的 data-language-label 顯示語言名稱 */
+  .article-content .code-block[data-language-label]::before {
+    @apply block border-b px-4 py-1.5 font-mono text-xs text-muted-foreground;
+    content: attr(data-language-label);
+  }
+
   /* 長文區塊：視窗外的段落略過排版與繪製 */
   .article-content > * {
     content-visibility: auto;
     contain-intrinsic-size: auto 120px;
+  }
+}
+
+/* Typography 外掛的 pre 樣式位於 utilities 層，會蓋過 components 層的 .code-block pre，
+ * 前台文章內的程式碼區塊需在同一層以較高權重重設外距、背景與圓角 */
+@layer utilities {
+  .article-content .code-block pre {
+    @apply m-0 rounded-none bg-transparent;
   }
 }
 

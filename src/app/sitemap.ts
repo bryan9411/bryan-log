@@ -5,7 +5,7 @@ import {
   getPublishedPostSlugs,
   getPublishedProjectSlugs,
   type PublishedSlug,
-} from "@/lib/data/sitemap"
+} from "@/lib/data/published-slugs"
 import { absoluteUrl } from "@/lib/seo"
 
 type SitemapEntry = MetadataRoute.Sitemap[number]

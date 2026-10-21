@@ -4,44 +4,96 @@ import { cacheLife, cacheTag } from "next/cache"
 
 import { CACHE_TAG } from "@/lib/cache-tags"
 import { CONTENT_STATUS } from "@/lib/constants/content"
-import { CATEGORY_WITH_PARENT_SELECT, type CategoryRelation } from "@/lib/data/categories"
+import type { CategorizedItem } from "@/lib/content/category-filter"
+import { sanitizeArticleHtml } from "@/lib/content/sanitize"
+import {
+  CATEGORY_WITH_PARENT_SELECT,
+  splitCategoryRelation,
+  type CategoryRelation,
+} from "@/lib/data/categories"
 import { createPublicClient } from "@/lib/supabase/public"
 
-export type PostSummary = {
+export type PostSummary = CategorizedItem & {
   title: string
   slug: string
   excerpt: string | null
   readingMinutes: number
   publishedAt: string | null
-  categoryName: string | null
-  parentCategoryName: string | null
 }
+
+export type PostDetail = PostSummary & {
+  html: string
+  coverImageUrl: string | null
+  updatedAt: string
+}
+
+type CategoryOverride = Array<{ category: CategoryRelation }>
 
 const POST_SUMMARY_COLUMNS = `title, slug, excerpt, reading_time_minutes, published_at, ${CATEGORY_WITH_PARENT_SELECT}`
 
+function toPostSummary(post: {
+  title: string
+  slug: string
+  excerpt: string | null
+  reading_time_minutes: number
+  published_at: string | null
+  category: CategoryRelation
+}): PostSummary {
+  return {
+    title: post.title,
+    slug: post.slug,
+    excerpt: post.excerpt,
+    readingMinutes: post.reading_time_minutes,
+    publishedAt: post.published_at,
+    ...splitCategoryRelation(post.category),
+  }
+}
+
 // 以 "use cache" 跨請求共用查詢結果；後台存檔時以 updateTag 失效，平時每小時背景重新驗證一次
-export async function getLatestPosts(limit: number): Promise<PostSummary[]> {
+// 未傳入 limit 時回傳全部已發布文章，供列表頁的虛擬捲動清單使用
+export async function getPublishedPosts(limit?: number): Promise<PostSummary[]> {
+  "use cache"
+  cacheLife("hours")
+  cacheTag(CACHE_TAG.POSTS)
+
+  const query = createPublicClient()
+    .from("posts")
+    .select(POST_SUMMARY_COLUMNS)
+    .eq("status", CONTENT_STATUS.PUBLISHED)
+    .order("published_at", { ascending: false })
+
+  const { data, error } = await (limit ? query.limit(limit) : query).overrideTypes<
+    CategoryOverride,
+    { merge: true }
+  >()
+
+  if (error) throw new Error(`讀取文章列表失敗：${error.message}`)
+
+  return data.map(toPostSummary)
+}
+
+// 內文在存檔時已由伺服器產生並清理過，輸出前仍以 DOMPurify 再清理一次作為縱深防禦：
+// 即使資料庫遭直接竄改，也不會把惡意腳本送到讀者的瀏覽器；清理結果隨快取保存，不會每次請求重算
+export async function getPublishedPost(slug: string): Promise<PostDetail | null> {
   "use cache"
   cacheLife("hours")
   cacheTag(CACHE_TAG.POSTS)
 
   const { data, error } = await createPublicClient()
     .from("posts")
-    .select(POST_SUMMARY_COLUMNS)
+    .select(`${POST_SUMMARY_COLUMNS}, content_html, cover_image_url, updated_at`)
     .eq("status", CONTENT_STATUS.PUBLISHED)
-    .order("published_at", { ascending: false })
-    .limit(limit)
-    .overrideTypes<Array<{ category: CategoryRelation }>, { merge: true }>()
+    .eq("slug", slug)
+    .maybeSingle()
+    .overrideTypes<CategoryOverride[number], { merge: true }>()
 
-  if (error) throw new Error(`讀取最新文章失敗：${error.message}`)
+  if (error) throw new Error(`讀取文章失敗：${error.message}`)
+  if (!data) return null
 
-  return data.map((post) => ({
-    title: post.title,
-    slug: post.slug,
-    excerpt: post.excerpt,
-    readingMinutes: post.reading_time_minutes,
-    publishedAt: post.published_at,
-    categoryName: post.category?.name ?? null,
-    parentCategoryName: post.category?.parent?.name ?? null,
-  }))
+  return {
+    ...toPostSummary(data),
+    html: sanitizeArticleHtml(data.content_html),
+    coverImageUrl: data.cover_image_url,
+    updatedAt: data.updated_at,
+  }
 }

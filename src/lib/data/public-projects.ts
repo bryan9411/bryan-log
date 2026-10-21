@@ -4,9 +4,16 @@ import { cacheLife, cacheTag } from "next/cache"
 
 import { CACHE_TAG } from "@/lib/cache-tags"
 import { CONTENT_STATUS } from "@/lib/constants/content"
+import type { CategorizedItem } from "@/lib/content/category-filter"
+import { sanitizeArticleHtml } from "@/lib/content/sanitize"
+import {
+  CATEGORY_WITH_PARENT_SELECT,
+  splitCategoryRelation,
+  type CategoryRelation,
+} from "@/lib/data/categories"
 import { createPublicClient } from "@/lib/supabase/public"
 
-export type ProjectSummary = {
+export type ProjectSummary = CategorizedItem & {
   title: string
   slug: string
   summary: string
@@ -16,22 +23,27 @@ export type ProjectSummary = {
   techStack: string[]
 }
 
-export async function getFeaturedProjects(limit: number): Promise<ProjectSummary[]> {
-  "use cache"
-  cacheLife("hours")
-  cacheTag(CACHE_TAG.PROJECTS)
+export type ProjectDetail = ProjectSummary & {
+  html: string
+  publishedAt: string | null
+  updatedAt: string
+}
 
-  const { data, error } = await createPublicClient()
-    .from("projects")
-    .select("title, slug, summary, cover_image_url, demo_url, repo_url, tech_stack")
-    .eq("status", CONTENT_STATUS.PUBLISHED)
-    .eq("is_featured", true)
-    .order("sort_order", { ascending: true })
-    .limit(limit)
+type CategoryOverride = { category: CategoryRelation }
 
-  if (error) throw new Error(`讀取精選專案失敗：${error.message}`)
+const PROJECT_SUMMARY_COLUMNS = `title, slug, summary, cover_image_url, demo_url, repo_url, tech_stack, ${CATEGORY_WITH_PARENT_SELECT}`
 
-  return data.map((project) => ({
+function toProjectSummary(project: {
+  title: string
+  slug: string
+  summary: string
+  cover_image_url: string | null
+  demo_url: string | null
+  repo_url: string | null
+  tech_stack: string[]
+  category: CategoryRelation
+}): ProjectSummary {
+  return {
     title: project.title,
     slug: project.slug,
     summary: project.summary,
@@ -39,5 +51,69 @@ export async function getFeaturedProjects(limit: number): Promise<ProjectSummary
     demoUrl: project.demo_url,
     repoUrl: project.repo_url,
     techStack: project.tech_stack,
-  }))
+    ...splitCategoryRelation(project.category),
+  }
+}
+
+function selectPublishedProjects() {
+  return createPublicClient()
+    .from("projects")
+    .select(PROJECT_SUMMARY_COLUMNS)
+    .eq("status", CONTENT_STATUS.PUBLISHED)
+    .order("sort_order", { ascending: true })
+}
+
+export async function getFeaturedProjects(limit: number): Promise<ProjectSummary[]> {
+  "use cache"
+  cacheLife("hours")
+  cacheTag(CACHE_TAG.PROJECTS)
+
+  const { data, error } = await selectPublishedProjects()
+    .eq("is_featured", true)
+    .limit(limit)
+    .overrideTypes<CategoryOverride[], { merge: true }>()
+
+  if (error) throw new Error(`讀取精選專案失敗：${error.message}`)
+
+  return data.map(toProjectSummary)
+}
+
+export async function getPublishedProjects(): Promise<ProjectSummary[]> {
+  "use cache"
+  cacheLife("hours")
+  cacheTag(CACHE_TAG.PROJECTS)
+
+  const { data, error } = await selectPublishedProjects().overrideTypes<
+    CategoryOverride[],
+    { merge: true }
+  >()
+
+  if (error) throw new Error(`讀取作品列表失敗：${error.message}`)
+
+  return data.map(toProjectSummary)
+}
+
+// 專案介紹同樣在輸出前以 DOMPurify 清理，並隨快取保存
+export async function getPublishedProject(slug: string): Promise<ProjectDetail | null> {
+  "use cache"
+  cacheLife("hours")
+  cacheTag(CACHE_TAG.PROJECTS)
+
+  const { data, error } = await createPublicClient()
+    .from("projects")
+    .select(`${PROJECT_SUMMARY_COLUMNS}, description_html, published_at, updated_at`)
+    .eq("status", CONTENT_STATUS.PUBLISHED)
+    .eq("slug", slug)
+    .maybeSingle()
+    .overrideTypes<CategoryOverride, { merge: true }>()
+
+  if (error) throw new Error(`讀取作品失敗：${error.message}`)
+  if (!data) return null
+
+  return {
+    ...toProjectSummary(data),
+    html: sanitizeArticleHtml(data.description_html),
+    publishedAt: data.published_at,
+    updatedAt: data.updated_at,
+  }
 }

@@ -1,5 +1,7 @@
 import type { Route } from "next"
 
+import { CATEGORY_SEARCH_PARAM } from "@/lib/content/category-filter"
+
 export const ROUTES = {
   HOME: "/",
   POSTS: "/posts",
@@ -27,11 +29,19 @@ export function adminEditPostRoute(id: string): Route {
   return `/admin/posts/${id}/edit` as Route
 }
 
-// 前台文章與作品詳細頁將於階段五建立，typedRoutes 尚無法推導動態路徑，因此明確轉型為 Route
+// typedRoutes 無法由字串組合推導出動態路徑，因此明確轉型為 Route
 export function postDetailPath(slug: string): Route {
   return `${ROUTES.POSTS}/${slug}` as Route
 }
 
 export function projectDetailPath(slug: string): Route {
   return `${ROUTES.PROJECTS}/${slug}` as Route
+}
+
+// 列表頁的分類篩選連結，查詢參數名稱與篩選元件共用
+export function categoryFilterRoute(
+  listPath: typeof ROUTES.POSTS | typeof ROUTES.PROJECTS,
+  slug: string,
+): Route {
+  return `${listPath}?${new URLSearchParams({ [CATEGORY_SEARCH_PARAM]: slug })}` as Route
 }

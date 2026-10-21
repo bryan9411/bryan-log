@@ -17,6 +17,7 @@ import { EditorToolbar } from "@/components/editor/editor-toolbar"
 import { MarkdownShortcutHelp } from "@/components/editor/markdown-shortcut-help"
 import { useImageUpload } from "@/hooks/use-image-upload"
 import { createContentExtensions } from "@/lib/editor/extensions"
+import { PROSE_CLASS } from "@/lib/content/prose"
 import { IMAGE_MIME, STORAGE_FOLDER } from "@/lib/storage/constants"
 import { cn } from "@/lib/utils"
 
@@ -36,7 +37,7 @@ function getAltText(fileName: string) {
 
 function buildContentAttributes(isInvalid?: boolean, describedBy?: string) {
   return {
-    class: "tiptap-content prose prose-zinc dark:prose-invert max-w-none",
+    class: `tiptap-content ${PROSE_CLASS}`,
     "aria-label": "文章內容",
     ...(isInvalid ? { "aria-invalid": "true" } : {}),
     ...(describedBy ? { "aria-describedby": describedBy } : {}),

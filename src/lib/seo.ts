@@ -2,12 +2,24 @@ import type { Metadata } from "next"
 
 import { siteConfig } from "@/config/site"
 
-const TWITTER_CARD = "summary"
+const TWITTER_CARD = {
+  SUMMARY: "summary",
+  LARGE_IMAGE: "summary_large_image",
+} as const
+
+type ArticleMetadata = {
+  publishedTime?: string | null
+  modifiedTime?: string
+  section?: string | null
+  tags?: string[]
+}
 
 type PageMetadataInput = {
   path?: string
   title?: string
-  description?: string
+  description?: string | null
+  image?: string | null
+  article?: ArticleMetadata
 }
 
 export function absoluteUrl(path: string) {
@@ -20,26 +32,48 @@ export function absoluteUrl(path: string) {
 export function createPageMetadata({
   path,
   title,
-  description = siteConfig.description,
+  description,
+  image,
+  article,
 }: PageMetadataInput): Metadata {
   const socialTitle = title ? `${title}｜${siteConfig.name}` : siteConfig.title
+  const resolvedDescription = description || siteConfig.description
+  const images = image ? [{ url: image, alt: title ?? siteConfig.name }] : undefined
+
+  const sharedOpenGraph = {
+    locale: siteConfig.ogLocale,
+    siteName: siteConfig.name,
+    title: socialTitle,
+    description: resolvedDescription,
+    images,
+    ...(path ? { url: path } : {}),
+  }
 
   return {
     ...(title ? { title } : {}),
-    description,
+    description: resolvedDescription,
     ...(path ? { alternates: { canonical: path } } : {}),
-    openGraph: {
-      type: "website",
-      locale: siteConfig.ogLocale,
-      siteName: siteConfig.name,
-      ...(path ? { url: path } : {}),
-      title: socialTitle,
-      description,
-    },
+    openGraph: article
+      ? {
+          ...sharedOpenGraph,
+          type: "article",
+          publishedTime: article.publishedTime ?? undefined,
+          modifiedTime: article.modifiedTime,
+          section: article.section ?? undefined,
+          tags: article.tags,
+          authors: [siteConfig.author],
+        }
+      : { ...sharedOpenGraph, type: "website" },
     twitter: {
-      card: TWITTER_CARD,
+      card: image ? TWITTER_CARD.LARGE_IMAGE : TWITTER_CARD.SUMMARY,
       title: socialTitle,
-      description,
+      description: resolvedDescription,
+      images: image ? [image] : undefined,
     },
   }
+}
+
+// JSON-LD 嵌在 <script> 中，需轉義 < 避免內容提前結束標籤造成 XSS
+export function serializeJsonLd(data: Record<string, unknown>) {
+  return JSON.stringify(data).replace(/</g, "\\u003c")
 }
