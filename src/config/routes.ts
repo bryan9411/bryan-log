@@ -19,6 +19,7 @@ export const API_ROOT = "/api"
 
 export const API_ROUTES = {
   STORAGE_UPLOAD: `${API_ROOT}/storage/upload`,
+  SEARCH_INDEX: `${API_ROOT}/search`,
 } as const
 
 export const REDIRECT_PARAM = "next"

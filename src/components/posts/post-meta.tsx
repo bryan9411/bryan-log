@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { CalendarIcon, ClockIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -8,11 +9,13 @@ import { cn } from "@/lib/utils"
 
 type PostMetaProps = {
   post: PostSummary
+  // 額外的資訊欄位（例如文章內頁的瀏覽數），接在閱讀時間之後
+  extra?: ReactNode
   className?: string
 }
 
 // 分類、發布日期與閱讀時間；列表與文章內頁共用
-export function PostMeta({ post, className }: PostMetaProps) {
+export function PostMeta({ post, extra, className }: PostMetaProps) {
   const { readingMinutes, publishedAt } = post
   const categoryPath = formatCategoryPath(post)
 
@@ -49,6 +52,7 @@ export function PostMeta({ post, className }: PostMetaProps) {
       <span className="flex items-center gap-1">
         <ClockIcon className="size-3.5" aria-hidden />約 {readingMinutes} 分鐘閱讀
       </span>
+      {extra}
     </div>
   )
 }

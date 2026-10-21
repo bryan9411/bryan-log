@@ -6,6 +6,7 @@ import { CACHE_TAG } from "@/lib/cache-tags"
 import { CONTENT_STATUS } from "@/lib/constants/content"
 import type { CategorizedItem } from "@/lib/content/category-filter"
 import { sanitizeArticleHtml } from "@/lib/content/sanitize"
+import { addHeadingAnchors, type TocItem } from "@/lib/content/toc"
 import {
   CATEGORY_WITH_PARENT_SELECT,
   splitCategoryRelation,
@@ -23,6 +24,8 @@ export type PostSummary = CategorizedItem & {
 
 export type PostDetail = PostSummary & {
   html: string
+  toc: TocItem[]
+  viewCount: number
   coverImageUrl: string | null
   updatedAt: string
 }
@@ -81,7 +84,7 @@ export async function getPublishedPost(slug: string): Promise<PostDetail | null>
 
   const { data, error } = await createPublicClient()
     .from("posts")
-    .select(`${POST_SUMMARY_COLUMNS}, content_html, cover_image_url, updated_at`)
+    .select(`${POST_SUMMARY_COLUMNS}, content_html, cover_image_url, view_count, updated_at`)
     .eq("status", CONTENT_STATUS.PUBLISHED)
     .eq("slug", slug)
     .maybeSingle()
@@ -90,9 +93,14 @@ export async function getPublishedPost(slug: string): Promise<PostDetail | null>
   if (error) throw new Error(`讀取文章失敗：${error.message}`)
   if (!data) return null
 
+  // 錨點 id 在清理之後才加上：id 不在 DOMPurify 白名單內，且由伺服器自行產生，內容可信
+  const { html, toc } = addHeadingAnchors(sanitizeArticleHtml(data.content_html))
+
   return {
     ...toPostSummary(data),
-    html: sanitizeArticleHtml(data.content_html),
+    html,
+    toc,
+    viewCount: data.view_count,
     coverImageUrl: data.cover_image_url,
     updatedAt: data.updated_at,
   }

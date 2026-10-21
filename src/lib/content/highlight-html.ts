@@ -3,6 +3,7 @@ import {
   normalizeCodeLanguage,
   PLAIN_TEXT_LANGUAGE,
 } from "@/lib/editor/languages"
+import { decodeHtmlEntities } from "@/lib/content/html-entities"
 import { CODE_LANGUAGE_CLASS_PREFIX } from "@/lib/editor/extensions"
 import { isHighlightable, loadHighlighter, SHIKI_THEMES } from "@/lib/shiki/highlighter"
 
@@ -11,25 +12,6 @@ const CODE_BLOCK_PATTERN = new RegExp(
   `<pre><code(?: class="${CODE_LANGUAGE_CLASS_PREFIX}([\\w-]+)")?>([\\s\\S]*?)</code></pre>`,
   "g",
 )
-
-const NAMED_ENTITIES: Record<string, string> = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  apos: "'",
-  nbsp: " ",
-}
-
-function decodeHtmlEntities(value: string) {
-  return value.replace(/&(#x[\da-f]+|#\d+|[a-z]+);/gi, (entity, body: string) => {
-    if (body.startsWith("#x") || body.startsWith("#X")) {
-      return String.fromCodePoint(Number.parseInt(body.slice(2), 16))
-    }
-    if (body.startsWith("#")) return String.fromCodePoint(Number.parseInt(body.slice(1), 10))
-    return NAMED_ENTITIES[body.toLowerCase()] ?? entity
-  })
-}
 
 function wrapCodeBlock(language: string, label: string, inner: string) {
   return `<div class="code-block" data-language="${language}" data-language-label="${label}">${inner}</div>`

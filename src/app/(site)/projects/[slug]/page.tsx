@@ -18,6 +18,9 @@ import { getPublishedProjectSlugs } from "@/lib/data/published-slugs"
 import { createPageMetadata } from "@/lib/seo"
 import { toSlugParams } from "@/lib/static-params"
 
+// Next.js 16 Partial Prefetching：專案內頁屬於完整內容直出型路由，允許 blocking 導航避免未包覆 Suspense 之警告
+export const instant = false
+
 export async function generateStaticParams() {
   return toSlugParams(await getPublishedProjectSlugs())
 }

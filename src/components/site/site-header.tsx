@@ -1,6 +1,7 @@
 import Link from "next/link"
 
 import { ThemeToggle } from "@/components/layout/theme-toggle"
+import { SearchCommand } from "@/components/search/search-command"
 import { MobileNav } from "@/components/site/mobile-nav"
 import { SiteContainer } from "@/components/site/site-container"
 import { SiteNavLinks } from "@/components/site/site-nav-links"
@@ -18,6 +19,7 @@ export function SiteHeader() {
           <nav aria-label="主選單" className="hidden md:block">
             <SiteNavLinks />
           </nav>
+          <SearchCommand />
           <ThemeToggle />
           <MobileNav />
         </div>
