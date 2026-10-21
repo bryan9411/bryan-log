@@ -43,3 +43,12 @@ export function formatRelativeTime(value: string | number | Date, now: number) {
 
   return relativeTimeFormatter.format(Math.trunc(elapsedSeconds / seconds), unit)
 }
+
+const dateFormatter = new Intl.DateTimeFormat("zh-TW", {
+  dateStyle: "medium",
+  timeZone: "Asia/Taipei",
+})
+
+export function formatDate(value: string | Date) {
+  return dateFormatter.format(new Date(value))
+}

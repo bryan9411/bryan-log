@@ -1,12 +1,12 @@
 import type { LucideIcon } from "lucide-react"
 
-type AdminEmptyStateProps = {
+type EmptyStateProps = {
   icon: LucideIcon
   title: string
   description: string
 }
 
-export function AdminEmptyState({ icon: Icon, title, description }: AdminEmptyStateProps) {
+export function EmptyState({ icon: Icon, title, description }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed bg-background px-6 py-16 text-center">
       <div className="flex size-11 items-center justify-center rounded-full bg-muted">

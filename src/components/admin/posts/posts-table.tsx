@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { FileTextIcon, PencilIcon } from "lucide-react"
 
-import { AdminEmptyState } from "@/components/admin/admin-empty-state"
+import { EmptyState } from "@/components/empty-state"
 import { DeletePostButton } from "@/components/admin/posts/delete-post-button"
 import { PostStatusBadge } from "@/components/admin/posts/post-status-badge"
 import { Button } from "@/components/ui/button"
@@ -75,7 +75,7 @@ export async function PostsTable() {
 
   if (posts.length === 0) {
     return (
-      <AdminEmptyState
+      <EmptyState
         icon={FileTextIcon}
         title="還沒有任何文章"
         description="點擊右上角的「新增文章」開始撰寫第一篇技術文章。"

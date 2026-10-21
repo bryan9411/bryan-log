@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { siteConfig } from "@/config/site"
+import { createPageMetadata } from "@/lib/seo"
 import { cn } from "@/lib/utils"
 
 import "./globals.css"
@@ -17,13 +18,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 })
 
+// 全站預設值：metadataBase 讓 canonical 與 og:url 等相對路徑自動補成完整網址
 export const metadata: Metadata = {
+  ...createPageMetadata({}),
   metadataBase: new URL(siteConfig.url),
+  applicationName: siteConfig.name,
+  authors: [{ name: siteConfig.author, url: siteConfig.url }],
+  creator: siteConfig.author,
   title: {
     default: siteConfig.title,
     template: `%s｜${siteConfig.name}`,
   },
-  description: siteConfig.description,
 }
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -4,6 +4,7 @@ import type { JSONContent } from "@tiptap/core"
 
 import type { ContentStatus } from "@/lib/constants/content"
 import { isAutoExcerpt } from "@/lib/content/render-post"
+import { CATEGORY_WITH_PARENT_SELECT, type CategoryRelation } from "@/lib/data/categories"
 import { createClient } from "@/lib/supabase/server"
 
 export type AdminPostListItem = {
@@ -29,10 +30,7 @@ export type EditablePost = {
   updatedAt: string
 }
 
-const ADMIN_POST_LIST_COLUMNS =
-  "id, title, slug, status, view_count, updated_at, category:categories(name, parent:parent_id(name))"
-
-type CategoryRelation = { name: string; parent: { name: string } | null } | null
+const ADMIN_POST_LIST_COLUMNS = `id, title, slug, status, view_count, updated_at, ${CATEGORY_WITH_PARENT_SELECT}`
 
 export async function listAdminPosts(): Promise<AdminPostListItem[]> {
   const supabase = await createClient()

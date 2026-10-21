@@ -15,6 +15,8 @@ const badgeVariants = cva(
         outline: "border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground",
         ghost: "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
+        // 內容標籤：以前景色半透明疊加，淺色模式在白底上仍有足夠對比，深色模式自動變為淺色疊加
+        tag: "border-foreground/10 bg-foreground/[0.06] text-foreground/75 [a]:hover:bg-foreground/10",
       },
     },
     defaultVariants: {

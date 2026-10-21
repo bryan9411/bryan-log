@@ -5,12 +5,8 @@ import { usePathname } from "next/navigation"
 import { Suspense } from "react"
 
 import { ADMIN_NAV_ITEMS } from "@/config/admin-nav"
+import { isActiveHref } from "@/lib/navigation"
 import { cn } from "@/lib/utils"
-
-function isActiveHref(pathname: string | null, href: string) {
-  if (!pathname) return false
-  return pathname === href || pathname.startsWith(`${href}/`)
-}
 
 function AdminNavList({ pathname }: { pathname: string | null }) {
   return (

@@ -3,6 +3,11 @@ import "server-only"
 import type { CategoryType } from "@/lib/constants/content"
 import { createClient } from "@/lib/supabase/server"
 
+// 分類為兩層結構：以自我關聯取出父分類名稱，外鍵別名必須寫成 parent:parent_id
+export const CATEGORY_WITH_PARENT_SELECT = "category:categories(name, parent:parent_id(name))"
+
+export type CategoryRelation = { name: string; parent: { name: string } | null } | null
+
 export type CategoryOption = {
   id: string
   name: string

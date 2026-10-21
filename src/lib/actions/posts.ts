@@ -1,6 +1,6 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
+import { revalidatePath, updateTag } from "next/cache"
 import { redirect } from "next/navigation"
 import { z } from "zod"
 
@@ -12,6 +12,7 @@ import {
   type ActionState,
 } from "@/lib/actions/action-state"
 import { requireAdmin } from "@/lib/auth/session"
+import { CACHE_TAG } from "@/lib/cache-tags"
 import { CONTENT_STATUS } from "@/lib/constants/content"
 import { ContentValidationError, renderPostContent } from "@/lib/content/render-post"
 import { createClient } from "@/lib/supabase/server"
@@ -52,6 +53,8 @@ function mapDatabaseError(error: DatabaseError): PostFormState {
 
 // 首頁、文章列表與文章內頁都可能顯示這篇文章，發布或修改後一併讓快取失效
 function revalidatePostPaths(slugs: string[]) {
+  // 前台資料以 "use cache" 快取，需以標籤失效才能讓首頁、列表與 sitemap 立即反映變更
+  updateTag(CACHE_TAG.POSTS)
   revalidatePath(ROUTES.HOME)
   revalidatePath(ROUTES.POSTS)
   revalidatePath(ROUTES.ADMIN_POSTS)
