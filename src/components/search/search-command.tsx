@@ -6,6 +6,7 @@ import { SearchIcon } from "lucide-react"
 
 import { SearchPanel } from "@/components/search/search-panel"
 import { Button } from "@/components/ui/button"
+import { DialogOverlay } from "@/components/ui/dialog"
 import { preloadSearchIndex } from "@/hooks/use-search-index"
 import { useShortcutModifier } from "@/hooks/use-shortcut-modifier"
 
@@ -59,7 +60,7 @@ export function SearchCommand() {
         </Button>
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
+        <DialogOverlay />
         <Dialog.Content
           aria-describedby={undefined}
           className="fixed top-[12svh] left-1/2 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-2xl border bg-popover text-popover-foreground shadow-2xl data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"

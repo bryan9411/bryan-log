@@ -12,6 +12,7 @@ export const ROUTES = {
   ADMIN_POSTS: "/admin/posts",
   ADMIN_POST_NEW: "/admin/posts/new",
   ADMIN_PROJECTS: "/admin/projects",
+  ADMIN_CATEGORIES: "/admin/categories",
   ADMIN_STORAGE: "/admin/storage",
 } as const
 

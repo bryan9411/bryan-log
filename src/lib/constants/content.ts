@@ -29,3 +29,26 @@ export const CATEGORY_TYPE_LABEL: Record<CategoryType, string> = {
   [CATEGORY_TYPE.POST]: "技術文章",
   [CATEGORY_TYPE.PROJECT]: "精選專案",
 }
+
+// 後台分類管理的頁籤名稱與關聯內容單位，例如「已有 4 篇文章」
+export const CATEGORY_TAB_LABEL: Record<CategoryType, string> = {
+  [CATEGORY_TYPE.POST]: "技術文章分類",
+  [CATEGORY_TYPE.PROJECT]: "作品集分類",
+}
+
+export const CATEGORY_CONTENT_UNIT: Record<CategoryType, string> = {
+  [CATEGORY_TYPE.POST]: "篇文章",
+  [CATEGORY_TYPE.PROJECT]: "個作品",
+}
+
+export const CATEGORY_CONTENT_NOUN: Record<CategoryType, string> = {
+  [CATEGORY_TYPE.POST]: "文章",
+  [CATEGORY_TYPE.PROJECT]: "作品",
+}
+
+// 例如「已有 4 篇文章」、「尚無作品」
+export function formatCategoryContentCount(type: CategoryType, count: number) {
+  return count > 0
+    ? `已有 ${count} ${CATEGORY_CONTENT_UNIT[type]}`
+    : `尚無${CATEGORY_CONTENT_NOUN[type]}`
+}
