@@ -4,6 +4,7 @@ import { getAdminUser } from "@/lib/auth/session"
 import { createClient } from "@/lib/supabase/server"
 import { MAX_UPLOAD_BYTES, STORAGE_BUCKET, storageFolderSchema } from "@/lib/storage/constants"
 import { buildObjectPath } from "@/lib/storage/paths"
+import type { UploadResponse } from "@/lib/storage/types"
 import { validateImageFile } from "@/lib/storage/validation"
 
 const HTTP_STATUS = {
@@ -16,8 +17,6 @@ const HTTP_STATUS = {
 
 // multipart 表單會帶有邊界字串等額外內容，預留少量緩衝避免誤判
 const MULTIPART_OVERHEAD_BYTES = 64 * 1024
-
-export type UploadResponse = { url: string; path: string } | { error: string }
 
 const errorResponse = (error: string, status: number) =>
   NextResponse.json<UploadResponse>({ error }, { status })

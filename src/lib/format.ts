@@ -22,3 +22,24 @@ const dateTimeFormatter = new Intl.DateTimeFormat("zh-TW", {
 export function formatDateTime(value: string | Date) {
   return dateTimeFormatter.format(new Date(value))
 }
+
+const relativeTimeFormatter = new Intl.RelativeTimeFormat("zh-TW", { numeric: "auto" })
+
+const RELATIVE_TIME_UNITS: Array<{ unit: Intl.RelativeTimeFormatUnit; seconds: number }> = [
+  { unit: "year", seconds: 365 * 24 * 60 * 60 },
+  { unit: "month", seconds: 30 * 24 * 60 * 60 },
+  { unit: "day", seconds: 24 * 60 * 60 },
+  { unit: "hour", seconds: 60 * 60 },
+  { unit: "minute", seconds: 60 },
+  { unit: "second", seconds: 1 },
+]
+
+// 例如「5 秒前」、「3 天前」、「昨天」；now 由呼叫端傳入，方便在伺服器與客戶端控制取值時機
+export function formatRelativeTime(value: string | number | Date, now: number) {
+  const elapsedSeconds = Math.round((new Date(value).getTime() - now) / 1000)
+  const { unit, seconds } =
+    RELATIVE_TIME_UNITS.find((item) => Math.abs(elapsedSeconds) >= item.seconds) ??
+    RELATIVE_TIME_UNITS[RELATIVE_TIME_UNITS.length - 1]
+
+  return relativeTimeFormatter.format(Math.trunc(elapsedSeconds / seconds), unit)
+}

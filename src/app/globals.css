@@ -2,6 +2,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+@plugin "@tailwindcss/typography";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -84,6 +86,68 @@
 @utility content-auto {
   content-visibility: auto;
   contain-intrinsic-size: auto 800px;
+}
+
+/* =============================================================================
+ * 程式碼區塊：前台（存檔時由伺服器預先高亮）與編輯器（即時高亮）共用同一套樣式
+ * Shiki 以 --shiki-light / --shiki-dark 輸出雙主題色彩，依目前主題切換
+ * ========================================================================== */
+@layer components {
+  .code-block {
+    @apply my-6 overflow-hidden rounded-xl border bg-muted/40;
+  }
+
+  .code-block-header {
+    @apply flex items-center justify-between gap-2 border-b px-3 py-1.5 select-none;
+  }
+
+  .code-block pre {
+    @apply m-0 overflow-x-auto rounded-none bg-transparent px-4 py-3 font-mono text-[0.85rem] leading-relaxed;
+    tab-size: 2;
+  }
+
+  .code-block pre code {
+    @apply bg-transparent p-0 font-mono text-inherit;
+  }
+
+  .code-block pre code::before,
+  .code-block pre code::after {
+    content: none;
+  }
+
+  .shiki,
+  .shiki span {
+    color: var(--shiki-light);
+  }
+
+  .dark .shiki,
+  .dark .shiki span {
+    color: var(--shiki-dark);
+  }
+
+  /* 編輯器內容區 */
+  .tiptap-content {
+    @apply min-h-80 outline-none;
+  }
+
+  .tiptap-content p.is-editor-empty:first-child::before {
+    @apply pointer-events-none float-left h-0 text-muted-foreground;
+    content: attr(data-placeholder);
+  }
+
+  .tiptap-content img {
+    @apply rounded-lg border;
+  }
+
+  .tiptap-content img.ProseMirror-selectednode {
+    @apply ring-2 ring-ring;
+  }
+
+  /* 長文區塊：視窗外的段落略過排版與繪製 */
+  .article-content > * {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 120px;
+  }
 }
 
 @layer base {

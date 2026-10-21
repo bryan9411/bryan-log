@@ -5,6 +5,7 @@ import { writeFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 
 import { CATEGORY_TYPE, CONTENT_STATUS } from "../../src/lib/constants/content.ts"
+import { estimateReadingMinutes } from "../../src/lib/content/reading-time.ts"
 import type { CategoryType } from "../../src/lib/constants/content.ts"
 import { postCategories, posts, projectCategories, projects } from "./data.ts"
 import { BLOCK_TYPE } from "./types.ts"
@@ -15,7 +16,6 @@ const OUTPUT_PATH = fileURLToPath(new URL("../../supabase/seed.sql", import.meta
 const FIRST_PUBLISHED_AT = Date.UTC(2026, 0, 8, 1, 0, 0)
 const PUBLISH_INTERVAL_DAYS = 14
 const DAY_IN_MS = 24 * 60 * 60 * 1000
-const CHARACTERS_PER_MINUTE = 350
 
 const TIPTAP_NODE = {
   DOC: "doc",
@@ -156,9 +156,9 @@ function blockTextLength(block: SeedBlock) {
   return block.text.length
 }
 
-function estimateReadingMinutes(blocks: SeedBlock[]) {
+function blocksReadingMinutes(blocks: SeedBlock[]) {
   const totalLength = blocks.reduce((sum, block) => sum + blockTextLength(block), 0)
-  return Math.max(1, Math.ceil(totalLength / CHARACTERS_PER_MINUTE))
+  return estimateReadingMinutes(totalLength)
 }
 
 function buildPublishedAt(index: number) {
@@ -229,7 +229,7 @@ function postsSql() {
       `    ${sqlString(JSON.stringify(blocksToJson(post.blocks)))}::jsonb,`,
       `    ${sqlString(blocksToHtml(post.blocks))},`,
       `    '${post.status}',`,
-      `    ${estimateReadingMinutes(post.blocks)},`,
+      `    ${blocksReadingMinutes(post.blocks)},`,
       `    ${isPublished ? buildViewCount(index) : 0},`,
       `    ${publishedAt ? `${sqlString(publishedAt)}::timestamptz` : "null"}`,
       "  )",
