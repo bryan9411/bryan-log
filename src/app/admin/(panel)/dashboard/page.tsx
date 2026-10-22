@@ -10,9 +10,11 @@ import {
   StorageUsageCard,
   TopPostsCard,
 } from "@/components/admin/dashboard/dashboard-charts"
+import { WebVitalsCard } from "@/components/admin/dashboard/web-vitals-card"
 import { StatCard, StatCardSkeleton } from "@/components/admin/stat-card"
 import { ADMIN_NAV_ITEMS } from "@/config/admin-nav"
 import { ROUTES } from "@/config/routes"
+import { WEB_VITALS_SEARCH_PARAM, webVitalsFilterSchema } from "@/lib/constants/web-vitals"
 import { getContentStats } from "@/lib/data/admin-stats"
 
 export const metadata: Metadata = {
@@ -44,7 +46,20 @@ async function ContentStatsGrid() {
   )
 }
 
-export default function AdminDashboardPage() {
+type DashboardSearchParams = PageProps<"/admin/dashboard">["searchParams"]
+
+// 篩選條件來自網址查詢參數，需在請求時讀取，因此與其他區塊一樣包在 Suspense 內串流
+async function WebVitalsSection({ searchParams }: { searchParams: DashboardSearchParams }) {
+  const params = await searchParams
+  const filter = webVitalsFilterSchema.parse({
+    range: params[WEB_VITALS_SEARCH_PARAM.RANGE],
+    device: params[WEB_VITALS_SEARCH_PARAM.DEVICE],
+  })
+
+  return <WebVitalsCard filter={filter} />
+}
+
+export default function AdminDashboardPage({ searchParams }: PageProps<"/admin/dashboard">) {
   const quickLinks = ADMIN_NAV_ITEMS.filter((item) => QUICK_LINK_DESCRIPTION[item.href])
 
   const renderStatsSkeleton = () =>
@@ -102,6 +117,11 @@ export default function AdminDashboardPage() {
             <StorageUsageCard />
           </Suspense>
         </div>
+      </section>
+      <section aria-label="效能監控">
+        <Suspense fallback={<ChartCardSkeleton className="h-[40rem]" />}>
+          <WebVitalsSection searchParams={searchParams} />
+        </Suspense>
       </section>
       <section className="grid gap-4 md:grid-cols-2" aria-label="分類占比">
         <Suspense fallback={renderCategorySkeleton()}>

@@ -2,6 +2,12 @@ import type { Route } from "next"
 
 import { CATEGORY_SEARCH_PARAM } from "@/lib/content/category-filter"
 import {
+  WEB_VITALS_DEVICE_FILTER,
+  WEB_VITALS_RANGE,
+  WEB_VITALS_SEARCH_PARAM,
+  type WebVitalsFilter,
+} from "@/lib/constants/web-vitals"
+import {
   buildAdminPostListQuery,
   type AdminPostListParams,
 } from "@/lib/validations/admin-post-list"
@@ -34,6 +40,7 @@ export const API_ROUTES = {
   PREVIEW_ENABLE: `${API_ROOT}/preview`,
   PREVIEW_DISABLE: `${API_ROOT}/preview/disable`,
   POSTS_EXPORT: `${API_ROOT}/admin/export/posts`,
+  WEB_VITALS: `${API_ROOT}/vitals`,
 } as const
 
 export const REDIRECT_PARAM = "next"
@@ -62,6 +69,16 @@ export function disablePreviewRoute(id: string) {
 export function adminPostListRoute(params: AdminPostListParams): Route {
   const query = buildAdminPostListQuery(params)
   return (query ? `${ROUTES.ADMIN_POSTS}?${query}` : ROUTES.ADMIN_POSTS) as Route
+}
+
+// 儀表板效能監控的時間範圍與裝置篩選；預設值不寫進網址，保持網址簡潔
+export function adminDashboardVitalsRoute({ range, device }: WebVitalsFilter): Route {
+  const query = new URLSearchParams()
+  if (range !== WEB_VITALS_RANGE.MONTH) query.set(WEB_VITALS_SEARCH_PARAM.RANGE, range)
+  if (device !== WEB_VITALS_DEVICE_FILTER.ALL) query.set(WEB_VITALS_SEARCH_PARAM.DEVICE, device)
+
+  const search = query.toString()
+  return (search ? `${ROUTES.ADMIN_DASHBOARD}?${search}` : ROUTES.ADMIN_DASHBOARD) as Route
 }
 
 export function adminEditPostRoute(id: string): Route {

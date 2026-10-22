@@ -5,6 +5,7 @@
 --   1. 所有資料表啟用 RLS，匿名訪客僅能讀取「已發布」內容
 --   2. 寫入（INSERT / UPDATE / DELETE）僅限已認證用戶（管理員帳號由後台手動建立，請關閉公開註冊）
 --   3. 瀏覽數透過 SECURITY DEFINER 函式遞增，匿名訪客無需任何 UPDATE 權限
+--   4. 效能指標（web_vitals）匿名僅能經由 record_web_vitals 寫入，讀取限已認證用戶
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -376,3 +377,152 @@ drop policy if exists "media_delete_authenticated" on storage.objects;
 create policy "media_delete_authenticated" on storage.objects
   for delete to authenticated
   using (bucket_id = 'media');
+
+-- =============================================================================
+-- web_vitals：前台真實訪客的 Core Web Vitals 量測值，供後台儀表板彙總分析
+-- 寫入僅能透過 record_web_vitals（SECURITY DEFINER），匿名角色對資料表沒有任何權限；
+-- 讀取與彙總限已認證用戶。以 if not exists / or replace 撰寫，既有資料庫可直接重複執行本檔完成升級
+-- =============================================================================
+create table if not exists public.web_vitals (
+  id bigint generated always as identity primary key,
+  metric text not null check (metric in ('LCP', 'INP', 'CLS', 'FCP', 'TTFB')),
+  value double precision not null check (value >= 0 and value <= 600000),
+  rating text not null check (rating in ('good', 'needs-improvement', 'poor')),
+  path text not null check (char_length(path) between 1 and 200 and path like '/%'),
+  device text not null check (device in ('mobile', 'desktop')),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists web_vitals_created_at_idx on public.web_vitals (created_at desc);
+create index if not exists web_vitals_metric_created_at_idx
+  on public.web_vitals (metric, created_at desc);
+
+alter table public.web_vitals enable row level security;
+
+revoke all on public.web_vitals from anon;
+grant select, delete on public.web_vitals to authenticated;
+
+drop policy if exists "web_vitals_select_authenticated" on public.web_vitals;
+create policy "web_vitals_select_authenticated" on public.web_vitals
+  for select to authenticated
+  using (true);
+
+drop policy if exists "web_vitals_delete_authenticated" on public.web_vitals;
+create policy "web_vitals_delete_authenticated" on public.web_vitals
+  for delete to authenticated
+  using (true);
+
+-- 一次寫入同一頁面的多筆指標（最多 10 筆）；欄位格式由資料表 check 限制把關。
+-- 順帶刪除超過 90 天的舊資料，資料量維持在可控範圍（依 created_at 索引，無舊資料時幾乎不耗成本）
+create or replace function public.record_web_vitals(entries jsonb)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  insert into public.web_vitals (metric, value, rating, path, device)
+  select entry.metric, entry.value, entry.rating, entry.path, entry.device
+  from jsonb_to_recordset(entries) as entry (
+    metric text,
+    value double precision,
+    rating text,
+    path text,
+    device text
+  )
+  limit 10;
+
+  delete from public.web_vitals where created_at < now() - interval '90 days';
+$$;
+
+revoke all on function public.record_web_vitals(jsonb) from public;
+grant execute on function public.record_web_vitals(jsonb) to anon, authenticated;
+
+-- 以下彙總函式以呼叫者身分執行（SECURITY INVOKER），受上方 RLS 限制，只有已認證用戶讀得到資料
+-- device_filter 為 null 時不分裝置
+
+-- 各指標的第 75 百分位數（Google 評估 Core Web Vitals 的基準）與評級分布
+create or replace function public.get_web_vitals_summary(since timestamptz, device_filter text default null)
+returns table (
+  metric text,
+  p75 double precision,
+  samples bigint,
+  good bigint,
+  needs_improvement bigint,
+  poor bigint
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select
+    vitals.metric,
+    percentile_cont(0.75) within group (order by vitals.value),
+    count(*),
+    count(*) filter (where vitals.rating = 'good'),
+    count(*) filter (where vitals.rating = 'needs-improvement'),
+    count(*) filter (where vitals.rating = 'poor')
+  from public.web_vitals as vitals
+  where vitals.created_at >= since
+    and (device_filter is null or vitals.device = device_filter)
+  group by vitals.metric;
+$$;
+
+-- 每日（台北時間）各指標的 p75，供趨勢圖使用
+create or replace function public.get_web_vitals_daily(since timestamptz, device_filter text default null)
+returns table (day date, metric text, p75 double precision, samples bigint)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select
+    (vitals.created_at at time zone 'Asia/Taipei')::date as day,
+    vitals.metric,
+    percentile_cont(0.75) within group (order by vitals.value),
+    count(*)
+  from public.web_vitals as vitals
+  where vitals.created_at >= since
+    and (device_filter is null or vitals.device = device_filter)
+  group by day, vitals.metric
+  order by day;
+$$;
+
+-- 各頁面的三項核心指標 p75；以 TTFB 筆數代表載入次數（每次完整載入必定回報），依流量排序
+create or replace function public.get_web_vitals_pages(
+  since timestamptz,
+  device_filter text default null,
+  page_limit integer default 10
+)
+returns table (
+  path text,
+  page_loads bigint,
+  lcp_p75 double precision,
+  inp_p75 double precision,
+  cls_p75 double precision
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select
+    vitals.path,
+    count(*) filter (where vitals.metric = 'TTFB') as page_loads,
+    percentile_cont(0.75) within group (order by vitals.value) filter (where vitals.metric = 'LCP'),
+    percentile_cont(0.75) within group (order by vitals.value) filter (where vitals.metric = 'INP'),
+    percentile_cont(0.75) within group (order by vitals.value) filter (where vitals.metric = 'CLS')
+  from public.web_vitals as vitals
+  where vitals.created_at >= since
+    and (device_filter is null or vitals.device = device_filter)
+  group by vitals.path
+  order by page_loads desc, vitals.path
+  limit least(greatest(page_limit, 1), 50);
+$$;
+
+revoke all on function public.get_web_vitals_summary(timestamptz, text) from public;
+revoke all on function public.get_web_vitals_daily(timestamptz, text) from public;
+revoke all on function public.get_web_vitals_pages(timestamptz, text, integer) from public;
+grant execute on function public.get_web_vitals_summary(timestamptz, text) to authenticated;
+grant execute on function public.get_web_vitals_daily(timestamptz, text) to authenticated;
+grant execute on function public.get_web_vitals_pages(timestamptz, text, integer) to authenticated;

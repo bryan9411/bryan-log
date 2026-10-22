@@ -129,12 +129,63 @@ export type Database = {
           },
         ]
       }
+      web_vitals: {
+        Row: {
+          id: number
+          metric: string
+          value: number
+          rating: string
+          path: string
+          device: string
+          created_at: string
+        }
+        Insert: {
+          id?: never
+          metric: string
+          value: number
+          rating: string
+          path: string
+          device: string
+          created_at?: string
+        }
+        Update: Partial<Database["public"]["Tables"]["web_vitals"]["Insert"]>
+        Relationships: []
+      }
     }
     Views: Record<never, never>
     Functions: {
       increment_post_view: {
         Args: { target_slug: string }
         Returns: undefined
+      }
+      record_web_vitals: {
+        Args: { entries: Json }
+        Returns: undefined
+      }
+      get_web_vitals_summary: {
+        Args: { since: string; device_filter?: string | null }
+        Returns: Array<{
+          metric: string
+          p75: number
+          samples: number
+          good: number
+          needs_improvement: number
+          poor: number
+        }>
+      }
+      get_web_vitals_daily: {
+        Args: { since: string; device_filter?: string | null }
+        Returns: Array<{ day: string; metric: string; p75: number; samples: number }>
+      }
+      get_web_vitals_pages: {
+        Args: { since: string; device_filter?: string | null; page_limit?: number }
+        Returns: Array<{
+          path: string
+          page_loads: number
+          lcp_p75: number | null
+          inp_p75: number | null
+          cls_p75: number | null
+        }>
       }
     }
     Enums: {

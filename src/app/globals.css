@@ -39,6 +39,9 @@
   --color-chart-7: var(--chart-7);
   --color-chart-8: var(--chart-8);
   --color-chart-muted: var(--chart-muted);
+  --color-status-good: var(--status-good);
+  --color-status-warning: var(--status-warning);
+  --color-status-critical: var(--status-critical);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -78,6 +81,10 @@
   --chart-8: #e34948;
   /* 圖表中「其他／未分類」等非實體類別使用的中性色 */
   --chart-muted: #b3b2ab;
+  /* 狀態色：良好／警告／嚴重，淺色與深色模式共用，不隨主題變化；永遠搭配圖示與文字，不單靠顏色傳達 */
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-critical: #d03b3b;
 }
 
 /* 深色模式：Zinc 950 深底 */

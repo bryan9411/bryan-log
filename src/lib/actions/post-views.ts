@@ -3,6 +3,7 @@
 import { headers } from "next/headers"
 import { z } from "zod"
 
+import { getClientIp } from "@/lib/client-ip"
 import { VIEW_COOLDOWN_MS } from "@/lib/constants/post-views"
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from "@/lib/content/slug"
 import { createRateLimiter } from "@/lib/rate-limit"
@@ -29,16 +30,9 @@ const articleLimiter = createRateLimiter({
   maxKeys: MAX_TRACKED_KEYS,
 })
 
-// 部署平台的反向代理會寫入 x-forwarded-for，第一個位址為實際用戶端
-async function getClientIp() {
-  const requestHeaders = await headers()
-  const forwardedFor = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim()
-  return forwardedFor || requestHeaders.get("x-real-ip")?.trim() || null
-}
-
 // 無法辨識來源時不做 IP 限制，避免所有用戶共用同一個計數而被誤擋，此時仍有瀏覽器端冷卻
 async function isViewAllowed(slug: string) {
-  const ip = await getClientIp()
+  const ip = getClientIp(await headers())
   if (!ip) return true
 
   return burstLimiter(ip) && articleLimiter(`${ip}:${slug}`)
