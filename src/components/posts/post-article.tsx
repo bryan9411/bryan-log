@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 
 import { BackLink } from "@/components/content/back-link"
 import { CodeBlockInteractions } from "@/components/content/code-block-interactions"
+import { ImageLightbox } from "@/components/content/image-lightbox"
 import { CoverImage } from "@/components/content/cover-image"
 import { RichContent } from "@/components/content/rich-content"
 import { PostMeta } from "@/components/posts/post-meta"
@@ -81,6 +82,7 @@ export function PostArticle({ post, metaExtra, footer }: PostArticleProps) {
         {maybeRenderDrawerToc()}
         <RichContent html={post.html} className="border-t border-border/60 pt-8" />
         <CodeBlockInteractions />
+        <ImageLightbox />
         {maybeRenderFooter()}
       </article>
       {maybeRenderSidebarToc()}

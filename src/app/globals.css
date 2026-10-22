@@ -287,6 +287,43 @@ body.dark:has(.site-theme) {
     content: counter(code-line);
   }
 
+  /* 長程式碼折疊：只顯示前段並以遮罩淡出，底部按鈕展開全部；複製仍會取得完整程式碼 */
+  .code-block {
+    --code-collapsed-lines: 15;
+  }
+
+  .code-block[data-collapsed] pre {
+    @apply overflow-y-hidden;
+    /* 1lh 為 <pre> 本身的行高，可見行數不受字級調整影響；另加上方內距 */
+    max-height: calc(var(--code-collapsed-lines) * 1lh + 0.75rem);
+    mask-image: linear-gradient(to bottom, #000 60%, transparent);
+  }
+
+  .code-block-fold {
+    @apply border-t;
+  }
+
+  .code-block-fold-button {
+    @apply flex w-full cursor-pointer items-center justify-center gap-1.5 py-2 text-xs font-medium text-muted-foreground transition-colors outline-none select-none hover:bg-foreground/5 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset;
+  }
+
+  .code-block-fold-icon {
+    @apply transition-transform;
+  }
+
+  .code-block-fold-button[aria-expanded="true"] .code-block-fold-icon {
+    @apply rotate-180;
+  }
+
+  /* 文章圖片燈箱的觸發按鈕：保留圖片原本的排版，只加上放大游標與鍵盤焦點外框 */
+  .article-image-zoom {
+    @apply block w-fit max-w-full cursor-zoom-in rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+
+  .article-image-zoom img {
+    @apply transition-opacity hover:opacity-90;
+  }
+
   /* 長文區塊：視窗外的段落略過排版與繪製 */
   .article-content > * {
     content-visibility: auto;
@@ -308,6 +345,18 @@ body.dark:has(.site-theme) {
 @media (prefers-reduced-motion: reduce) {
   .code-block-button[data-copied] .code-block-icon-check {
     animation: none;
+  }
+}
+
+/* 列印時一律完整呈現程式碼，並隱藏只在螢幕上有意義的折疊按鈕 */
+@media print {
+  .code-block[data-collapsed] pre {
+    max-height: none;
+    mask-image: none;
+  }
+
+  .code-block-fold {
+    display: none;
   }
 }
 

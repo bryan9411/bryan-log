@@ -6,17 +6,39 @@ import { toast } from "sonner"
 import {
   CODE_BLOCK_ACTION,
   CODE_BLOCK_ACTION_ATTR,
+  CODE_BLOCK_COLLAPSED_ATTR,
   CODE_BLOCK_COPIED_ATTR,
+  CODE_BLOCK_FOLD_LABEL,
   CODE_BLOCK_LINE_NUMBERS_ATTR,
 } from "@/lib/content/code-block"
 
 const COPIED_RESET_MS = 2000
 const CODE_BLOCK_SELECTOR = ".code-block"
 const ACTION_SELECTOR = `[${CODE_BLOCK_ACTION_ATTR}]`
+const FOLD_LABEL_SELECTOR = ".code-block-fold-label"
+// 收合時若區塊頂端已捲出視窗，捲回區塊開頭，讀者才不會停在一片空白處；保留頁首高度的空間
+const STICKY_HEADER_OFFSET = 80
 
 function toggleLineNumbers(block: HTMLElement, button: HTMLElement) {
   const isVisible = block.toggleAttribute(CODE_BLOCK_LINE_NUMBERS_ATTR)
   button.setAttribute("aria-pressed", String(isVisible))
+}
+
+function toggleCollapse(block: HTMLElement, button: HTMLElement) {
+  const isCollapsed = block.toggleAttribute(CODE_BLOCK_COLLAPSED_ATTR)
+  const lineCount = Number(button.dataset.lineCount)
+
+  button.setAttribute("aria-expanded", String(!isCollapsed))
+  const label = button.querySelector(FOLD_LABEL_SELECTOR)
+  if (label) {
+    label.textContent = isCollapsed
+      ? CODE_BLOCK_FOLD_LABEL.expand(lineCount)
+      : CODE_BLOCK_FOLD_LABEL.collapse
+  }
+
+  if (isCollapsed && block.getBoundingClientRect().top < STICKY_HEADER_OFFSET) {
+    window.scrollBy({ top: block.getBoundingClientRect().top - STICKY_HEADER_OFFSET })
+  }
 }
 
 // 複製 <pre> 的純文字：行號由 CSS 計數器產生，不會出現在複製結果中
@@ -57,6 +79,9 @@ export function CodeBlockInteractions() {
           break
         case CODE_BLOCK_ACTION.TOGGLE_LINE_NUMBERS:
           toggleLineNumbers(block, button)
+          break
+        case CODE_BLOCK_ACTION.TOGGLE_COLLAPSE:
+          toggleCollapse(block, button)
           break
       }
     }
