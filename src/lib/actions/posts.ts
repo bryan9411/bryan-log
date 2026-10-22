@@ -58,6 +58,7 @@ function revalidatePostPaths(slugs: string[]) {
   updateTag(CACHE_TAG.POSTS)
   revalidatePath(ROUTES.HOME)
   revalidatePath(ROUTES.POSTS)
+  revalidatePath(ROUTES.ARCHIVES)
   revalidatePath(ROUTES.ADMIN_POSTS)
   revalidatePath(ROUTES.ADMIN_DASHBOARD)
   revalidatePath(ROUTES.LLMS_TXT)

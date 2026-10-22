@@ -78,6 +78,7 @@ export const REVALIDATE_PRESETS: RevalidatePreset[] = [
     path: "/posts/[slug]",
     type: REVALIDATE_TYPE.PAGE,
   },
+  { label: "文章歸檔", description: "/archives", path: "/archives", type: REVALIDATE_TYPE.AUTO },
   { label: "作品集列表", description: "/projects", path: "/projects", type: REVALIDATE_TYPE.AUTO },
   {
     label: "所有作品內頁",

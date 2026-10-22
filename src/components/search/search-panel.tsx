@@ -1,10 +1,19 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useEffect, useId, useState } from "react"
-import { CornerDownLeftIcon, FileTextIcon, Loader2Icon, SearchIcon } from "lucide-react"
+import { useEffect, useId, useRef, useState } from "react"
+import {
+  CornerDownLeftIcon,
+  FileTextIcon,
+  HashIcon,
+  HistoryIcon,
+  Loader2Icon,
+  SearchIcon,
+  XIcon,
+} from "lucide-react"
 
 import { postDetailPath } from "@/config/routes"
+import { useRecentSearches } from "@/hooks/use-recent-searches"
 import { SEARCH_INDEX_STATUS, useSearchIndex } from "@/hooks/use-search-index"
 import { searchEntries, type HighlightRange } from "@/lib/search/fuzzy-search"
 import type { SearchEntry } from "@/lib/search/types"
@@ -46,11 +55,15 @@ function renderHighlightedTitle(title: string, highlights: HighlightRange[]) {
 export function SearchPanel({ onNavigate }: SearchPanelProps) {
   const router = useRouter()
   const index = useSearchIndex()
+  const { searches: recentSearches, addSearch, removeSearch, clearSearches } = useRecentSearches()
+  const inputRef = useRef<HTMLInputElement>(null)
   const [query, setQuery] = useState("")
   const [activeIndex, setActiveIndex] = useState(0)
   const listboxId = useId()
 
-  const entries = index.status === SEARCH_INDEX_STATUS.READY ? index.entries : []
+  const isReady = index.status === SEARCH_INDEX_STATUS.READY
+  const entries = isReady ? index.entries : []
+  const popularTags = isReady ? index.popularTags : []
   const hasQuery = query.trim().length > 0
   const results = hasQuery
     ? searchEntries(entries, query).slice(0, MAX_RESULTS)
@@ -64,7 +77,20 @@ export function SearchPanel({ onNavigate }: SearchPanelProps) {
     if (activeSlug) router.prefetch(postDetailPath(activeSlug))
   }, [activeSlug, router])
 
+  const changeQuery = (value: string) => {
+    setQuery(value)
+    setActiveIndex(0)
+  }
+
+  // 點選熱門標籤或最近搜尋後把焦點還給輸入框，可直接用方向鍵與 Enter 開啟結果
+  const applyKeyword = (keyword: string) => {
+    changeQuery(keyword)
+    inputRef.current?.focus()
+  }
+
+  // 只有實際開啟文章的搜尋才記錄，避免把打到一半的字也存成紀錄
   const openEntry = (entry: SearchEntry) => {
+    if (hasQuery) addSearch(query)
     onNavigate()
     router.push(postDetailPath(entry.slug))
   }
@@ -100,6 +126,92 @@ export function SearchPanel({ onNavigate }: SearchPanelProps) {
       {message}
     </p>
   )
+
+  const renderSectionLabel = (label: string) => (
+    <p className="text-xs font-medium text-muted-foreground">{label}</p>
+  )
+
+  const maybeRenderRecentSearches = () => {
+    if (recentSearches.length === 0) return null
+
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          {renderSectionLabel("最近搜尋")}
+          <button
+            type="button"
+            onClick={clearSearches}
+            className="rounded text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            清除紀錄
+          </button>
+        </div>
+        <ul className="flex flex-wrap gap-1.5">
+          {recentSearches.map((keyword) => (
+            <li
+              key={keyword}
+              className="flex items-center rounded-full border bg-background text-sm transition-colors hover:border-ring/60"
+            >
+              <button
+                type="button"
+                onClick={() => applyKeyword(keyword)}
+                className="flex items-center gap-1.5 rounded-full py-1 pr-1 pl-2.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              >
+                <HistoryIcon className="size-3.5 text-muted-foreground" aria-hidden />
+                {keyword}
+              </button>
+              <button
+                type="button"
+                aria-label={`移除搜尋紀錄「${keyword}」`}
+                title="移除"
+                onClick={() => removeSearch(keyword)}
+                className="mr-1 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              >
+                <XIcon className="size-3" aria-hidden />
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+
+  const maybeRenderPopularTags = () => {
+    if (popularTags.length === 0) return null
+
+    return (
+      <div className="flex flex-col gap-2">
+        {renderSectionLabel("熱門標籤")}
+        <ul className="flex flex-wrap gap-1.5">
+          {popularTags.map((tag) => (
+            <li key={tag}>
+              <button
+                type="button"
+                onClick={() => applyKeyword(tag)}
+                className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-sm transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              >
+                <HashIcon className="size-3.5 text-muted-foreground" aria-hidden />
+                {tag}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+
+  // 尚未輸入關鍵字時，在最新文章上方提供可快速點選的關鍵字
+  const maybeRenderQuickPicks = () => {
+    if (hasQuery || !isReady) return null
+    if (recentSearches.length === 0 && popularTags.length === 0) return null
+
+    return (
+      <div className="flex flex-col gap-4 border-b px-4 py-4">
+        {maybeRenderRecentSearches()}
+        {maybeRenderPopularTags()}
+      </div>
+    )
+  }
 
   const renderResults = () => {
     if (index.status === SEARCH_INDEX_STATUS.LOADING) return renderStatus("載入文章索引中⋯⋯", true)
@@ -158,6 +270,7 @@ export function SearchPanel({ onNavigate }: SearchPanelProps) {
       <div className="flex items-center gap-3 border-b px-4">
         <SearchIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         <input
+          ref={inputRef}
           type="search"
           role="combobox"
           aria-expanded
@@ -169,15 +282,15 @@ export function SearchPanel({ onNavigate }: SearchPanelProps) {
           autoComplete="off"
           spellCheck={false}
           value={query}
-          onChange={(event) => {
-            setQuery(event.target.value)
-            setActiveIndex(0)
-          }}
+          onChange={(event) => changeQuery(event.target.value)}
           onKeyDown={handleKeyDown}
           className="h-14 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
         />
       </div>
-      <div className="flex-1 overflow-y-auto overscroll-contain">{renderResults()}</div>
+      <div className="flex-1 overflow-y-auto overscroll-contain">
+        {maybeRenderQuickPicks()}
+        {renderResults()}
+      </div>
       <div className="flex items-center gap-4 border-t px-4 py-2.5 text-xs text-muted-foreground">
         <span>
           <kbd className="font-sans">↑</kbd> <kbd className="font-sans">↓</kbd> 選擇

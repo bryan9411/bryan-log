@@ -10,6 +10,7 @@ export const ROUTES = {
   HOME: "/",
   POSTS: "/posts",
   PROJECTS: "/projects",
+  ARCHIVES: "/archives",
   ADMIN: "/admin",
   ADMIN_LOGIN: "/admin/login",
   ADMIN_DASHBOARD: "/admin/dashboard",

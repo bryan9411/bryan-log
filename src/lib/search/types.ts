@@ -8,4 +8,6 @@ export type SearchEntry = {
 
 export type SearchIndexResponse = {
   entries: SearchEntry[]
+  // 文章數最多的分類名稱，作為搜尋面板的熱門標籤
+  popularTags: string[]
 }

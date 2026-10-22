@@ -110,7 +110,11 @@ export function TableOfContents({ items, variant }: TableOfContentsProps) {
             <span className="truncate">{activeText ?? "目錄"}</span>
           </button>
         </SheetTrigger>
-        <SheetContent side={SHEET_SIDE.BOTTOM} className="site-theme" onCloseAutoFocus={handleDrawerCloseAutoFocus}>
+        <SheetContent
+          side={SHEET_SIDE.BOTTOM}
+          className="site-theme"
+          onCloseAutoFocus={handleDrawerCloseAutoFocus}
+        >
           <SheetHeader>
             <SheetTitle>文章目錄</SheetTitle>
             <SheetDescription>點選章節即可跳轉</SheetDescription>

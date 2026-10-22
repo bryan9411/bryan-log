@@ -46,6 +46,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     toListEntry(ROUTES.POSTS, posts, 0.9),
     toListEntry(ROUTES.PROJECTS, projects, 0.8),
+    toListEntry(ROUTES.ARCHIVES, posts, 0.5),
     ...toDetailEntries(posts, postDetailPath, 0.7),
     ...toDetailEntries(projects, projectDetailPath, 0.6),
   ]

@@ -20,7 +20,7 @@ export function SiteHeader() {
             <SiteNavLinks />
           </nav>
           <SearchCommand />
-          <ThemeToggle />
+          <ThemeToggle contentClassName="site-theme" />
           <MobileNav />
         </div>
       </SiteContainer>

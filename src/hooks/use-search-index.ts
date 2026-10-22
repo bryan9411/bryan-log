@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 
 import { API_ROUTES } from "@/config/routes"
-import type { SearchEntry, SearchIndexResponse } from "@/lib/search/types"
+import type { SearchIndexResponse } from "@/lib/search/types"
 
 export const SEARCH_INDEX_STATUS = {
   LOADING: "loading",
@@ -13,11 +13,11 @@ export const SEARCH_INDEX_STATUS = {
 
 export type SearchIndexState =
   | { status: typeof SEARCH_INDEX_STATUS.LOADING }
-  | { status: typeof SEARCH_INDEX_STATUS.READY; entries: SearchEntry[] }
+  | ({ status: typeof SEARCH_INDEX_STATUS.READY } & SearchIndexResponse)
   | { status: typeof SEARCH_INDEX_STATUS.ERROR }
 
 // 同一頁面生命週期內只下載一次索引，之後再開啟搜尋面板會直接使用
-let indexPromise: Promise<SearchEntry[]> | null = null
+let indexPromise: Promise<SearchIndexResponse> | null = null
 
 function loadSearchIndex() {
   indexPromise ??= fetch(API_ROUTES.SEARCH_INDEX)
@@ -25,7 +25,6 @@ function loadSearchIndex() {
       if (!response.ok) throw new Error(`搜尋索引載入失敗：${response.status}`)
       return response.json() as Promise<SearchIndexResponse>
     })
-    .then(({ entries }) => entries)
     .catch((error: unknown) => {
       // 失敗時清除快取，下次開啟面板會重新嘗試
       indexPromise = null
@@ -43,7 +42,7 @@ export function useSearchIndex(): SearchIndexState {
     let isActive = true
 
     loadSearchIndex().then(
-      (entries) => isActive && setState({ status: SEARCH_INDEX_STATUS.READY, entries }),
+      (index) => isActive && setState({ status: SEARCH_INDEX_STATUS.READY, ...index }),
       () => isActive && setState({ status: SEARCH_INDEX_STATUS.ERROR }),
     )
 
