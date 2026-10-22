@@ -112,6 +112,65 @@
   --chart-muted: #5f5e5a;
 }
 
+/* =============================================================================
+ * 前台專屬風格：暖米色紙張質感（Warm Paper / Cream Editorial）
+ * 後台（/admin）保持原有的冷灰中性色，確保操作與圖表的機能精準度
+ * ========================================================================== */
+
+/* 前台淺色模式：暖米紙底、暖炭墨字、燕麥奶霜色次級區塊、米褐細邊線與陶土紅點綴 */
+.site-theme {
+  --background: #faf8f5;
+  --foreground: #241b18;
+  --card: #ffffff;
+  --card-foreground: #241b18;
+  --popover: #ffffff;
+  --popover-foreground: #241b18;
+  --primary: #241b18;
+  --primary-foreground: #faf8f5;
+  --secondary: #f4efe7;
+  --secondary-foreground: #241b18;
+  --muted: #f4efe7;
+  --muted-foreground: #71655c;
+  --accent: #f4efe7;
+  --accent-foreground: #241b18;
+  --border: #e2d8c9;
+  --input: #e2d8c9;
+  --ring: #c25b3f;
+}
+
+/* 前台深色模式：暖黑曜石／深縮濃咖啡底，保持全站一致的溫潤護眼氛圍 */
+.dark .site-theme,
+.site-theme.dark {
+  --background: #14110f;
+  --foreground: #f6f1e8;
+  --card: #1c1815;
+  --card-foreground: #f6f1e8;
+  --popover: #1c1815;
+  --popover-foreground: #f6f1e8;
+  --primary: #f6f1e8;
+  --primary-foreground: #14110f;
+  --secondary: #241f1c;
+  --secondary-foreground: #f6f1e8;
+  --muted: #241f1c;
+  --muted-foreground: #a99a8d;
+  --accent: #241f1c;
+  --accent-foreground: #f6f1e8;
+  --border: rgba(226, 216, 201, 0.14);
+  --input: rgba(226, 216, 201, 0.18);
+  --ring: #de9070;
+}
+
+/* 消除 Mac / 行動裝置在頂部或底部橡皮筋回彈捲動（Rubber-band scrolling）時露出後台冷灰底色 */
+html:has(.site-theme),
+body:has(.site-theme) {
+  background-color: #faf8f5;
+}
+
+html.dark:has(.site-theme),
+body.dark:has(.site-theme) {
+  background-color: #14110f;
+}
+
 /* 長文容器：略過視窗外區塊的排版與繪製，確保萬字長文順暢捲動 */
 @utility content-auto {
   content-visibility: auto;
