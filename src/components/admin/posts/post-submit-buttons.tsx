@@ -11,10 +11,16 @@ const INTENT_FIELD = "intent"
 type PostSubmitButtonsProps = {
   isPublished: boolean
   disabled?: boolean
+  // 按鈕文字中的內容名稱，例如「更新文章」、「更新作品」
+  noun?: string
 }
 
 // useFormStatus 的 data 可得知是哪個按鈕觸發送出，只在被點擊的按鈕上顯示載入狀態
-export function PostSubmitButtons({ isPublished, disabled }: PostSubmitButtonsProps) {
+export function PostSubmitButtons({
+  isPublished,
+  disabled,
+  noun = "文章",
+}: PostSubmitButtonsProps) {
   const { pending, data } = useFormStatus()
 
   const pendingIntent = pending ? (data?.get(INTENT_FIELD) as PostIntent | null) : null
@@ -59,7 +65,7 @@ export function PostSubmitButtons({ isPublished, disabled }: PostSubmitButtonsPr
       )}
       {renderButton(
         POST_INTENT.PUBLISH,
-        isPublished ? "更新文章" : "正式發布",
+        isPublished ? `更新${noun}` : "正式發布",
         "發布中⋯",
         "default",
         SendIcon,

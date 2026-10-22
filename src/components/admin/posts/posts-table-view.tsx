@@ -4,8 +4,8 @@ import Link from "next/link"
 import { useState } from "react"
 import { PencilIcon, Trash2Icon, XIcon } from "lucide-react"
 
+import { CoverThumbnail } from "@/components/admin/cover-thumbnail"
 import { DeletePostsForm, type DeletePostTarget } from "@/components/admin/posts/delete-posts-form"
-import { PostCoverThumbnail } from "@/components/admin/posts/post-cover-thumbnail"
 import { usePostListNavigation } from "@/components/admin/posts/post-list-navigation"
 import { PostStatusBadge } from "@/components/admin/posts/post-status-badge"
 import { PostsPagination } from "@/components/admin/posts/posts-pagination"
@@ -125,7 +125,7 @@ export function PostsTableView({ posts, total, pageCount, params, now }: PostsTa
           />
         </TableCell>
         <TableCell className="w-20 px-3 py-4">
-          <PostCoverThumbnail src={post.coverImageUrl} />
+          <CoverThumbnail src={post.coverImageUrl} />
         </TableCell>
         <TableCell className="py-4 pr-5 pl-2">
           <Link

@@ -41,6 +41,12 @@ export const CATEGORY_CONTENT_UNIT: Record<CategoryType, string> = {
   [CATEGORY_TYPE.PROJECT]: "個作品",
 }
 
+// 圖表中的數量單位，例如「12 篇」、「3 個」
+export const CATEGORY_COUNT_UNIT: Record<CategoryType, string> = {
+  [CATEGORY_TYPE.POST]: "篇",
+  [CATEGORY_TYPE.PROJECT]: "個",
+}
+
 export const CATEGORY_CONTENT_NOUN: Record<CategoryType, string> = {
   [CATEGORY_TYPE.POST]: "文章",
   [CATEGORY_TYPE.PROJECT]: "作品",

@@ -16,6 +16,7 @@ export const ROUTES = {
   ADMIN_POSTS: "/admin/posts",
   ADMIN_POST_NEW: "/admin/posts/new",
   ADMIN_PROJECTS: "/admin/projects",
+  ADMIN_PROJECT_NEW: "/admin/projects/new",
   ADMIN_CATEGORIES: "/admin/categories",
   ADMIN_STORAGE: "/admin/storage",
 } as const
@@ -39,6 +40,10 @@ export function adminPostListRoute(params: AdminPostListParams): Route {
 
 export function adminEditPostRoute(id: string): Route {
   return `/admin/posts/${id}/edit` as Route
+}
+
+export function adminEditProjectRoute(id: string): Route {
+  return `/admin/projects/${id}/edit` as Route
 }
 
 // typedRoutes 無法由字串組合推導出動態路徑，因此明確轉型為 Route

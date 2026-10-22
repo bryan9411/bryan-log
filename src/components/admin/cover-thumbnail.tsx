@@ -5,12 +5,12 @@ import { cn } from "@/lib/utils"
 
 const THUMBNAIL_CLASS = "relative h-10 w-14 shrink-0 overflow-hidden rounded-md border"
 
-type PostCoverThumbnailProps = {
+type CoverThumbnailProps = {
   src: string | null
 }
 
 // 沒有封面時以同尺寸的漸層色塊占位，表格每列高度與對齊保持一致
-export function PostCoverThumbnail({ src }: PostCoverThumbnailProps) {
+export function CoverThumbnail({ src }: CoverThumbnailProps) {
   if (!src) {
     return (
       <div

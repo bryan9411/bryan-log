@@ -4,6 +4,12 @@ import { Suspense } from "react"
 import { ArrowRightIcon } from "lucide-react"
 
 import { AdminPageHeader } from "@/components/admin/admin-page-header"
+import {
+  CategoryShareCards,
+  ChartCardSkeleton,
+  StorageUsageCard,
+  TopPostsCard,
+} from "@/components/admin/dashboard/dashboard-charts"
 import { StatCard, StatCardSkeleton } from "@/components/admin/stat-card"
 import { ADMIN_NAV_ITEMS } from "@/config/admin-nav"
 import { ROUTES } from "@/config/routes"
@@ -44,6 +50,13 @@ export default function AdminDashboardPage() {
   const renderStatsSkeleton = () =>
     Array.from({ length: STAT_SKELETON_COUNT }, (_, index) => <StatCardSkeleton key={index} />)
 
+  const renderCategorySkeleton = () => (
+    <>
+      <ChartCardSkeleton />
+      <ChartCardSkeleton />
+    </>
+  )
+
   const renderQuickLinks = () => (
     <section className="grid gap-3">
       <h2 className="text-sm font-medium text-muted-foreground">快速操作</h2>
@@ -75,6 +88,24 @@ export default function AdminDashboardPage() {
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="內容統計">
         <Suspense fallback={renderStatsSkeleton()}>
           <ContentStatsGrid />
+        </Suspense>
+      </section>
+      {/* 各圖表獨立串流：儲存空間掃描較慢，不會拖住其他圖表 */}
+      <section className="grid gap-4 lg:grid-cols-5" aria-label="內容分析">
+        <div className="lg:col-span-3">
+          <Suspense fallback={<ChartCardSkeleton className="h-96" />}>
+            <TopPostsCard />
+          </Suspense>
+        </div>
+        <div className="lg:col-span-2">
+          <Suspense fallback={<ChartCardSkeleton />}>
+            <StorageUsageCard />
+          </Suspense>
+        </div>
+      </section>
+      <section className="grid gap-4 md:grid-cols-2" aria-label="分類占比">
+        <Suspense fallback={renderCategorySkeleton()}>
+          <CategoryShareCards />
         </Suspense>
       </section>
       {renderQuickLinks()}

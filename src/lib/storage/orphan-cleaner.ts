@@ -26,10 +26,12 @@ export type OrphanScanReport = {
   totalFiles: number
   totalBytes: number
   referencedFiles: number
+  referencedBytes: number
   orphans: StoredObject[]
   orphanBytes: number
   // 寬限期內的未引用檔案：可能是編輯中尚未存檔的圖片，本次不列入清理
   recentUnreferencedFiles: number
+  recentUnreferencedBytes: number
 }
 
 export type OrphanCleanupResult = {
@@ -127,15 +129,20 @@ export async function scanOrphanFiles(): Promise<OrphanScanReport> {
 
   const unreferenced = objects.filter((object) => !referenced.has(object.path))
   const orphans = unreferenced.filter((object) => !isWithinGracePeriod(object, now))
+  const totalBytes = sumBytes(objects)
+  const unreferencedBytes = sumBytes(unreferenced)
+  const orphanBytes = sumBytes(orphans)
 
   return {
     scannedAt: new Date(now).toISOString(),
     totalFiles: objects.length,
-    totalBytes: sumBytes(objects),
+    totalBytes,
     referencedFiles: objects.length - unreferenced.length,
+    referencedBytes: totalBytes - unreferencedBytes,
     orphans,
-    orphanBytes: sumBytes(orphans),
+    orphanBytes,
     recentUnreferencedFiles: unreferenced.length - orphans.length,
+    recentUnreferencedBytes: unreferencedBytes - orphanBytes,
   }
 }
 

@@ -12,16 +12,26 @@ import {
   IMAGE_MIME,
   MAX_UPLOAD_MEGABYTES,
   STORAGE_FOLDER,
+  type StorageFolder,
 } from "@/lib/storage/constants"
 
 type CoverImageFieldProps = {
   value: string | null
   onChange: (url: string | null) => void
   errors?: string[]
+  // 文章與作品共用此欄位，上傳目錄與顯示文字依使用處調整
+  folder?: StorageFolder
+  label?: string
 }
 
-export function CoverImageField({ value, onChange, errors }: CoverImageFieldProps) {
-  const { upload, error: uploadError, isUploading } = useImageUpload(STORAGE_FOLDER.POSTS)
+export function CoverImageField({
+  value,
+  onChange,
+  errors,
+  folder = STORAGE_FOLDER.POSTS,
+  label = "封面圖片",
+}: CoverImageFieldProps) {
+  const { upload, error: uploadError, isUploading } = useImageUpload(folder)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const errorMessage = uploadError ?? errors?.[0] ?? null
@@ -49,20 +59,20 @@ export function CoverImageField({ value, onChange, errors }: CoverImageFieldProp
           ) : (
             <ImageUpIcon className="size-5" aria-hidden />
           )}
-          {isUploading ? "上傳中⋯⋯" : "上傳封面圖片"}
+          {isUploading ? "上傳中⋯⋯" : `上傳${label}`}
         </button>
       )
     }
 
     return (
       <div className="relative aspect-video overflow-hidden rounded-lg border bg-muted">
-        <Image src={value} alt="文章封面預覽" fill sizes="320px" className="object-cover" />
+        <Image src={value} alt={`${label}預覽`} fill sizes="320px" className="object-cover" />
         <Button
           type="button"
           size="icon"
           variant="secondary"
           className="absolute top-2 right-2 size-7"
-          aria-label="移除封面圖片"
+          aria-label={`移除${label}`}
           onClick={() => onChange(null)}
         >
           <XIcon />
@@ -82,7 +92,7 @@ export function CoverImageField({ value, onChange, errors }: CoverImageFieldProp
 
   return (
     <div className="grid gap-2">
-      <Label>封面圖片</Label>
+      <Label>{label}</Label>
       {renderPreview()}
       <p className="text-xs text-muted-foreground">
         支援 {ALLOWED_FORMAT_LABEL}，上限 {MAX_UPLOAD_MEGABYTES} MB
