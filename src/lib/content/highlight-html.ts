@@ -7,7 +7,7 @@ import { decodeHtmlEntities } from "@/lib/content/html-entities"
 import { CODE_LANGUAGE_CLASS_PREFIX } from "@/lib/editor/extensions"
 import { isHighlightable, loadHighlighter, SHIKI_THEMES } from "@/lib/shiki/highlighter"
 
-// 輸入為 DOMPurify 序列化後的 HTML：程式碼內容已轉義，不可能出現未轉義的 </code>，因此可安全以正則比對
+// 輸入為 sanitize-html 序列化後的 HTML：程式碼內容已轉義，不可能出現未轉義的 </code>，因此可安全以正則比對
 const CODE_BLOCK_PATTERN = new RegExp(
   `<pre><code(?: class="${CODE_LANGUAGE_CLASS_PREFIX}([\\w-]+)")?>([\\s\\S]*?)</code></pre>`,
   "g",

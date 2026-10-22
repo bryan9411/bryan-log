@@ -26,7 +26,7 @@ export type TocItem = {
 // 錨點加上前綴，避免與頁面既有的 id（例如 main-content）衝突或形成 DOM clobbering
 const HEADING_ID_PREFIX = "section-"
 
-// 輸入為 DOMPurify 清理後的 HTML：標題標籤一定成對且不含 id，可安全以正則比對
+// 輸入為 sanitize-html 清理後的 HTML：標題標籤一定成對且不含 id，可安全以正則比對
 const HEADING_PATTERN = /<h([23])(\s[^>]*)?>([\s\S]*?)<\/h\1>/g
 const TAG_PATTERN = /<[^>]+>/g
 

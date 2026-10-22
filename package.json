@@ -30,7 +30,6 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "fflate": "^0.8.3",
-    "isomorphic-dompurify": "^2.36.0",
     "lucide-react": "^1.61.0",
     "next": "16.4.2",
     "next-themes": "^0.4.6",
@@ -38,6 +37,7 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "recharts": "3.8.0",
+    "sanitize-html": "^2.18.1",
     "server-only": "^0.0.1",
     "shadcn": "^4.22.1",
     "shiki": "^4.5.0",
@@ -52,6 +52,7 @@
     "@types/node": "^22.20.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/sanitize-html": "^2.16.2",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
     "prettier": "^3.9.10",
@@ -62,10 +63,5 @@
   "packageManager": "pnpm@10.34.7+sha512.ba98abc585539933375b5971f4bc6d6c73a1b4b7edc4a879e7d102fe5423d1e02309d67c60a11f04955093a96e521ad9c3b138cdd654ca5be563f378b3ae48bd",
   "engines": {
     "node": ">=22.0.0"
-  },
-  "pnpm": {
-    "overrides": {
-      "html-encoding-sniffer": "4.0.0"
-    }
   }
 }

@@ -79,7 +79,7 @@ export async function getPublishedPosts(limit?: number): Promise<PostSummary[]> 
   return data.map(toPostSummary)
 }
 
-// 內文在存檔時已由伺服器產生並清理過，輸出前仍以 DOMPurify 再清理一次作為縱深防禦：
+// 內文在存檔時已由伺服器產生並清理過，輸出前仍以 sanitize-html 再清理一次作為縱深防禦：
 // 即使資料庫遭直接竄改，也不會把惡意腳本送到讀者的瀏覽器；清理結果隨快取保存，不會每次請求重算
 export async function getPublishedPost(slug: string): Promise<PostDetail | null> {
   "use cache"
@@ -110,7 +110,7 @@ export async function toPostDetail(
     updated_at: string
   },
 ): Promise<PostDetail> {
-  // 錨點 id 在清理之後才加上：id 不在 DOMPurify 白名單內，且由伺服器自行產生，內容可信
+  // 錨點 id 在清理之後才加上：id 不在清理白名單內，且由伺服器自行產生，內容可信
   const { html, toc } = addHeadingAnchors(await prepareArticleHtml(post.content_html))
 
   return {

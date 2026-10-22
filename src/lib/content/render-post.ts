@@ -71,7 +71,7 @@ function assertSafeImages(doc: ProseMirrorNode) {
   })
 }
 
-// 不信任瀏覽器送來的 HTML：以 schema 驗證 JSON 後，由伺服器自行產生 HTML，再經 DOMPurify 與 Shiki 處理
+// 不信任瀏覽器送來的 HTML：以 schema 驗證 JSON 後，由伺服器自行產生 HTML，再經 sanitize-html 清理與 Shiki 高亮
 export async function renderPostContent(rawJson: unknown): Promise<RenderedPostContent> {
   const doc = parseDocument(rawJson)
 

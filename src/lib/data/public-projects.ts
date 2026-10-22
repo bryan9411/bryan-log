@@ -98,7 +98,7 @@ export async function getPublishedProjects(): Promise<ProjectSummary[]> {
   return data.map(toProjectSummary)
 }
 
-// 專案介紹同樣在輸出前以 DOMPurify 清理，並隨快取保存
+// 專案介紹同樣在輸出前以 sanitize-html 清理，並隨快取保存
 export async function getPublishedProject(slug: string): Promise<ProjectDetail | null> {
   "use cache"
   cacheLife("hours")

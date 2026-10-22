@@ -1,4 +1,8 @@
-import DOMPurify, { type UponSanitizeAttributeHook } from "isomorphic-dompurify"
+import sanitizeHtml, { type IOptions, type Transformer } from "sanitize-html"
+
+// 使用 sanitize-html（htmlparser2 純 JS 解析，不需 jsdom）：由 Turbopack 打包進伺服器程式碼，
+// 不依賴執行環境是否支援 require(esm)，也免去 jsdom 數 MB 的冷啟動成本。
+// 內文由伺服器從經 schema 驗證的編輯器 JSON 產生，這裡是縱深防禦的最後一道清理
 
 // 白名單僅包含編輯器 schema 會產生的標籤與屬性，其餘一律移除
 const ALLOWED_TAGS = [
@@ -34,36 +38,46 @@ const ARTICLE_ALLOWED_ATTR = [
   "data-language-label",
 ]
 
+// href 與 src 只允許這些協定（相對路徑不受影響），javascript:、data: 等一律移除
+const ALLOWED_SCHEMES = ["http", "https", "mailto", "tel"]
+
+// 屬性白名單套用到所有標籤，未列出的屬性（含 data-*）一律移除
+const toOptions = (allowedTags: string[], allowedAttributes: string[]): IOptions => ({
+  allowedTags,
+  allowedAttributes: { "*": allowedAttributes },
+  allowedSchemes: ALLOWED_SCHEMES,
+  allowProtocolRelative: false,
+})
+
 const STYLE_ATTR = "style"
 
 // style 只允許 Shiki 的 --shiki-* 自訂屬性，且值不得含括號，杜絕 url()、expression() 等 CSS 注入
 const SHIKI_STYLE_PATTERN = /^(?:\s*--shiki-[a-z-]+\s*:\s*[#\w.% -]+;?)+\s*$/i
 
-const restrictStyleToShiki: UponSanitizeAttributeHook = (_node, data) => {
-  if (data.attrName === STYLE_ATTR && !SHIKI_STYLE_PATTERN.test(data.attrValue)) {
-    data.keepAttr = false
+// transformTags 在屬性白名單過濾之前執行：不符合 Shiki 格式的 style 直接整個移除
+const restrictStyleToShiki: Transformer = (tagName, attribs) => {
+  const style = attribs[STYLE_ATTR]
+  if (style === undefined || SHIKI_STYLE_PATTERN.test(style)) return { tagName, attribs }
+
+  return {
+    tagName,
+    attribs: Object.fromEntries(Object.entries(attribs).filter(([name]) => name !== STYLE_ATTR)),
   }
+}
+
+const EDITOR_OPTIONS = toOptions(ALLOWED_TAGS, ALLOWED_ATTR)
+
+const ARTICLE_OPTIONS: IOptions = {
+  ...toOptions(ARTICLE_ALLOWED_TAGS, ARTICLE_ALLOWED_ATTR),
+  transformTags: { "*": restrictStyleToShiki },
+  // style 已由上方的 Shiki 規則把關；不再以 postcss 逐條解析，避免 --shiki-* 自訂屬性被當成未知屬性移除
+  parseStyleAttributes: false,
 }
 
 export function sanitizeEditorHtml(html: string) {
-  return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS,
-    ALLOWED_ATTR,
-    ALLOW_DATA_ATTR: false,
-  })
+  return sanitizeHtml(html, EDITOR_OPTIONS)
 }
 
-// DOMPurify 的 hook 為全域設定，僅在本次清理期間掛上並立即移除；sanitize 為同步執行，不會影響其他呼叫
 export function sanitizeArticleHtml(html: string) {
-  DOMPurify.addHook("uponSanitizeAttribute", restrictStyleToShiki)
-
-  try {
-    return DOMPurify.sanitize(html, {
-      ALLOWED_TAGS: ARTICLE_ALLOWED_TAGS,
-      ALLOWED_ATTR: ARTICLE_ALLOWED_ATTR,
-      ALLOW_DATA_ATTR: false,
-    })
-  } finally {
-    DOMPurify.removeHook("uponSanitizeAttribute", restrictStyleToShiki)
-  }
+  return sanitizeHtml(html, ARTICLE_OPTIONS)
 }

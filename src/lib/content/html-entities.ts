@@ -1,4 +1,5 @@
-// DOMPurify 序列化後的 HTML 只會出現這些具名實體與數字實體
+// 清理後的 HTML 只會出現這些具名實體與數字實體（sanitize-html 只輸出 &amp; &lt; &gt; &quot;；
+// 其餘為相容早期以 DOMPurify 存入資料庫的內容）
 const NAMED_ENTITIES: Record<string, string> = {
   amp: "&",
   lt: "<",
