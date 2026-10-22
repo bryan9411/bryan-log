@@ -4,6 +4,8 @@ import { Suspense } from "react"
 import { PlusIcon } from "lucide-react"
 
 import { AdminPageHeader } from "@/components/admin/admin-page-header"
+import { PostListNavigationProvider } from "@/components/admin/posts/post-list-navigation"
+import { PostsToolbar, PostsToolbarSkeleton } from "@/components/admin/posts/posts-toolbar"
 import { PostsTable, PostsTableSkeleton } from "@/components/admin/posts/posts-table"
 import { Button } from "@/components/ui/button"
 import { ROUTES } from "@/config/routes"
@@ -12,7 +14,7 @@ export const metadata: Metadata = {
   title: "文章管理",
 }
 
-export default function AdminPostsPage() {
+export default function AdminPostsPage({ searchParams }: PageProps<"/admin/posts">) {
   return (
     <>
       <AdminPageHeader
@@ -27,9 +29,17 @@ export default function AdminPostsPage() {
           </Button>
         }
       />
-      <Suspense fallback={<PostsTableSkeleton />}>
-        <PostsTable />
-      </Suspense>
+      {/* 搜尋列與表格分屬不同 Suspense：切換條件時搜尋框保持掛載，輸入不會中斷 */}
+      <PostListNavigationProvider>
+        <div className="grid gap-4">
+          <Suspense fallback={<PostsToolbarSkeleton />}>
+            <PostsToolbar />
+          </Suspense>
+          <Suspense fallback={<PostsTableSkeleton />}>
+            <PostsTable searchParams={searchParams} />
+          </Suspense>
+        </div>
+      </PostListNavigationProvider>
     </>
   )
 }

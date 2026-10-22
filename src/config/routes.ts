@@ -1,6 +1,10 @@
 import type { Route } from "next"
 
 import { CATEGORY_SEARCH_PARAM } from "@/lib/content/category-filter"
+import {
+  buildAdminPostListQuery,
+  type AdminPostListParams,
+} from "@/lib/validations/admin-post-list"
 
 export const ROUTES = {
   HOME: "/",
@@ -26,6 +30,12 @@ export const API_ROUTES = {
 export const REDIRECT_PARAM = "next"
 
 export const POST_CREATED_PARAM = "created"
+
+// 後台文章列表的搜尋、狀態篩選與分頁都以查詢參數表示，可分享也支援上一頁
+export function adminPostListRoute(params: AdminPostListParams): Route {
+  const query = buildAdminPostListQuery(params)
+  return (query ? `${ROUTES.ADMIN_POSTS}?${query}` : ROUTES.ADMIN_POSTS) as Route
+}
 
 export function adminEditPostRoute(id: string): Route {
   return `/admin/posts/${id}/edit` as Route

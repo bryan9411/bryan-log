@@ -6,6 +6,11 @@ import type { ContentStatus } from "@/lib/constants/content"
 import { isAutoExcerpt } from "@/lib/content/render-post"
 import { CATEGORY_WITH_PARENT_SELECT, type CategoryRelation } from "@/lib/data/categories"
 import { createClient } from "@/lib/supabase/server"
+import {
+  ADMIN_POSTS_PAGE_SIZE,
+  POST_STATUS_FILTER,
+  type AdminPostListParams,
+} from "@/lib/validations/admin-post-list"
 
 export type AdminPostListItem = {
   id: string
@@ -14,6 +19,7 @@ export type AdminPostListItem = {
   status: ContentStatus
   viewCount: number
   updatedAt: string
+  coverImageUrl: string | null
   categoryName: string | null
   parentCategoryName: string | null
 }
@@ -30,29 +36,85 @@ export type EditablePost = {
   updatedAt: string
 }
 
-const ADMIN_POST_LIST_COLUMNS = `id, title, slug, status, view_count, updated_at, ${CATEGORY_WITH_PARENT_SELECT}`
+export type AdminPostListPage = {
+  posts: AdminPostListItem[]
+  total: number
+  // 實際顯示的頁碼：網址頁碼超出範圍時會被校正為最後一頁
+  page: number
+  pageCount: number
+}
 
-export async function listAdminPosts(): Promise<AdminPostListItem[]> {
+const ADMIN_POST_LIST_COLUMNS = `id, title, slug, status, view_count, updated_at, cover_image_url, ${CATEGORY_WITH_PARENT_SELECT}`
+
+// PostgREST 回應「請求範圍超出資料筆數」的錯誤代碼
+const RANGE_NOT_SATISFIABLE = "PGRST103"
+
+// 使用者輸入的 % 與 _ 需視為一般字元；再以雙引號包住，避免逗號、括號破壞 or() 篩選語法
+function toIlikePattern(query: string) {
+  const literal = query.replace(/[\\%_]/g, (char) => `\\${char}`)
+  const quoted = `%${literal}%`.replace(/["\\]/g, (char) => `\\${char}`)
+  return `"${quoted}"`
+}
+
+function getPageCount(total: number) {
+  return Math.max(1, Math.ceil(total / ADMIN_POSTS_PAGE_SIZE))
+}
+
+async function queryAdminPosts({ query, status }: AdminPostListParams, page: number) {
   const supabase = await createClient()
+  const from = (page - 1) * ADMIN_POSTS_PAGE_SIZE
 
-  const { data, error } = await supabase
+  let request = supabase
     .from("posts")
-    .select(ADMIN_POST_LIST_COLUMNS)
+    .select(ADMIN_POST_LIST_COLUMNS, { count: "exact" })
     .order("updated_at", { ascending: false })
-    .overrideTypes<Array<{ category: CategoryRelation }>, { merge: true }>()
+    .order("id", { ascending: true })
+    .range(from, from + ADMIN_POSTS_PAGE_SIZE - 1)
+
+  if (status !== POST_STATUS_FILTER.ALL) request = request.eq("status", status)
+
+  if (query) {
+    const pattern = toIlikePattern(query)
+    request = request.or(`title.ilike.${pattern},slug.ilike.${pattern}`)
+  }
+
+  return request.overrideTypes<Array<{ category: CategoryRelation }>, { merge: true }>()
+}
+
+// 伺服器端分頁：每次只取一頁資料，並以 count 取得符合條件的總筆數
+export async function listAdminPosts(params: AdminPostListParams): Promise<AdminPostListPage> {
+  let page = params.page
+  let result = await queryAdminPosts(params, page)
+
+  // 刪除最後一頁的所有文章或手動輸入過大的頁碼時，改取最後一頁而不是顯示空白
+  if (result.error?.code === RANGE_NOT_SATISFIABLE) {
+    const { count } = await queryAdminPosts(params, 1)
+    page = getPageCount(count ?? 0)
+    result = await queryAdminPosts(params, page)
+  }
+
+  const { data, error, count } = result
 
   if (error) throw new Error(`讀取文章列表失敗：${error.message}`)
 
-  return data.map((post) => ({
-    id: post.id,
-    title: post.title,
-    slug: post.slug,
-    status: post.status,
-    viewCount: post.view_count,
-    updatedAt: post.updated_at,
-    categoryName: post.category?.name ?? null,
-    parentCategoryName: post.category?.parent?.name ?? null,
-  }))
+  const total = count ?? 0
+
+  return {
+    total,
+    page,
+    pageCount: getPageCount(total),
+    posts: data.map((post) => ({
+      id: post.id,
+      title: post.title,
+      slug: post.slug,
+      status: post.status,
+      viewCount: post.view_count,
+      updatedAt: post.updated_at,
+      coverImageUrl: post.cover_image_url,
+      categoryName: post.category?.name ?? null,
+      parentCategoryName: post.category?.parent?.name ?? null,
+    })),
+  }
 }
 
 export async function getEditablePost(id: string): Promise<EditablePost | null> {

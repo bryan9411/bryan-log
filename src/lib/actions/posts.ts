@@ -16,6 +16,7 @@ import { CACHE_TAG } from "@/lib/cache-tags"
 import { CONTENT_STATUS } from "@/lib/constants/content"
 import { ContentValidationError, renderPostContent } from "@/lib/content/render-post"
 import { createClient } from "@/lib/supabase/server"
+import { ADMIN_POSTS_PAGE_SIZE, DELETE_POSTS_FIELD } from "@/lib/validations/admin-post-list"
 import { POST_FIELDS, POST_INTENT, postFormSchema, type PostField } from "@/lib/validations/post"
 
 export type PostFormState = ActionState<PostField> & {
@@ -142,29 +143,31 @@ export async function savePostAction(
   }
 }
 
-export type DeletePostState = ActionState
+export type DeletePostsState = ActionState
 
-export async function deletePostAction(
-  _prevState: DeletePostState,
+// 單篇與批次刪除共用；上限與每頁筆數一致，避免一次送出過多識別碼
+const deletePostIdsSchema = z
+  .array(z.uuid("文章識別碼不正確"))
+  .min(1, "請至少選取一篇文章")
+  .max(ADMIN_POSTS_PAGE_SIZE, `一次最多刪除 ${ADMIN_POSTS_PAGE_SIZE} 篇文章`)
+  .transform((ids) => [...new Set(ids)])
+
+export async function deletePostsAction(
+  _prevState: DeletePostsState,
   formData: FormData,
-): Promise<DeletePostState> {
+): Promise<DeletePostsState> {
   await requireAdmin()
 
-  const parsed = z.uuid().safeParse(formData.get("id"))
-  if (!parsed.success) return createErrorState("文章識別碼不正確")
+  const parsed = deletePostIdsSchema.safeParse(formData.getAll(DELETE_POSTS_FIELD))
+  if (!parsed.success) return createErrorState(parsed.error.issues[0].message)
 
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("posts")
-    .delete()
-    .eq("id", parsed.data)
-    .select("slug")
-    .maybeSingle()
+  const { data, error } = await supabase.from("posts").delete().in("id", parsed.data).select("slug")
 
   if (error) return createErrorState("刪除失敗，請稍後再試")
-  if (!data) return createErrorState("找不到這篇文章，可能已被刪除")
+  if (data.length === 0) return createErrorState("找不到選取的文章，可能已被刪除")
 
-  revalidatePostPaths([data.slug])
+  revalidatePostPaths(data.map((post) => post.slug))
 
-  return createSuccessState("文章已刪除")
+  return createSuccessState(data.length === 1 ? "文章已刪除" : `已刪除 ${data.length} 篇文章`)
 }
