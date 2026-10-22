@@ -60,6 +60,8 @@ function revalidatePostPaths(slugs: string[]) {
   revalidatePath(ROUTES.POSTS)
   revalidatePath(ROUTES.ADMIN_POSTS)
   revalidatePath(ROUTES.ADMIN_DASHBOARD)
+  revalidatePath(ROUTES.LLMS_TXT)
+  revalidatePath(ROUTES.LLMS_FULL_TXT)
   new Set(slugs).forEach((slug) => revalidatePath(postDetailPath(slug)))
 }
 
@@ -81,7 +83,8 @@ export async function savePostAction(
     })
   }
 
-  const { id, title, slug, excerpt, categoryId, coverImageUrl, contentJson, intent } = parsed.data
+  const { id, title, slug, excerpt, tldr, categoryId, coverImageUrl, contentJson, intent } =
+    parsed.data
   const isPublishing = intent === POST_INTENT.PUBLISH
 
   let rendered: Awaited<ReturnType<typeof renderPostContent>>
@@ -103,6 +106,7 @@ export async function savePostAction(
     title,
     slug,
     excerpt: excerpt || rendered.excerpt || null,
+    tldr,
     category_id: categoryId ?? null,
     cover_image_url: coverImageUrl ?? null,
     content_json: rendered.json,

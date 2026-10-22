@@ -69,6 +69,7 @@ function revalidateProjectPaths(slugs: string[]) {
   revalidatePath(ROUTES.PROJECTS)
   revalidatePath(ROUTES.ADMIN_PROJECTS)
   revalidatePath(ROUTES.ADMIN_DASHBOARD)
+  revalidatePath(ROUTES.LLMS_TXT)
   new Set(slugs).forEach((slug) => revalidatePath(projectDetailPath(slug)))
 }
 

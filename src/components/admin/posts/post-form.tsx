@@ -10,7 +10,7 @@ import { CoverImageField } from "@/components/admin/posts/cover-image-field"
 import { PostStatusBadge } from "@/components/admin/posts/post-status-badge"
 import { PostSubmitButtons } from "@/components/admin/posts/post-submit-buttons"
 import { RestoreBackupBanner } from "@/components/admin/posts/restore-backup-banner"
-import { SeoChecklist } from "@/components/admin/posts/seo-checklist"
+import { PostHealthChecks } from "@/components/admin/posts/post-health-checks"
 import { LazyTiptapEditor } from "@/components/editor/lazy-tiptap-editor"
 import { FieldShell, FormField, getFieldErrorId } from "@/components/forms/form-field"
 import { FormMessage } from "@/components/forms/form-message"
@@ -30,7 +30,10 @@ import type { EditablePost } from "@/lib/data/posts"
 import {
   POST_EXCERPT_MAX_LENGTH,
   POST_INTENT,
+  parseTldrLines,
   POST_TITLE_MAX_LENGTH,
+  TLDR_ITEM_MAX_LENGTH,
+  TLDR_MAX_ITEMS,
   type PostIntent,
 } from "@/lib/validations/post"
 
@@ -38,6 +41,8 @@ type PostDraft = {
   title: string
   slug: string
   excerpt: string
+  // 多行文字，每行一點；送出時由伺服器拆成陣列
+  tldr: string
   categoryId: string | null
   coverImageUrl: string | null
   content: JSONContent | null
@@ -66,6 +71,7 @@ function toDraft(post?: EditablePost): PostDraft {
     title: post?.title ?? "",
     slug: post?.slug ?? "",
     excerpt: post?.excerpt ?? "",
+    tldr: post?.tldr.join("\n") ?? "",
     categoryId: post?.categoryId ?? null,
     coverImageUrl: post?.coverImageUrl ?? null,
     content: post?.contentJson ?? null,
@@ -91,6 +97,7 @@ export function PostForm({ categories, post, createdIntent }: PostFormProps) {
   const isDirty = serializedDraft !== baseline
   const baselineUpdatedAt = post ? Date.parse(post.updatedAt) : 0
   const fieldErrors = state.fieldErrors ?? {}
+  const tldrCount = parseTldrLines(draft.tldr).length
   const isPublished = post?.status === CONTENT_STATUS.PUBLISHED
 
   // 只有「存在比資料庫更新、且內容不同的舊暫存」時才需要詢問；詢問期間暫停自動暫存，避免覆蓋使用者還沒看過的備份
@@ -143,7 +150,8 @@ export function PostForm({ categories, post, createdIntent }: PostFormProps) {
 
   const handleRestore = () => {
     if (!backup) return
-    setDraft(backup.data)
+    // 舊版暫存可能沒有後來新增的欄位，以空白預設值補齊
+    setDraft({ ...toDraft(), ...backup.data })
     editorRef.current?.commands.setContent(backup.data.content ?? EMPTY_DOC)
     setIsSlugTouched(true)
     setIsBackupResolved(true)
@@ -249,6 +257,27 @@ export function PostForm({ categories, post, createdIntent }: PostFormProps) {
             hint={`文章網址：/posts/${draft.slug || "網址代稱"}。中文標題請手動輸入英文代稱`}
             className="font-mono"
           />
+          <FieldShell
+            id="tldr"
+            label="⚡ TL;DR 核心速讀"
+            errors={fieldErrors.tldr}
+            hint={`每行一點，最多 ${TLDR_MAX_ITEMS} 點、每點 ${TLDR_ITEM_MAX_LENGTH} 字內；顯示於文章頂部，也是 AI 搜尋最常引用的段落（目前 ${tldrCount} 點）`}
+          >
+            {(describedBy, hasError) => (
+              <Textarea
+                id="tldr"
+                name="tldr"
+                rows={4}
+                value={draft.tldr}
+                onChange={(event) => updateDraft({ tldr: event.target.value })}
+                placeholder={
+                  "React 19 以 useActionState 取代 useFormState\n一個 Hook 同時管理 pending、錯誤與回傳值"
+                }
+                aria-invalid={hasError}
+                aria-describedby={describedBy}
+              />
+            )}
+          </FieldShell>
           <div className="grid gap-2">
             <span className="text-sm leading-none font-medium">內文</span>
             <LazyTiptapEditor
@@ -312,12 +341,14 @@ export function PostForm({ categories, post, createdIntent }: PostFormProps) {
             </CardContent>
           </Card>
 
-          <SeoChecklist
+          <PostHealthChecks
             title={draft.title}
             slug={draft.slug}
             excerpt={draft.excerpt}
-            content={draft.content}
+            tldr={draft.tldr}
+            categoryId={draft.categoryId}
             coverImageUrl={draft.coverImageUrl}
+            content={draft.content}
           />
         </aside>
       </div>

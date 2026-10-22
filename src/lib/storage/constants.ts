@@ -41,8 +41,8 @@ export const IMAGE_EXTENSIONS: Record<ImageMime, readonly string[]> = {
 export const ALLOWED_FORMAT_LABEL = "PNG、JPG、WebP、GIF、AVIF"
 
 // 剛上傳、尚未存檔的圖片可能還沒被文章引用，掃描時保留一段寬限期避免誤刪
-export const ORPHAN_GRACE_PERIOD_HOURS = 24
-export const ORPHAN_GRACE_PERIOD_MS = ORPHAN_GRACE_PERIOD_HOURS * 60 * 60 * 1000
+export const UNREFERENCED_GRACE_PERIOD_HOURS = 24
+export const UNREFERENCED_GRACE_PERIOD_MS = UNREFERENCED_GRACE_PERIOD_HOURS * 60 * 60 * 1000
 
 export const STORAGE_LIST_PAGE_SIZE = 100
 export const STORAGE_DELETE_BATCH_SIZE = 100

@@ -6,13 +6,14 @@ import { PostNavigation } from "@/components/posts/post-navigation"
 import { PostViewCount } from "@/components/posts/post-view-count"
 import { ReadingProgress } from "@/components/posts/reading-progress"
 import { RelatedPosts } from "@/components/posts/related-posts"
+import { TLDR_CARD_CLASS } from "@/components/posts/tldr-card"
 import { postDetailPath } from "@/config/routes"
-import { siteConfig } from "@/config/site"
 import { findAdjacentPosts, findRelatedPosts } from "@/lib/content/post-neighbors"
 import { getPublishedPost, getPublishedPosts } from "@/lib/data/public-posts"
 import { getPublishedPostSlugs } from "@/lib/data/published-slugs"
-import { absoluteUrl, createPageMetadata, serializeJsonLd } from "@/lib/seo"
+import { createPageMetadata, serializeJsonLd } from "@/lib/seo"
 import { toSlugParams } from "@/lib/static-params"
+import { buildPostStructuredData } from "@/lib/structured-data"
 
 // Next.js 16 Partial Prefetching：文章內頁屬於完整內容直出型路由，允許 blocking 導航避免未包覆 Suspense 之警告
 export const instant = false
@@ -52,18 +53,7 @@ export default async function PostPage({ params }: PageProps<"/posts/[slug]">) {
   const adjacent = findAdjacentPosts(posts, slug)
   const related = findRelatedPosts(posts, slug)
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    headline: post.title,
-    description: post.excerpt ?? undefined,
-    image: post.coverImageUrl ?? undefined,
-    datePublished: post.publishedAt ?? undefined,
-    dateModified: post.updatedAt,
-    inLanguage: siteConfig.locale,
-    url: absoluteUrl(postDetailPath(slug)),
-    author: { "@type": "Person", name: siteConfig.author, url: siteConfig.url },
-  }
+  const jsonLd = buildPostStructuredData(post, `.${TLDR_CARD_CLASS}`)
 
   return (
     <>

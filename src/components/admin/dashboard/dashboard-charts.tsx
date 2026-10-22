@@ -22,7 +22,10 @@ import {
   type CategoryType,
 } from "@/lib/constants/content"
 import { getCategoryDistribution, getTopViewedPosts } from "@/lib/data/admin-stats"
-import { scanOrphanFiles, type OrphanScanReport } from "@/lib/storage/orphan-cleaner"
+import {
+  scanUnreferencedFiles,
+  type UnreferencedScanReport,
+} from "@/lib/storage/unreferenced-cleaner"
 import { cn } from "@/lib/utils"
 
 const TOP_POSTS_LIMIT = 8
@@ -81,11 +84,11 @@ export async function CategoryShareCards() {
 }
 
 export async function StorageUsageCard() {
-  let report: OrphanScanReport | null = null
+  let report: UnreferencedScanReport | null = null
   let errorMessage: string | null = null
 
   try {
-    report = await scanOrphanFiles()
+    report = await scanUnreferencedFiles()
   } catch (error) {
     errorMessage = error instanceof Error ? error.message : "未知錯誤"
   }
@@ -110,7 +113,7 @@ export async function StorageUsageCard() {
     <Card>
       <CardHeader>
         <CardTitle>儲存空間</CardTitle>
-        <CardDescription>未引用檔案為未被任何文章或作品引用的圖片</CardDescription>
+        <CardDescription>未引用檔案：已上傳但沒有任何文章或作品使用的圖片</CardDescription>
         <CardAction>
           <Button asChild variant="ghost" size="sm">
             <Link href={ROUTES.ADMIN_STORAGE}>

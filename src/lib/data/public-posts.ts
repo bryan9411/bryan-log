@@ -1,5 +1,6 @@
 import "server-only"
 
+import type { JSONContent } from "@tiptap/core"
 import { cacheLife, cacheTag } from "next/cache"
 
 import { CACHE_TAG } from "@/lib/cache-tags"
@@ -23,6 +24,7 @@ export type PostSummary = CategorizedItem & {
 }
 
 export type PostDetail = PostSummary & {
+  tldr: string[]
   html: string
   toc: TocItem[]
   viewCount: number
@@ -34,7 +36,7 @@ type CategoryOverride = Array<{ category: CategoryRelation }>
 
 export const POST_SUMMARY_COLUMNS = `title, slug, excerpt, reading_time_minutes, published_at, ${CATEGORY_WITH_PARENT_SELECT}`
 
-export const POST_DETAIL_COLUMNS = `${POST_SUMMARY_COLUMNS}, content_html, cover_image_url, view_count, updated_at`
+export const POST_DETAIL_COLUMNS = `${POST_SUMMARY_COLUMNS}, tldr, content_html, cover_image_url, view_count, updated_at`
 
 export function toPostSummary(post: {
   title: string
@@ -101,6 +103,7 @@ export async function getPublishedPost(slug: string): Promise<PostDetail | null>
 // 前台內頁與草稿預覽共用：內文清理、加上標題錨點並轉為頁面所需格式
 export async function toPostDetail(
   post: Parameters<typeof toPostSummary>[0] & {
+    tldr: string[]
     content_html: string
     cover_image_url: string | null
     view_count: number
@@ -112,10 +115,40 @@ export async function toPostDetail(
 
   return {
     ...toPostSummary(post),
+    tldr: post.tldr,
     html,
     toc,
     viewCount: post.view_count,
     coverImageUrl: post.cover_image_url,
     updatedAt: post.updated_at,
   }
+}
+
+export type LlmsPost = PostSummary & {
+  tldr: string[]
+  contentJson: JSONContent
+  updatedAt: string
+}
+
+// /llms-full.txt 使用：已發布文章的完整內容（JSON 文件，由呼叫端轉為 Markdown）
+export async function getPublishedPostsForLlms(): Promise<LlmsPost[]> {
+  "use cache"
+  cacheLife("hours")
+  cacheTag(CACHE_TAG.POSTS)
+
+  const { data, error } = await createPublicClient()
+    .from("posts")
+    .select(`${POST_SUMMARY_COLUMNS}, tldr, content_json, updated_at`)
+    .eq("status", CONTENT_STATUS.PUBLISHED)
+    .order("published_at", { ascending: false })
+    .overrideTypes<CategoryOverride, { merge: true }>()
+
+  if (error) throw new Error(`讀取文章全文失敗：${error.message}`)
+
+  return data.map((post) => ({
+    ...toPostSummary(post),
+    tldr: post.tldr,
+    contentJson: post.content_json as JSONContent,
+    updatedAt: post.updated_at,
+  }))
 }

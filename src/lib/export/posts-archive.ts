@@ -43,6 +43,7 @@ function toPostFile(post: ExportablePost) {
     slug: post.slug,
     status: post.status,
     excerpt: post.excerpt,
+    tldr: post.tldr,
     category: post.categoryPath,
     coverImage: post.coverImageUrl,
     images,

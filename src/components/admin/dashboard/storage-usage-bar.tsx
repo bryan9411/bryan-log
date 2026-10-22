@@ -1,5 +1,5 @@
 import { formatBytes } from "@/lib/format"
-import type { OrphanScanReport } from "@/lib/storage/orphan-cleaner"
+import type { UnreferencedScanReport } from "@/lib/storage/unreferenced-cleaner"
 
 type UsageSegment = {
   key: string
@@ -10,7 +10,7 @@ type UsageSegment = {
 }
 
 type StorageUsageBarProps = {
-  report: OrphanScanReport
+  report: UnreferencedScanReport
 }
 
 const percentFormatter = new Intl.NumberFormat("zh-TW", {
@@ -36,16 +36,16 @@ export function StorageUsageBar({ report }: StorageUsageBarProps) {
       color: "var(--chart-muted)",
     },
     {
-      key: "orphan",
+      key: "unreferenced",
       label: "未引用檔案",
-      files: report.orphans.length,
-      bytes: report.orphanBytes,
+      files: report.unreferenced.length,
+      bytes: report.unreferencedBytes,
       color: "var(--chart-2)",
     },
   ]
 
   const ratioOf = (bytes: number) => (report.totalBytes > 0 ? bytes / report.totalBytes : 0)
-  const orphanRatio = ratioOf(report.orphanBytes)
+  const unreferencedRatio = ratioOf(report.unreferencedBytes)
 
   const renderSegment = (segment: UsageSegment) => {
     const ratio = ratioOf(segment.bytes)
@@ -85,7 +85,7 @@ export function StorageUsageBar({ report }: StorageUsageBarProps) {
     return (
       <div
         role="img"
-        aria-label={`未引用檔案佔總容量 ${percentFormatter.format(orphanRatio)}`}
+        aria-label={`未引用檔案佔總容量 ${percentFormatter.format(unreferencedRatio)}`}
         className="flex h-3 w-full gap-0.5 overflow-hidden rounded-[4px]"
       >
         {segments.map(renderSegment)}
@@ -96,7 +96,7 @@ export function StorageUsageBar({ report }: StorageUsageBarProps) {
   return (
     <div className="grid gap-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-3xl font-semibold">{percentFormatter.format(orphanRatio)}</p>
+        <p className="text-3xl font-semibold">{percentFormatter.format(unreferencedRatio)}</p>
         <p className="text-sm text-muted-foreground">
           未引用檔案佔總容量 {formatBytes(report.totalBytes)}，共 {report.totalFiles} 個檔案
         </p>

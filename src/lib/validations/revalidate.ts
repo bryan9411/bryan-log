@@ -91,5 +91,12 @@ export const REVALIDATE_PRESETS: RevalidatePreset[] = [
     path: "/sitemap.xml",
     type: REVALIDATE_TYPE.AUTO,
   },
+  { label: "llms.txt", description: "/llms.txt", path: "/llms.txt", type: REVALIDATE_TYPE.AUTO },
+  {
+    label: "llms-full.txt",
+    description: "/llms-full.txt",
+    path: "/llms-full.txt",
+    type: REVALIDATE_TYPE.AUTO,
+  },
   { label: "全站", description: "/ （版型）", path: "/", type: REVALIDATE_TYPE.LAYOUT },
 ]

@@ -6,6 +6,7 @@ import { CoverImage } from "@/components/content/cover-image"
 import { RichContent } from "@/components/content/rich-content"
 import { PostMeta } from "@/components/posts/post-meta"
 import { TableOfContents } from "@/components/posts/table-of-contents"
+import { TldrCard } from "@/components/posts/tldr-card"
 import { SiteContainer } from "@/components/site/site-container"
 import { ROUTES } from "@/config/routes"
 import { TOC_VARIANT } from "@/lib/content/toc"
@@ -75,6 +76,7 @@ export function PostArticle({ post, metaExtra, footer }: PostArticleProps) {
           <PostMeta post={post} extra={metaExtra} className="text-sm" />
           {maybeRenderExcerpt()}
         </header>
+        <TldrCard points={post.tldr} />
         {maybeRenderCover()}
         {maybeRenderDrawerToc()}
         <RichContent html={post.html} className="border-t border-border/60 pt-8" />

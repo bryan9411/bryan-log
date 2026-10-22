@@ -5,6 +5,22 @@ import { SLUG_MAX_LENGTH, SLUG_PATTERN } from "@/lib/content/slug"
 export const POST_TITLE_MAX_LENGTH = 120
 export const POST_EXCERPT_MAX_LENGTH = 300
 
+// TL;DR 核心速讀：每點一句，與資料庫 posts_tldr_max_items 限制一致
+export const TLDR_MAX_ITEMS = 5
+export const TLDR_ITEM_MAX_LENGTH = 120
+const TLDR_INPUT_MAX_LENGTH = TLDR_MAX_ITEMS * (TLDR_ITEM_MAX_LENGTH + 2)
+
+// 表單以多行文字輸入，每行一點；去除前後空白、項目符號與空行
+// 數字編號需後接空白（或全形頓號），避免「3.5 倍效能」這類開頭數字被誤刪
+const TLDR_BULLET_PATTERN = /^\s*(?:[-*•・]\s*|\d+[.)]\s+|\d+、\s*)/
+
+export function parseTldrLines(value: string) {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.replace(TLDR_BULLET_PATTERN, "").trim())
+    .filter(Boolean)
+}
+
 // 約 2MB：足以容納萬字長文的 JSON，同時阻擋異常巨大的請求
 const CONTENT_JSON_MAX_LENGTH = 2_000_000
 
@@ -40,6 +56,18 @@ export const postFormSchema = z.object({
     .trim()
     .max(POST_EXCERPT_MAX_LENGTH, `摘要不可超過 ${POST_EXCERPT_MAX_LENGTH} 字`)
     .default(""),
+  tldr: z
+    .string()
+    .max(TLDR_INPUT_MAX_LENGTH, "TL;DR 內容過長")
+    .default("")
+    .transform(parseTldrLines)
+    .pipe(
+      z
+        .array(
+          z.string().max(TLDR_ITEM_MAX_LENGTH, `TL;DR 每點不可超過 ${TLDR_ITEM_MAX_LENGTH} 字`),
+        )
+        .max(TLDR_MAX_ITEMS, `TL;DR 最多 ${TLDR_MAX_ITEMS} 點`),
+    ),
   categoryId: z.preprocess(emptyToUndefined, z.uuid("請重新選擇分類").optional()),
   coverImageUrl: z.preprocess(
     emptyToUndefined,

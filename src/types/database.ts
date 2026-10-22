@@ -56,6 +56,7 @@ export type Database = {
           reading_time_minutes: number
           view_count: number
           published_at: string | null
+          tldr: string[]
         }
         Insert: Partial<Timestamps> & {
           id?: string
@@ -71,6 +72,7 @@ export type Database = {
           reading_time_minutes?: number
           view_count?: number
           published_at?: string | null
+          tldr?: string[]
         }
         Update: Partial<Database["public"]["Tables"]["posts"]["Insert"]>
         Relationships: [

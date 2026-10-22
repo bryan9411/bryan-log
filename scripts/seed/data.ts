@@ -881,7 +881,7 @@ export async function deletePost(postId: string) {
     ],
   },
   {
-    slug: "supabase-storage-orphan-cleanup",
+    slug: "supabase-storage-unreferenced-cleanup",
     title: "Supabase Storage 未引用檔案清理策略",
     excerpt: "文章刪掉了，圖片還留在儲存桶裡。設計一個安全的掃描與清理流程，避免儲存空間無限膨脹。",
     categorySlug: "postgresql",
@@ -903,7 +903,7 @@ export async function deletePost(postId: string) {
       {
         type: CODE,
         language: "ts",
-        code: `export function findOrphanPaths(storedPaths: string[], referencedPaths: Set<string>) {
+        code: `export function findUnreferencedPaths(storedPaths: string[], referencedPaths: Set<string>) {
   return storedPaths.filter((path) => !referencedPaths.has(path))
 }`,
       },

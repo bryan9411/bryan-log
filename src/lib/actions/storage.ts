@@ -6,7 +6,7 @@ import { ROUTES } from "@/config/routes"
 import { createErrorState, createSuccessState, type ActionState } from "@/lib/actions/action-state"
 import { requireAdmin } from "@/lib/auth/session"
 import { formatBytes } from "@/lib/format"
-import { cleanupOrphanFiles } from "@/lib/storage/orphan-cleaner"
+import { cleanupUnreferencedFiles } from "@/lib/storage/unreferenced-cleaner"
 
 export type CleanupField = "confirm"
 
@@ -14,7 +14,7 @@ export type CleanupState = ActionState<CleanupField>
 
 const CONFIRM_VALUE = "on"
 
-export async function cleanupOrphansAction(
+export async function cleanupUnreferencedAction(
   _prevState: CleanupState,
   formData: FormData,
 ): Promise<CleanupState> {
@@ -27,7 +27,7 @@ export async function cleanupOrphansAction(
   }
 
   try {
-    const { deletedCount, freedBytes, failedPaths } = await cleanupOrphanFiles()
+    const { deletedCount, freedBytes, failedPaths } = await cleanupUnreferencedFiles()
 
     revalidatePath(ROUTES.ADMIN_STORAGE)
 

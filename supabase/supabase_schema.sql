@@ -164,6 +164,15 @@ create table if not exists public.posts (
   constraint posts_published_has_date check (status = 'draft' or published_at is not null)
 );
 
+-- TL;DR 核心速讀：文章頂部的重點摘要（每點一句，最多 5 點），供讀者速讀與 AI 搜尋引用
+-- 以 add column if not exists 撰寫，既有資料庫可直接重複執行本檔完成升級
+alter table public.posts
+  add column if not exists tldr text[] not null default '{}';
+
+alter table public.posts drop constraint if exists posts_tldr_max_items;
+alter table public.posts
+  add constraint posts_tldr_max_items check (cardinality(tldr) <= 5);
+
 create index if not exists posts_status_published_at_idx
   on public.posts (status, published_at desc);
 create index if not exists posts_category_id_idx on public.posts (category_id);

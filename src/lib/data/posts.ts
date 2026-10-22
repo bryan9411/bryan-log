@@ -30,6 +30,7 @@ export type EditablePost = {
   title: string
   slug: string
   excerpt: string
+  tldr: string[]
   categoryId: string | null
   coverImageUrl: string | null
   contentJson: JSONContent
@@ -124,7 +125,7 @@ export async function getEditablePost(id: string): Promise<EditablePost | null> 
   const { data, error } = await supabase
     .from("posts")
     .select(
-      "id, title, slug, excerpt, category_id, cover_image_url, content_json, status, updated_at",
+      "id, title, slug, excerpt, tldr, category_id, cover_image_url, content_json, status, updated_at",
     )
     .eq("id", id)
     .maybeSingle()
@@ -137,6 +138,7 @@ export async function getEditablePost(id: string): Promise<EditablePost | null> 
     title: data.title,
     slug: data.slug,
     excerpt: isAutoExcerpt(data.excerpt, data.content_json) ? "" : (data.excerpt ?? ""),
+    tldr: data.tldr,
     categoryId: data.category_id,
     coverImageUrl: data.cover_image_url,
     contentJson: data.content_json as JSONContent,
@@ -171,6 +173,7 @@ export type ExportablePost = {
   slug: string
   status: ContentStatus
   excerpt: string | null
+  tldr: string[]
   categoryPath: string | null
   coverImageUrl: string | null
   contentJson: JSONContent
@@ -189,7 +192,7 @@ export async function listPostsForExport(): Promise<ExportablePost[]> {
   const { data, error } = await supabase
     .from("posts")
     .select(
-      `title, slug, status, excerpt, cover_image_url, content_json, content_html, reading_time_minutes, view_count, published_at, created_at, updated_at, ${CATEGORY_WITH_PARENT_SELECT}`,
+      `title, slug, status, excerpt, tldr, cover_image_url, content_json, content_html, reading_time_minutes, view_count, published_at, created_at, updated_at, ${CATEGORY_WITH_PARENT_SELECT}`,
     )
     .order("created_at", { ascending: true })
     .overrideTypes<Array<{ category: CategoryRelation }>, { merge: true }>()
@@ -201,6 +204,7 @@ export async function listPostsForExport(): Promise<ExportablePost[]> {
     slug: post.slug,
     status: post.status,
     excerpt: post.excerpt,
+    tldr: post.tldr,
     categoryPath: post.category
       ? [post.category.parent?.name, post.category.name].filter(Boolean).join(" / ")
       : null,

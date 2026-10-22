@@ -20,6 +20,9 @@ export const ROUTES = {
   ADMIN_CATEGORIES: "/admin/categories",
   ADMIN_STORAGE: "/admin/storage",
   ADMIN_TOOLS: "/admin/tools",
+  // AI 爬蟲專用的 Markdown 索引與全文（llmstxt.org 協定）
+  LLMS_TXT: "/llms.txt",
+  LLMS_FULL_TXT: "/llms-full.txt",
 } as const
 
 export const API_ROOT = "/api"

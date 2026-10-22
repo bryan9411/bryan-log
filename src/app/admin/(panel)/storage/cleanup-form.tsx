@@ -6,20 +6,20 @@ import { Trash2Icon } from "lucide-react"
 import { FormMessage } from "@/components/forms/form-message"
 import { SubmitButton } from "@/components/forms/submit-button"
 import { initialActionState } from "@/lib/actions/action-state"
-import { cleanupOrphansAction, type CleanupState } from "@/lib/actions/storage"
+import { cleanupUnreferencedAction, type CleanupState } from "@/lib/actions/storage"
 
 type CleanupFormProps = {
-  orphanCount: number
+  unreferencedCount: number
 }
 
-export function CleanupForm({ orphanCount }: CleanupFormProps) {
+export function CleanupForm({ unreferencedCount }: CleanupFormProps) {
   const [state, formAction] = useActionState<CleanupState, FormData>(
-    cleanupOrphansAction,
+    cleanupUnreferencedAction,
     initialActionState,
   )
 
   const confirmError = state.fieldErrors?.confirm?.[0]
-  const isEmpty = orphanCount === 0
+  const isEmpty = unreferencedCount === 0
 
   const maybeRenderConfirmError = () => {
     if (!confirmError) return null
@@ -45,7 +45,7 @@ export function CleanupForm({ orphanCount }: CleanupFormProps) {
       <div>
         <SubmitButton variant="destructive" pendingText="清理中…" disabled={isEmpty}>
           <Trash2Icon aria-hidden />
-          清理 {orphanCount} 個未引用檔案
+          清理 {unreferencedCount} 個未引用檔案
         </SubmitButton>
       </div>
     </form>
