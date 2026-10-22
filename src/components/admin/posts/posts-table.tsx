@@ -25,8 +25,12 @@ export async function PostsTable() {
   const renderCategory = (post: AdminPostListItem) => {
     if (!post.categoryName) return <span className="text-muted-foreground">未分類</span>
 
+    const fullCategoryName = post.parentCategoryName
+      ? `${post.parentCategoryName} / ${post.categoryName}`
+      : post.categoryName
+
     return (
-      <span>
+      <span className="block truncate" title={fullCategoryName}>
         {post.parentCategoryName ? (
           <span className="text-muted-foreground">{post.parentCategoryName} / </span>
         ) : null}
@@ -36,31 +40,31 @@ export async function PostsTable() {
   }
 
   const renderRow = (post: AdminPostListItem) => (
-    <TableRow key={post.id}>
-      <TableCell className="max-w-80">
+    <TableRow key={post.id} className="transition-colors hover:bg-muted/40">
+      <TableCell className="px-5 py-4">
         <Link
           href={adminEditPostRoute(post.id)}
-          className="block truncate font-medium hover:underline"
+          className="block truncate font-medium text-foreground hover:underline"
           title={post.title}
         >
           {post.title}
         </Link>
-        <span className="block truncate font-mono text-xs text-muted-foreground">/{post.slug}</span>
+        <span className="mt-1 block truncate font-mono text-xs text-muted-foreground">/{post.slug}</span>
       </TableCell>
-      <TableCell className="text-sm">{renderCategory(post)}</TableCell>
-      <TableCell>
+      <TableCell className="w-52 px-5 py-4 text-sm text-foreground/80">{renderCategory(post)}</TableCell>
+      <TableCell className="w-24 px-5 py-4">
         <PostStatusBadge status={post.status} />
       </TableCell>
-      <TableCell className="text-right tabular-nums">
+      <TableCell className="w-28 px-5 py-4 text-right tabular-nums text-foreground/80">
         {post.viewCount.toLocaleString("zh-TW")}
       </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
+      <TableCell className="w-36 px-5 py-4 text-sm text-muted-foreground">
         <time dateTime={post.updatedAt} title={formatDateTime(post.updatedAt)}>
           {formatRelativeTime(post.updatedAt, now)}
         </time>
       </TableCell>
-      <TableCell>
-        <div className="flex items-start justify-end gap-1">
+      <TableCell className="w-40 px-5 py-4">
+        <div className="flex items-center justify-end gap-1.5">
           <Button asChild variant="ghost" size="sm">
             <Link href={adminEditPostRoute(post.id)}>
               <PencilIcon aria-hidden />
@@ -85,15 +89,17 @@ export async function PostsTable() {
 
   return (
     <div className="overflow-hidden rounded-xl border bg-card">
-      <Table>
+      <Table className="min-w-[960px] table-fixed">
         <TableHeader>
-          <TableRow>
-            <TableHead>標題</TableHead>
-            <TableHead>分類</TableHead>
-            <TableHead>狀態</TableHead>
-            <TableHead className="text-right">瀏覽數</TableHead>
-            <TableHead>最後更新</TableHead>
-            <TableHead className="text-right">操作</TableHead>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="px-5 py-3.5">標題</TableHead>
+            <TableHead className="w-52 px-5 py-3.5">分類</TableHead>
+            <TableHead className="w-24 px-5 py-3.5">狀態</TableHead>
+            <TableHead className="w-28 px-5 py-3.5 text-right">瀏覽數</TableHead>
+            <TableHead className="w-36 px-5 py-3.5">最後更新</TableHead>
+            <TableHead className="w-40 px-5 py-3.5 text-right">
+              <span className="sr-only">操作</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>{posts.map(renderRow)}</TableBody>

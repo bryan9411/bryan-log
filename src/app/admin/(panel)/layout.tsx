@@ -22,7 +22,7 @@ export default function AdminPanelLayout({ children }: LayoutProps<"/admin">) {
     <div className="flex flex-1 flex-col md:flex-row">
       <AdminSidebar />
       <main className="flex-1 px-4 py-8 md:px-10">
-        <div className="mx-auto grid w-full max-w-5xl gap-8">
+        <div className="mx-auto grid w-full max-w-screen-2xl gap-8">
           <Suspense fallback={renderContentSkeleton()}>
             <AdminGuard>{children}</AdminGuard>
           </Suspense>
