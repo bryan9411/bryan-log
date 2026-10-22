@@ -2,11 +2,14 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
 import { PostArticle } from "@/components/posts/post-article"
+import { PostNavigation } from "@/components/posts/post-navigation"
 import { PostViewCount } from "@/components/posts/post-view-count"
 import { ReadingProgress } from "@/components/posts/reading-progress"
+import { RelatedPosts } from "@/components/posts/related-posts"
 import { postDetailPath } from "@/config/routes"
 import { siteConfig } from "@/config/site"
-import { getPublishedPost } from "@/lib/data/public-posts"
+import { findAdjacentPosts, findRelatedPosts } from "@/lib/content/post-neighbors"
+import { getPublishedPost, getPublishedPosts } from "@/lib/data/public-posts"
 import { getPublishedPostSlugs } from "@/lib/data/published-slugs"
 import { absoluteUrl, createPageMetadata, serializeJsonLd } from "@/lib/seo"
 import { toSlugParams } from "@/lib/static-params"
@@ -41,9 +44,13 @@ export async function generateMetadata({ params }: PageProps<"/posts/[slug]">): 
 
 export default async function PostPage({ params }: PageProps<"/posts/[slug]">) {
   const { slug } = await params
-  const post = await getPublishedPost(slug)
+  // 文章列表已快取，前後篇與相關文章直接由列表計算，不需額外查詢
+  const [post, posts] = await Promise.all([getPublishedPost(slug), getPublishedPosts()])
 
   if (!post) notFound()
+
+  const adjacent = findAdjacentPosts(posts, slug)
+  const related = findRelatedPosts(posts, slug)
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -68,6 +75,12 @@ export default async function PostPage({ params }: PageProps<"/posts/[slug]">) {
       <PostArticle
         post={post}
         metaExtra={<PostViewCount slug={slug} initialCount={post.viewCount} />}
+        footer={
+          <>
+            <PostNavigation {...adjacent} />
+            <RelatedPosts posts={related} />
+          </>
+        }
       />
     </>
   )

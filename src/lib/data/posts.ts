@@ -163,5 +163,5 @@ export async function getPreviewPost(id: string): Promise<PreviewPost | null> {
   if (error) throw new Error(`讀取預覽文章失敗：${error.message}`)
   if (!data) return null
 
-  return { ...toPostDetail(data), status: data.status }
+  return { ...(await toPostDetail(data)), status: data.status }
 }

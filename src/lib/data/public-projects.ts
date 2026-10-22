@@ -4,8 +4,8 @@ import { cacheLife, cacheTag } from "next/cache"
 
 import { CACHE_TAG } from "@/lib/cache-tags"
 import { CONTENT_STATUS } from "@/lib/constants/content"
+import { prepareArticleHtml } from "@/lib/content/article-html"
 import type { CategorizedItem } from "@/lib/content/category-filter"
-import { sanitizeArticleHtml } from "@/lib/content/sanitize"
 import {
   CATEGORY_WITH_PARENT_SELECT,
   splitCategoryRelation,
@@ -117,7 +117,7 @@ export async function getPublishedProject(slug: string): Promise<ProjectDetail |
 
   return {
     ...toProjectSummary(data),
-    html: sanitizeArticleHtml(data.description_html),
+    html: await prepareArticleHtml(data.description_html),
     publishedAt: data.published_at,
     updatedAt: data.updated_at,
   }

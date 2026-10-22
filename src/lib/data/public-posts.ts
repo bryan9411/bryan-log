@@ -4,8 +4,8 @@ import { cacheLife, cacheTag } from "next/cache"
 
 import { CACHE_TAG } from "@/lib/cache-tags"
 import { CONTENT_STATUS } from "@/lib/constants/content"
+import { prepareArticleHtml } from "@/lib/content/article-html"
 import type { CategorizedItem } from "@/lib/content/category-filter"
-import { sanitizeArticleHtml } from "@/lib/content/sanitize"
 import { addHeadingAnchors, type TocItem } from "@/lib/content/toc"
 import {
   CATEGORY_WITH_PARENT_SELECT,
@@ -95,20 +95,20 @@ export async function getPublishedPost(slug: string): Promise<PostDetail | null>
   if (error) throw new Error(`讀取文章失敗：${error.message}`)
   if (!data) return null
 
-  return toPostDetail(data)
+  return await toPostDetail(data)
 }
 
 // 前台內頁與草稿預覽共用：內文清理、加上標題錨點並轉為頁面所需格式
-export function toPostDetail(
+export async function toPostDetail(
   post: Parameters<typeof toPostSummary>[0] & {
     content_html: string
     cover_image_url: string | null
     view_count: number
     updated_at: string
   },
-): PostDetail {
+): Promise<PostDetail> {
   // 錨點 id 在清理之後才加上：id 不在 DOMPurify 白名單內，且由伺服器自行產生，內容可信
-  const { html, toc } = addHeadingAnchors(sanitizeArticleHtml(post.content_html))
+  const { html, toc } = addHeadingAnchors(await prepareArticleHtml(post.content_html))
 
   return {
     ...toPostSummary(post),

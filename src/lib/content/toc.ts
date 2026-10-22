@@ -9,8 +9,8 @@ export type TocLevel = (typeof TOC_LEVEL)[keyof typeof TOC_LEVEL]
 
 // 放在共用模組而非 "use client" 檔案：伺服器元件從客戶端模組匯入的非元件值只會拿到參照代理，無法比對
 export const TOC_VARIANT = {
-  // 小螢幕：收合在內文上方
-  INLINE: "inline",
+  // 小螢幕：右下角懸浮按鈕，點擊後以底部抽屜展開
+  DRAWER: "drawer",
   // 大螢幕：固定在右側欄
   SIDEBAR: "sidebar",
 } as const

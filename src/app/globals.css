@@ -173,16 +173,75 @@
     @apply ring-2 ring-ring;
   }
 
-  /* 前台程式碼區塊：以存檔時寫入的 data-language-label 顯示語言名稱 */
-  .article-content .code-block[data-language-label]::before {
-    @apply block border-b px-4 py-1.5 font-mono text-xs text-muted-foreground;
-    content: attr(data-language-label);
+  /* 前台程式碼區塊工具列：語言標籤、行號切換與一鍵複製（由伺服器在輸出時加上） */
+  .code-block-toolbar {
+    @apply flex items-center justify-between gap-2 border-b py-1 pr-1.5 pl-4 select-none;
+  }
+
+  .code-block-language {
+    @apply font-mono text-xs font-medium text-muted-foreground;
+  }
+
+  .code-block-actions {
+    @apply flex items-center gap-0.5;
+  }
+
+  .code-block-button {
+    @apply flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-foreground/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 aria-pressed:text-foreground;
+  }
+
+  .code-block-icon {
+    @apply size-3.5;
+  }
+
+  /* 複製成功後短暫切換為打勾圖示，並以縮放淡入強調 */
+  .code-block-icon-check,
+  .code-block-button[data-copied] .code-block-icon-copy {
+    @apply hidden;
+  }
+
+  .code-block-button[data-copied] {
+    @apply text-chart-3;
+  }
+
+  .code-block-button[data-copied] .code-block-icon-check {
+    @apply block;
+    animation: code-copied 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* 行號以 CSS 計數器產生，不寫入 DOM：複製或選取程式碼時不會夾帶行號 */
+  .code-block[data-line-numbers] pre code {
+    counter-reset: code-line;
+  }
+
+  .code-block[data-line-numbers] .line::before {
+    @apply mr-5 inline-block text-right text-muted-foreground/60 select-none;
+    width: calc(var(--code-line-digits, 2) * 1ch);
+    counter-increment: code-line;
+    content: counter(code-line);
   }
 
   /* 長文區塊：視窗外的段落略過排版與繪製 */
   .article-content > * {
     content-visibility: auto;
     contain-intrinsic-size: auto 120px;
+  }
+}
+
+@keyframes code-copied {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .code-block-button[data-copied] .code-block-icon-check {
+    animation: none;
   }
 }
 

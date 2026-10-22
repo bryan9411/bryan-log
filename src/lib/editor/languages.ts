@@ -1,22 +1,23 @@
 export const PLAIN_TEXT_LANGUAGE = "plaintext"
 
+// label 用於編輯器選單；shortLabel 顯示於前台程式碼區塊頂部的語言標籤
 export const CODE_LANGUAGES = [
-  { id: "typescript", label: "TypeScript" },
-  { id: "tsx", label: "TSX" },
-  { id: "javascript", label: "JavaScript" },
-  { id: "jsx", label: "JSX" },
-  { id: "json", label: "JSON" },
-  { id: "html", label: "HTML" },
-  { id: "css", label: "CSS" },
-  { id: "bash", label: "Bash／終端機" },
-  { id: "sql", label: "SQL" },
-  { id: "yaml", label: "YAML" },
-  { id: "dockerfile", label: "Dockerfile" },
-  { id: "python", label: "Python" },
-  { id: "go", label: "Go" },
-  { id: "rust", label: "Rust" },
-  { id: "markdown", label: "Markdown" },
-  { id: PLAIN_TEXT_LANGUAGE, label: "純文字" },
+  { id: "typescript", label: "TypeScript", shortLabel: "TS" },
+  { id: "tsx", label: "TSX", shortLabel: "TSX" },
+  { id: "javascript", label: "JavaScript", shortLabel: "JS" },
+  { id: "jsx", label: "JSX", shortLabel: "JSX" },
+  { id: "json", label: "JSON", shortLabel: "JSON" },
+  { id: "html", label: "HTML", shortLabel: "HTML" },
+  { id: "css", label: "CSS", shortLabel: "CSS" },
+  { id: "bash", label: "Bash／終端機", shortLabel: "Bash" },
+  { id: "sql", label: "SQL", shortLabel: "SQL" },
+  { id: "yaml", label: "YAML", shortLabel: "YAML" },
+  { id: "dockerfile", label: "Dockerfile", shortLabel: "Dockerfile" },
+  { id: "python", label: "Python", shortLabel: "Python" },
+  { id: "go", label: "Go", shortLabel: "Go" },
+  { id: "rust", label: "Rust", shortLabel: "Rust" },
+  { id: "markdown", label: "Markdown", shortLabel: "Markdown" },
+  { id: PLAIN_TEXT_LANGUAGE, label: "純文字", shortLabel: "Text" },
 ] as const
 
 export type CodeLanguage = (typeof CODE_LANGUAGES)[number]["id"]
@@ -52,4 +53,8 @@ export function normalizeCodeLanguage(value: unknown): CodeLanguage {
 
 export function getCodeLanguageLabel(language: CodeLanguage) {
   return CODE_LANGUAGES.find((item) => item.id === language)?.label ?? language
+}
+
+export function getCodeLanguageShortLabel(language: CodeLanguage) {
+  return CODE_LANGUAGES.find((item) => item.id === language)?.shortLabel ?? language
 }

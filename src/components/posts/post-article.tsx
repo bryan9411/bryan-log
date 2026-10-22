@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 
 import { BackLink } from "@/components/content/back-link"
+import { CodeBlockInteractions } from "@/components/content/code-block-interactions"
 import { CoverImage } from "@/components/content/cover-image"
 import { RichContent } from "@/components/content/rich-content"
 import { PostMeta } from "@/components/posts/post-meta"
@@ -18,10 +19,12 @@ type PostArticleProps = {
   post: PostDetail
   // 接在閱讀時間之後的額外資訊，例如前台的瀏覽數
   metaExtra?: ReactNode
+  // 接在內文之後的延伸區塊，例如上一篇／下一篇與相關文章
+  footer?: ReactNode
 }
 
 // 文章內頁與草稿預覽共用同一份排版，確保預覽看到的就是訪客實際看到的樣子
-export function PostArticle({ post, metaExtra }: PostArticleProps) {
+export function PostArticle({ post, metaExtra, footer }: PostArticleProps) {
   const hasToc = post.toc.length >= MIN_TOC_ITEMS
 
   const maybeRenderExcerpt = () => {
@@ -36,9 +39,14 @@ export function PostArticle({ post, metaExtra }: PostArticleProps) {
     return <CoverImage src={post.coverImageUrl} alt={post.title} />
   }
 
-  const maybeRenderInlineToc = () => {
+  const maybeRenderDrawerToc = () => {
     if (!hasToc) return null
-    return <TableOfContents items={post.toc} variant={TOC_VARIANT.INLINE} />
+    return <TableOfContents items={post.toc} variant={TOC_VARIANT.DRAWER} />
+  }
+
+  const maybeRenderFooter = () => {
+    if (!footer) return null
+    return <footer className="flex flex-col gap-10 border-t border-border/60 pt-8">{footer}</footer>
   }
 
   const maybeRenderSidebarToc = () => {
@@ -68,8 +76,10 @@ export function PostArticle({ post, metaExtra }: PostArticleProps) {
           {maybeRenderExcerpt()}
         </header>
         {maybeRenderCover()}
-        {maybeRenderInlineToc()}
+        {maybeRenderDrawerToc()}
         <RichContent html={post.html} className="border-t border-border/60 pt-8" />
+        <CodeBlockInteractions />
+        {maybeRenderFooter()}
       </article>
       {maybeRenderSidebarToc()}
     </SiteContainer>
