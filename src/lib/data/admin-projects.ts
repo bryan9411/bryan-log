@@ -31,7 +31,8 @@ export type EditableProject = {
   status: ContentStatus
 }
 
-// 作品數量有限，後台一次取出全部；排序與前台一致（sort_order），同序時新的在前
+// 作品數量有限，後台一次取出全部；排序規則需與前台 public-projects 及排序動作一致：
+// sort_order 越小越前面，同序時依建立時間與 id，確保順序穩定
 export async function listAdminProjects(): Promise<AdminProjectListItem[]> {
   const supabase = await createClient()
 
@@ -41,7 +42,8 @@ export async function listAdminProjects(): Promise<AdminProjectListItem[]> {
       `id, title, slug, status, is_featured, cover_image_url, tech_stack, updated_at, ${CATEGORY_WITH_PARENT_SELECT}`,
     )
     .order("sort_order", { ascending: true })
-    .order("updated_at", { ascending: false })
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
     .overrideTypes<Array<{ category: CategoryRelation }>, { merge: true }>()
 
   if (error) throw new Error(`讀取作品列表失敗：${error.message}`)

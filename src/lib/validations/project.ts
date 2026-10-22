@@ -78,3 +78,29 @@ export type ProjectFormInput = z.input<typeof projectFormSchema>
 export type ProjectField = keyof ProjectFormInput
 
 export const PROJECT_FIELDS = Object.keys(projectFormSchema.shape) as ProjectField[]
+
+export const MOVE_DIRECTION = {
+  UP: "up",
+  DOWN: "down",
+} as const
+
+export const moveDirectionSchema = z.enum([MOVE_DIRECTION.UP, MOVE_DIRECTION.DOWN], {
+  error: "排序方向不正確",
+})
+
+export type MoveDirection = z.infer<typeof moveDirectionSchema>
+
+// 依方向與相鄰項目交換位置；已在頂端或底端時回傳原陣列
+export function moveItem<T extends { id: string }>(
+  items: T[],
+  id: string,
+  direction: MoveDirection,
+) {
+  const index = items.findIndex((item) => item.id === id)
+  const target = direction === MOVE_DIRECTION.UP ? index - 1 : index + 1
+  if (index === -1 || target < 0 || target >= items.length) return items
+
+  const next = [...items]
+  ;[next[index], next[target]] = [next[target], next[index]]
+  return next
+}

@@ -32,9 +32,11 @@ export type PostDetail = PostSummary & {
 
 type CategoryOverride = Array<{ category: CategoryRelation }>
 
-const POST_SUMMARY_COLUMNS = `title, slug, excerpt, reading_time_minutes, published_at, ${CATEGORY_WITH_PARENT_SELECT}`
+export const POST_SUMMARY_COLUMNS = `title, slug, excerpt, reading_time_minutes, published_at, ${CATEGORY_WITH_PARENT_SELECT}`
 
-function toPostSummary(post: {
+export const POST_DETAIL_COLUMNS = `${POST_SUMMARY_COLUMNS}, content_html, cover_image_url, view_count, updated_at`
+
+export function toPostSummary(post: {
   title: string
   slug: string
   excerpt: string | null
@@ -84,7 +86,7 @@ export async function getPublishedPost(slug: string): Promise<PostDetail | null>
 
   const { data, error } = await createPublicClient()
     .from("posts")
-    .select(`${POST_SUMMARY_COLUMNS}, content_html, cover_image_url, view_count, updated_at`)
+    .select(POST_DETAIL_COLUMNS)
     .eq("status", CONTENT_STATUS.PUBLISHED)
     .eq("slug", slug)
     .maybeSingle()
@@ -93,15 +95,27 @@ export async function getPublishedPost(slug: string): Promise<PostDetail | null>
   if (error) throw new Error(`讀取文章失敗：${error.message}`)
   if (!data) return null
 
+  return toPostDetail(data)
+}
+
+// 前台內頁與草稿預覽共用：內文清理、加上標題錨點並轉為頁面所需格式
+export function toPostDetail(
+  post: Parameters<typeof toPostSummary>[0] & {
+    content_html: string
+    cover_image_url: string | null
+    view_count: number
+    updated_at: string
+  },
+): PostDetail {
   // 錨點 id 在清理之後才加上：id 不在 DOMPurify 白名單內，且由伺服器自行產生，內容可信
-  const { html, toc } = addHeadingAnchors(sanitizeArticleHtml(data.content_html))
+  const { html, toc } = addHeadingAnchors(sanitizeArticleHtml(post.content_html))
 
   return {
-    ...toPostSummary(data),
+    ...toPostSummary(post),
     html,
     toc,
-    viewCount: data.view_count,
-    coverImageUrl: data.cover_image_url,
-    updatedAt: data.updated_at,
+    viewCount: post.view_count,
+    coverImageUrl: post.cover_image_url,
+    updatedAt: post.updated_at,
   }
 }

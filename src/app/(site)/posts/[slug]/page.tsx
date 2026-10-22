@@ -1,24 +1,15 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
-import { BackLink } from "@/components/content/back-link"
-import { CoverImage } from "@/components/content/cover-image"
-import { RichContent } from "@/components/content/rich-content"
-import { PostMeta } from "@/components/posts/post-meta"
+import { PostArticle } from "@/components/posts/post-article"
 import { PostViewCount } from "@/components/posts/post-view-count"
-import { TableOfContents } from "@/components/posts/table-of-contents"
-import { SiteContainer } from "@/components/site/site-container"
-import { postDetailPath, ROUTES } from "@/config/routes"
+import { ReadingProgress } from "@/components/posts/reading-progress"
+import { postDetailPath } from "@/config/routes"
 import { siteConfig } from "@/config/site"
 import { getPublishedPost } from "@/lib/data/public-posts"
 import { getPublishedPostSlugs } from "@/lib/data/published-slugs"
 import { absoluteUrl, createPageMetadata, serializeJsonLd } from "@/lib/seo"
-import { TOC_VARIANT } from "@/lib/content/toc"
 import { toSlugParams } from "@/lib/static-params"
-import { cn } from "@/lib/utils"
-
-// 標題少於兩個時目錄沒有導覽價值，不顯示
-const MIN_TOC_ITEMS = 2
 
 // Next.js 16 Partial Prefetching：文章內頁屬於完整內容直出型路由，允許 blocking 導航避免未包覆 Suspense 之警告
 export const instant = false
@@ -38,7 +29,7 @@ export async function generateMetadata({ params }: PageProps<"/posts/[slug]">): 
     path: postDetailPath(slug),
     title: post.title,
     description: post.excerpt,
-    image: post.coverImageUrl,
+    hasGeneratedImage: true,
     article: {
       publishedTime: post.publishedAt,
       modifiedTime: post.updatedAt,
@@ -67,64 +58,17 @@ export default async function PostPage({ params }: PageProps<"/posts/[slug]">) {
     author: { "@type": "Person", name: siteConfig.author, url: siteConfig.url },
   }
 
-  const hasToc = post.toc.length >= MIN_TOC_ITEMS
-
-  const maybeRenderExcerpt = () => {
-    if (!post.excerpt) return null
-    return (
-      <p className="text-lg leading-relaxed text-pretty text-muted-foreground">{post.excerpt}</p>
-    )
-  }
-
-  const maybeRenderCover = () => {
-    if (!post.coverImageUrl) return null
-    return <CoverImage src={post.coverImageUrl} alt={post.title} />
-  }
-
-  const maybeRenderInlineToc = () => {
-    if (!hasToc) return null
-    return <TableOfContents items={post.toc} variant={TOC_VARIANT.INLINE} />
-  }
-
-  const maybeRenderSidebarToc = () => {
-    if (!hasToc) return null
-
-    return (
-      <aside className="hidden lg:block">
-        <TableOfContents items={post.toc} variant={TOC_VARIANT.SIDEBAR} />
-      </aside>
-    )
-  }
-
   return (
-    <SiteContainer
-      className={cn(
-        "py-10 sm:py-14",
-        hasToc ? "grid gap-12 lg:grid-cols-[minmax(0,1fr)_14rem]" : "max-w-3xl",
-      )}
-    >
+    <>
+      <ReadingProgress />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
-      <article className="flex max-w-3xl min-w-0 flex-col gap-8">
-        <header className="flex flex-col gap-5">
-          <BackLink href={ROUTES.POSTS} label="所有文章" />
-          <h1 className="text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-4xl sm:leading-tight">
-            {post.title}
-          </h1>
-          <PostMeta
-            post={post}
-            extra={<PostViewCount slug={slug} initialCount={post.viewCount} />}
-            className="text-sm"
-          />
-          {maybeRenderExcerpt()}
-        </header>
-        {maybeRenderCover()}
-        {maybeRenderInlineToc()}
-        <RichContent html={post.html} className="border-t border-border/60 pt-8" />
-      </article>
-      {maybeRenderSidebarToc()}
-    </SiteContainer>
+      <PostArticle
+        post={post}
+        metaExtra={<PostViewCount slug={slug} initialCount={post.viewCount} />}
+      />
+    </>
   )
 }

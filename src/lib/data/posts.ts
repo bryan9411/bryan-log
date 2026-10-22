@@ -5,6 +5,7 @@ import type { JSONContent } from "@tiptap/core"
 import type { ContentStatus } from "@/lib/constants/content"
 import { isAutoExcerpt } from "@/lib/content/render-post"
 import { CATEGORY_WITH_PARENT_SELECT, type CategoryRelation } from "@/lib/data/categories"
+import { POST_DETAIL_COLUMNS, toPostDetail, type PostDetail } from "@/lib/data/public-posts"
 import { createClient } from "@/lib/supabase/server"
 import {
   ADMIN_POSTS_PAGE_SIZE,
@@ -142,4 +143,25 @@ export async function getEditablePost(id: string): Promise<EditablePost | null> 
     status: data.status,
     updatedAt: data.updated_at,
   }
+}
+
+export type PreviewPost = PostDetail & {
+  status: ContentStatus
+}
+
+// 草稿預覽：以管理員身分查詢（RLS 允許讀取草稿），不經過前台快取，每次都讀取最後儲存的版本
+export async function getPreviewPost(id: string): Promise<PreviewPost | null> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from("posts")
+    .select(`${POST_DETAIL_COLUMNS}, status`)
+    .eq("id", id)
+    .maybeSingle()
+    .overrideTypes<{ category: CategoryRelation }, { merge: true }>()
+
+  if (error) throw new Error(`讀取預覽文章失敗：${error.message}`)
+  if (!data) return null
+
+  return { ...toPostDetail(data), status: data.status }
 }

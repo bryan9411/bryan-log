@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useEffectEvent, useRef, useState } from "react"
 import type { Editor, JSONContent } from "@tiptap/react"
+import { EyeIcon } from "lucide-react"
 
 import { AutosaveStatus } from "@/components/admin/posts/autosave-status"
 import { CategorySelect } from "@/components/admin/posts/category-select"
@@ -12,8 +13,10 @@ import { RestoreBackupBanner } from "@/components/admin/posts/restore-backup-ban
 import { LazyTiptapEditor } from "@/components/editor/lazy-tiptap-editor"
 import { FieldShell, FormField, getFieldErrorId } from "@/components/forms/form-field"
 import { FormMessage } from "@/components/forms/form-message"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
+import { enablePreviewRoute } from "@/config/routes"
 import { useAutosave, useAutosaveBackup } from "@/hooks/use-autosave"
 import { useBeforeUnload } from "@/hooks/use-before-unload"
 import { removeLocalStorage } from "@/hooks/use-local-storage-value"
@@ -182,6 +185,25 @@ export function PostForm({ categories, post, createdIntent }: PostFormProps) {
     )
   }
 
+  // 預覽讀取的是資料庫中最後儲存的版本，尚未建立的新文章無法預覽
+  const maybeRenderPreviewButton = () => {
+    if (!post) return null
+
+    return (
+      <div className="grid gap-1.5">
+        <Button asChild variant="outline">
+          <a href={enablePreviewRoute(post.id)} target="_blank" rel="noopener">
+            <EyeIcon aria-hidden />
+            預覽草稿
+          </a>
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          {isDirty ? "有尚未儲存的變更，請先儲存再預覽" : "於新分頁以訪客視角預覽最後儲存的版本"}
+        </p>
+      </div>
+    )
+  }
+
   const renderStatusLine = () => (
     <div className="flex items-center justify-between gap-2 text-sm">
       <span className="text-muted-foreground">目前狀態</span>
@@ -250,6 +272,7 @@ export function PostForm({ categories, post, createdIntent }: PostFormProps) {
               {renderStatusLine()}
               <PostSubmitButtons isPublished={isPublished} />
               <AutosaveStatus lastSavedAt={lastSavedAt} hasStorageError={hasStorageError} />
+              {maybeRenderPreviewButton()}
             </CardContent>
           </Card>
 

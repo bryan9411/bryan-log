@@ -21,10 +21,13 @@ import { CACHE_TAG } from "@/lib/cache-tags"
 import { CONTENT_STATUS } from "@/lib/constants/content"
 import { createClient } from "@/lib/supabase/server"
 import {
+  moveDirectionSchema,
+  moveItem,
   PROJECT_FIELDS,
   PROJECT_INTENT,
   projectFormSchema,
   TECH_STACK_FIELD,
+  type MoveDirection,
   type ProjectField,
 } from "@/lib/validations/project"
 
@@ -112,7 +115,19 @@ export async function saveProjectAction(
   const supabase = await createClient()
 
   if (!id) {
-    const { data, error } = await supabase.from("projects").insert(record).select("id").single()
+    // 新作品排在最後，不會擠掉既有的手動排序
+    const { data: last } = await supabase
+      .from("projects")
+      .select("sort_order")
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const { data, error } = await supabase
+      .from("projects")
+      .insert({ ...record, sort_order: (last?.sort_order ?? 0) + 1 })
+      .select("id")
+      .single()
 
     if (error) return mapDatabaseError(error)
 
@@ -199,4 +214,49 @@ export async function setProjectFeaturedAction(
   revalidateProjectPaths([data.slug])
 
   return createSuccessState(parsed.data.isFeatured ? "已設為精選作品" : "已取消精選")
+}
+
+// 上移／下移：以伺服器端最新順序計算，並將 sort_order 正規化為連續整數（1, 2, 3…）
+// 正規化後每次移動只有被交換的兩筆需要寫入，不會因作品數量增加而變慢
+export async function moveProjectAction(
+  id: string,
+  direction: MoveDirection,
+): Promise<ActionState> {
+  await requireAdmin()
+
+  const parsedId = z.uuid("作品識別碼不正確").safeParse(id)
+  const parsedDirection = moveDirectionSchema.safeParse(direction)
+  if (!parsedId.success || !parsedDirection.success) return createErrorState("排序參數不正確")
+
+  const supabase = await createClient()
+  const { data: projects, error } = await supabase
+    .from("projects")
+    .select("id, slug, sort_order")
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
+
+  if (error) return createErrorState("讀取作品順序失敗，請稍後再試")
+  if (!projects.some((project) => project.id === parsedId.data)) {
+    return createErrorState("找不到這個作品，可能已被刪除")
+  }
+
+  const reordered = moveItem(projects, parsedId.data, parsedDirection.data)
+  const changes = reordered
+    .map((project, index) => ({ ...project, nextOrder: index + 1 }))
+    .filter((project) => project.sort_order !== project.nextOrder)
+
+  if (changes.length === 0) return createSuccessState("排序未變更")
+
+  const results = await Promise.all(
+    changes.map((project) =>
+      supabase.from("projects").update({ sort_order: project.nextOrder }).eq("id", project.id),
+    ),
+  )
+
+  if (results.some((result) => result.error)) return createErrorState("更新排序失敗，請稍後再試")
+
+  revalidateProjectPaths([])
+
+  return createSuccessState("排序已更新")
 }

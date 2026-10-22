@@ -2,8 +2,8 @@ import Link from "next/link"
 import { cacheLife } from "next/cache"
 
 import { ExternalLink } from "@/components/site/external-link"
+import { GithubIcon } from "@/components/site/github-icon"
 import { SiteContainer } from "@/components/site/site-container"
-import { SocialIcon } from "@/components/site/social-icon"
 import { ROUTES } from "@/config/routes"
 import { SITE_NAV_ITEMS } from "@/config/site-nav"
 import { siteConfig } from "@/config/site"
@@ -38,21 +38,15 @@ export function SiteFooter() {
     </ul>
   )
 
-  const renderSocialLinks = () => (
-    <ul className="flex items-center gap-1">
-      {siteConfig.socialLinks.map(({ platform, label, href }) => (
-        <li key={platform}>
-          <ExternalLink
-            href={href}
-            aria-label={label}
-            title={label}
-            className="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <SocialIcon platform={platform} className="size-4.5" />
-          </ExternalLink>
-        </li>
-      ))}
-    </ul>
+  const renderGithubLink = () => (
+    <ExternalLink
+      href={siteConfig.githubUrl}
+      aria-label="GitHub"
+      title="GitHub"
+      className="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+    >
+      <GithubIcon className="size-4.5" />
+    </ExternalLink>
   )
 
   return (
@@ -69,7 +63,7 @@ export function SiteFooter() {
           </div>
           <nav aria-label="頁尾導覽" className="flex flex-col gap-4 sm:items-end">
             {renderNavLinks()}
-            {renderSocialLinks()}
+            {renderGithubLink()}
           </nav>
         </div>
         <p className="border-t border-border/60 pt-6 text-xs text-muted-foreground">

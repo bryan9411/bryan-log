@@ -19,6 +19,9 @@ type PageMetadataInput = {
   title?: string
   description?: string | null
   image?: string | null
+  // 頁面另有 opengraph-image／twitter-image 檔案產生分享圖時設為 true：
+  // 圖片網址交由檔案慣例輸出（優先權高於 metadata），這裡只需改用大圖卡片
+  hasGeneratedImage?: boolean
   article?: ArticleMetadata
 }
 
@@ -34,18 +37,22 @@ export function createPageMetadata({
   title,
   description,
   image,
+  hasGeneratedImage = false,
   article,
 }: PageMetadataInput): Metadata {
   const socialTitle = title ? `${title}｜${siteConfig.name}` : siteConfig.title
   const resolvedDescription = description || siteConfig.description
-  const images = image ? [{ url: image, alt: title ?? siteConfig.name }] : undefined
+  // 沒有圖片時不可輸出 images 鍵（即使值為 undefined）：Next.js 只在 images 未被指定時，
+  // 才會套用 opengraph-image／twitter-image 檔案產生的分享圖
+  const openGraphImages = image ? { images: [{ url: image, alt: title ?? siteConfig.name }] } : {}
+  const twitterImages = image ? { images: [image] } : {}
 
   const sharedOpenGraph = {
     locale: siteConfig.ogLocale,
     siteName: siteConfig.name,
     title: socialTitle,
     description: resolvedDescription,
-    images,
+    ...openGraphImages,
     ...(path ? { url: path } : {}),
   }
 
@@ -65,10 +72,10 @@ export function createPageMetadata({
         }
       : { ...sharedOpenGraph, type: "website" },
     twitter: {
-      card: image ? TWITTER_CARD.LARGE_IMAGE : TWITTER_CARD.SUMMARY,
+      card: image || hasGeneratedImage ? TWITTER_CARD.LARGE_IMAGE : TWITTER_CARD.SUMMARY,
       title: socialTitle,
       description: resolvedDescription,
-      images: image ? [image] : undefined,
+      ...twitterImages,
     },
   }
 }

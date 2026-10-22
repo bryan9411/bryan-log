@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useOptimistic, useState, useTransition } from "react"
-import { PencilIcon, PinIcon, Trash2Icon } from "lucide-react"
+import { ArrowDownIcon, ArrowUpIcon, PencilIcon, PinIcon, Trash2Icon } from "lucide-react"
 
 import { CoverThumbnail } from "@/components/admin/cover-thumbnail"
 import { PostStatusBadge } from "@/components/admin/posts/post-status-badge"
@@ -27,16 +27,32 @@ import {
 } from "@/components/ui/table"
 import { adminEditProjectRoute } from "@/config/routes"
 import { ACTION_STATUS, initialActionState, type ActionState } from "@/lib/actions/action-state"
-import { setProjectFeaturedAction } from "@/lib/actions/projects"
+import { moveProjectAction, setProjectFeaturedAction } from "@/lib/actions/projects"
 import type { AdminProjectListItem } from "@/lib/data/admin-projects"
 import { formatDateTime, formatRelativeTime } from "@/lib/format"
+import { MOVE_DIRECTION, moveItem, type MoveDirection } from "@/lib/validations/project"
 
 // 技術標籤欄位最多顯示的數量，其餘以「+N」帶過
 const MAX_VISIBLE_TAGS = 3
 
-type FeaturedChange = {
-  id: string
-  isFeatured: boolean
+const OPTIMISTIC_CHANGE = {
+  FEATURED: "featured",
+  MOVE: "move",
+} as const
+
+type OptimisticChange =
+  | { type: typeof OPTIMISTIC_CHANGE.FEATURED; id: string; isFeatured: boolean }
+  | { type: typeof OPTIMISTIC_CHANGE.MOVE; id: string; direction: MoveDirection }
+
+function applyChange(current: AdminProjectListItem[], change: OptimisticChange) {
+  switch (change.type) {
+    case OPTIMISTIC_CHANGE.FEATURED:
+      return current.map((project) =>
+        project.id === change.id ? { ...project, isFeatured: change.isFeatured } : project,
+      )
+    case OPTIMISTIC_CHANGE.MOVE:
+      return moveItem(current, change.id, change.direction)
+  }
 }
 
 type ProjectsTableViewProps = {
@@ -46,13 +62,10 @@ type ProjectsTableViewProps = {
 }
 
 export function ProjectsTableView({ projects, now }: ProjectsTableViewProps) {
-  const [isTogglePending, startToggleTransition] = useTransition()
-  // 開關先樂觀更新；伺服器動作完成並重新驗證後，會以最新資料取代
-  const [optimisticProjects, applyFeaturedChange] = useOptimistic(
-    projects,
-    (current, { id, isFeatured }: FeaturedChange) =>
-      current.map((project) => (project.id === id ? { ...project, isFeatured } : project)),
-  )
+  // 精選開關與排序共用同一個 transition：畫面先樂觀更新，伺服器完成並重新驗證後以最新資料取代
+  // 執行期間停用其他排序與開關，確保每次移動都以伺服器上的最新順序計算
+  const [isMutating, startMutation] = useTransition()
+  const [optimisticProjects, applyOptimisticChange] = useOptimistic(projects, applyChange)
 
   const [notice, setNotice] = useState<ActionState>(initialActionState)
   // 對話框內容與開關狀態分開保存：關閉動畫播放期間內容仍保留，不會閃成空白
@@ -62,9 +75,18 @@ export function ProjectsTableView({ projects, now }: ProjectsTableViewProps) {
   const featuredCount = optimisticProjects.filter((project) => project.isFeatured).length
 
   const toggleFeatured = (id: string, isFeatured: boolean) => {
-    startToggleTransition(async () => {
-      applyFeaturedChange({ id, isFeatured })
+    startMutation(async () => {
+      applyOptimisticChange({ type: OPTIMISTIC_CHANGE.FEATURED, id, isFeatured })
       setNotice(await setProjectFeaturedAction(id, isFeatured))
+    })
+  }
+
+  // 排序成功時不顯示訊息，避免連續調整時訊息不斷閃爍；失敗時樂觀結果會自動還原並提示
+  const moveProject = (id: string, direction: MoveDirection) => {
+    startMutation(async () => {
+      applyOptimisticChange({ type: OPTIMISTIC_CHANGE.MOVE, id, direction })
+      const result = await moveProjectAction(id, direction)
+      setNotice(result.status === ACTION_STATUS.ERROR ? result : initialActionState)
     })
   }
 
@@ -113,9 +135,38 @@ export function ProjectsTableView({ projects, now }: ProjectsTableViewProps) {
     )
   }
 
-  const renderRow = (project: AdminProjectListItem) => (
+  const renderSortButtons = (project: AdminProjectListItem, index: number) => (
+    <div className="flex items-center gap-0.5">
+      <span className="w-6 text-center text-xs text-muted-foreground tabular-nums">
+        {index + 1}
+      </span>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        disabled={isMutating || index === 0}
+        onClick={() => moveProject(project.id, MOVE_DIRECTION.UP)}
+        aria-label={`將「${project.title}」上移`}
+      >
+        <ArrowUpIcon aria-hidden />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        disabled={isMutating || index === optimisticProjects.length - 1}
+        onClick={() => moveProject(project.id, MOVE_DIRECTION.DOWN)}
+        aria-label={`將「${project.title}」下移`}
+      >
+        <ArrowDownIcon aria-hidden />
+      </Button>
+    </div>
+  )
+
+  const renderRow = (project: AdminProjectListItem, index: number) => (
     <TableRow key={project.id} className="transition-colors hover:bg-muted/40">
-      <TableCell className="w-24 py-4 pr-2 pl-5">
+      <TableCell className="w-28 py-4 pr-0 pl-4">{renderSortButtons(project, index)}</TableCell>
+      <TableCell className="w-24 py-4 pr-2 pl-3">
         <CoverThumbnail src={project.coverImageUrl} />
       </TableCell>
       <TableCell className="py-4 pr-5 pl-2">
@@ -140,7 +191,7 @@ export function ProjectsTableView({ projects, now }: ProjectsTableViewProps) {
       <TableCell className="w-24 px-5 py-4">
         <Switch
           checked={project.isFeatured}
-          disabled={isTogglePending}
+          disabled={isMutating}
           onCheckedChange={(checked) => toggleFeatured(project.id, checked)}
           aria-label={`將「${project.title}」設為精選`}
         />
@@ -194,10 +245,11 @@ export function ProjectsTableView({ projects, now }: ProjectsTableViewProps) {
       <FormMessage state={notice} />
 
       <div className="overflow-hidden rounded-xl border bg-card">
-        <Table className="min-w-[1080px] table-fixed">
+        <Table className="min-w-[1180px] table-fixed">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-24 py-3.5 pr-2 pl-5">預覽圖</TableHead>
+              <TableHead className="w-28 py-3.5 pr-0 pl-4">排序</TableHead>
+              <TableHead className="w-24 py-3.5 pr-2 pl-3">預覽圖</TableHead>
               <TableHead className="py-3.5 pr-5 pl-2">名稱</TableHead>
               <TableHead className="w-48 px-5 py-3.5">分類</TableHead>
               <TableHead className="w-52 px-5 py-3.5">技術標籤</TableHead>
@@ -218,7 +270,7 @@ export function ProjectsTableView({ projects, now }: ProjectsTableViewProps) {
         </Table>
         <p className="border-t px-5 py-3.5 text-sm text-muted-foreground tabular-nums">
           共 {optimisticProjects.length} 個作品，其中 {featuredCount}{" "}
-          個為精選（已發布的精選作品會顯示於首頁）
+          個為精選。前台作品集與首頁精選區皆依此排序由上而下顯示
         </p>
       </div>
 

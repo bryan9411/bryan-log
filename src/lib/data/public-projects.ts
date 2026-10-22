@@ -56,11 +56,16 @@ function toProjectSummary(project: {
 }
 
 function selectPublishedProjects() {
-  return createPublicClient()
-    .from("projects")
-    .select(PROJECT_SUMMARY_COLUMNS)
-    .eq("status", CONTENT_STATUS.PUBLISHED)
-    .order("sort_order", { ascending: true })
+  return (
+    createPublicClient()
+      .from("projects")
+      .select(PROJECT_SUMMARY_COLUMNS)
+      .eq("status", CONTENT_STATUS.PUBLISHED)
+      // 與後台排序規則一致：sort_order 越小越前面，同序時依建立時間與 id
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+  )
 }
 
 export async function getFeaturedProjects(limit: number): Promise<ProjectSummary[]> {

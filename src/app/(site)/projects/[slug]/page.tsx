@@ -7,11 +7,10 @@ import { CoverImage } from "@/components/content/cover-image"
 import { RichContent } from "@/components/content/rich-content"
 import { ExternalLink } from "@/components/site/external-link"
 import { SiteContainer } from "@/components/site/site-container"
-import { SocialIcon } from "@/components/site/social-icon"
+import { GithubIcon } from "@/components/site/github-icon"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { projectDetailPath, ROUTES } from "@/config/routes"
-import { SOCIAL_PLATFORM } from "@/config/site"
 import { formatCategoryPath } from "@/lib/content/category-filter"
 import { getPublishedProject } from "@/lib/data/public-projects"
 import { getPublishedProjectSlugs } from "@/lib/data/published-slugs"
@@ -71,7 +70,7 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[slug
 
     return (
       <ExternalLink href={repoUrl} className={buttonVariants({ size: "lg", variant: "outline" })}>
-        <SocialIcon platform={SOCIAL_PLATFORM.GITHUB} data-icon="inline-start" />
+        <GithubIcon data-icon="inline-start" />
         GitHub 原始碼
       </ExternalLink>
     )

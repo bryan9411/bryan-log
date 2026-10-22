@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { EyeIcon } from "lucide-react"
 
 import { getPostViewCount, recordPostView } from "@/lib/actions/post-views"
+import { VIEW_COOLDOWN_MS } from "@/lib/constants/post-views"
 
 const VIEWED_STORAGE_PREFIX = "bryan-log-viewed:"
 
@@ -12,13 +13,18 @@ type PostViewCountProps = {
   initialCount: number
 }
 
-function hasViewedInSession(storageKey: string) {
+// 以 LocalStorage 記錄上次累計時間：重新整理、重開瀏覽器或 React 開發模式重複執行 effect 都不會重複累加
+function isWithinCooldown(storageKey: string) {
   try {
-    if (sessionStorage.getItem(storageKey)) return true
-    sessionStorage.setItem(storageKey, "1")
+    const lastViewedAt = Number(localStorage.getItem(storageKey))
+    const now = Date.now()
+
+    if (lastViewedAt > 0 && now - lastViewedAt < VIEW_COOLDOWN_MS) return true
+
+    localStorage.setItem(storageKey, String(now))
     return false
   } catch {
-    // 無痕模式等環境無法使用 sessionStorage 時仍照常計數
+    // 無痕模式等環境無法使用 LocalStorage 時交由伺服器端的頻率限制把關
     return false
   }
 }
@@ -30,8 +36,7 @@ export function PostViewCount({ slug, initialCount }: PostViewCountProps) {
 
   useEffect(() => {
     let isActive = true
-    // 以 sessionStorage 去重：重新整理或 React 開發模式重複執行 effect 時不會重複累加
-    const alreadyViewed = hasViewedInSession(`${VIEWED_STORAGE_PREFIX}${slug}`)
+    const alreadyViewed = isWithinCooldown(`${VIEWED_STORAGE_PREFIX}${slug}`)
     const request = alreadyViewed ? getPostViewCount(slug) : recordPostView(slug)
 
     request.then((latest) => {

@@ -3,11 +3,10 @@ import Link from "next/link"
 import { ExternalLinkIcon } from "lucide-react"
 
 import { ExternalLink } from "@/components/site/external-link"
-import { SocialIcon } from "@/components/site/social-icon"
+import { GithubIcon } from "@/components/site/github-icon"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { projectDetailPath } from "@/config/routes"
-import { SOCIAL_PLATFORM } from "@/config/site"
 import type { ProjectSummary } from "@/lib/data/public-projects"
 import { cn } from "@/lib/utils"
 
@@ -52,7 +51,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
     return (
       <ExternalLink href={repoUrl} className={PROJECT_LINK_CLASS}>
-        <SocialIcon platform={SOCIAL_PLATFORM.GITHUB} />
+        <GithubIcon />
         GitHub
       </ExternalLink>
     )
