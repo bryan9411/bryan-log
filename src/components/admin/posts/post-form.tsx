@@ -10,6 +10,7 @@ import { CoverImageField } from "@/components/admin/posts/cover-image-field"
 import { PostStatusBadge } from "@/components/admin/posts/post-status-badge"
 import { PostSubmitButtons } from "@/components/admin/posts/post-submit-buttons"
 import { RestoreBackupBanner } from "@/components/admin/posts/restore-backup-banner"
+import { SeoChecklist } from "@/components/admin/posts/seo-checklist"
 import { LazyTiptapEditor } from "@/components/editor/lazy-tiptap-editor"
 import { FieldShell, FormField, getFieldErrorId } from "@/components/forms/form-field"
 import { FormMessage } from "@/components/forms/form-message"
@@ -263,7 +264,7 @@ export function PostForm({ categories, post, createdIntent }: PostFormProps) {
           </div>
         </div>
 
-        <aside className="grid content-start gap-4 lg:sticky lg:top-6 lg:self-start">
+        <aside className="grid content-start gap-4 lg:sticky lg:top-6 lg:max-h-[calc(100svh-3rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pb-1">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">發布設定</CardTitle>
@@ -310,6 +311,14 @@ export function PostForm({ categories, post, createdIntent }: PostFormProps) {
               </FieldShell>
             </CardContent>
           </Card>
+
+          <SeoChecklist
+            title={draft.title}
+            slug={draft.slug}
+            excerpt={draft.excerpt}
+            content={draft.content}
+            coverImageUrl={draft.coverImageUrl}
+          />
         </aside>
       </div>
     </form>

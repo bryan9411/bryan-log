@@ -116,7 +116,7 @@ function isWithinGracePeriod(object: StoredObject, now: number) {
 
 const sumBytes = (objects: StoredObject[]) => objects.reduce((sum, object) => sum + object.size, 0)
 
-// 必須以已認證的 Client 執行：RLS 下匿名身分讀不到草稿，會把草稿圖片誤判為孤兒
+// 必須以已認證的 Client 執行：RLS 下匿名身分讀不到草稿，會把草稿圖片誤判為未引用檔案
 export async function scanOrphanFiles(): Promise<OrphanScanReport> {
   await connection()
   const supabase = await createClient()

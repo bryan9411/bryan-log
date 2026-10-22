@@ -38,14 +38,14 @@ export function CleanupForm({ orphanCount }: CleanupFormProps) {
           aria-invalid={Boolean(confirmError)}
           disabled={isEmpty}
         />
-        <span>我了解孤兒檔案刪除後將無法復原</span>
+        <span>我了解未引用檔案刪除後將無法復原</span>
       </label>
       {maybeRenderConfirmError()}
 
       <div>
         <SubmitButton variant="destructive" pendingText="清理中…" disabled={isEmpty}>
           <Trash2Icon aria-hidden />
-          清理 {orphanCount} 個孤兒檔案
+          清理 {orphanCount} 個未引用檔案
         </SubmitButton>
       </div>
     </form>

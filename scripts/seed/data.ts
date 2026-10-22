@@ -882,7 +882,7 @@ export async function deletePost(postId: string) {
   },
   {
     slug: "supabase-storage-orphan-cleanup",
-    title: "Supabase Storage 孤兒檔案清理策略",
+    title: "Supabase Storage 未引用檔案清理策略",
     excerpt: "文章刪掉了，圖片還留在儲存桶裡。設計一個安全的掃描與清理流程，避免儲存空間無限膨脹。",
     categorySlug: "postgresql",
     status: DRAFT,
@@ -897,7 +897,7 @@ export async function deletePost(postId: string) {
         items: [
           "列出儲存桶中的所有物件路徑",
           "從 `content_html` 與 `cover_image_url` 擷取所有引用中的圖片網址",
-          "取差集即為孤兒檔案，並排除 24 小時內上傳的檔案避免誤刪編輯中的內容",
+          "取差集即為未引用檔案，並排除 24 小時內上傳的檔案避免誤刪編輯中的內容",
         ],
       },
       {

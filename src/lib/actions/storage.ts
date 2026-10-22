@@ -32,7 +32,7 @@ export async function cleanupOrphansAction(
     revalidatePath(ROUTES.ADMIN_STORAGE)
 
     if (deletedCount === 0 && failedPaths.length === 0) {
-      return createSuccessState("目前沒有可清理的孤兒檔案")
+      return createSuccessState("目前沒有可清理的未引用檔案")
     }
 
     const summary = `已清除 ${deletedCount} 個檔案，釋放 ${formatBytes(freedBytes)}`

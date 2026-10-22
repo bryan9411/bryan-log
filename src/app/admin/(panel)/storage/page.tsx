@@ -43,7 +43,7 @@ async function StorageReport() {
 
   const maybeRenderOrphanList = () => {
     if (previewOrphans.length === 0) {
-      return <p className="text-sm text-muted-foreground">太好了，目前沒有任何孤兒檔案。</p>
+      return <p className="text-sm text-muted-foreground">太好了，目前沒有任何未引用的檔案。</p>
     }
 
     return (
@@ -75,7 +75,7 @@ async function StorageReport() {
         />
         <StatCard label="使用中" value={report.referencedFiles} />
         <StatCard
-          label="孤兒檔案"
+          label="未引用檔案"
           value={report.orphans.length}
           hint={`可釋放 ${formatBytes(report.orphanBytes)}`}
         />
@@ -88,7 +88,7 @@ async function StorageReport() {
 
       <Card>
         <CardHeader>
-          <CardTitle>孤兒檔案清單</CardTitle>
+          <CardTitle>未引用檔案清單</CardTitle>
           <CardDescription>掃描時間：{formatDateTime(report.scannedAt)}</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6">

@@ -4,6 +4,7 @@ import {
   FolderTreeIcon,
   HardDriveIcon,
   LayoutDashboardIcon,
+  WrenchIcon,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Route } from "next"
@@ -22,4 +23,5 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { href: ROUTES.ADMIN_PROJECTS, label: "專案管理", icon: FolderKanbanIcon },
   { href: ROUTES.ADMIN_CATEGORIES, label: "分類管理", icon: FolderTreeIcon },
   { href: ROUTES.ADMIN_STORAGE, label: "空間清理", icon: HardDriveIcon },
+  { href: ROUTES.ADMIN_TOOLS, label: "站務工具", icon: WrenchIcon },
 ]

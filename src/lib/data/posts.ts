@@ -165,3 +165,52 @@ export async function getPreviewPost(id: string): Promise<PreviewPost | null> {
 
   return { ...(await toPostDetail(data)), status: data.status }
 }
+
+export type ExportablePost = {
+  title: string
+  slug: string
+  status: ContentStatus
+  excerpt: string | null
+  categoryPath: string | null
+  coverImageUrl: string | null
+  contentJson: JSONContent
+  contentHtml: string
+  readingMinutes: number
+  viewCount: number
+  publishedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+// 備份匯出：含草稿在內的全部文章，以管理員身分讀取；依建立時間排序，讓每次匯出的檔案順序一致
+export async function listPostsForExport(): Promise<ExportablePost[]> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from("posts")
+    .select(
+      `title, slug, status, excerpt, cover_image_url, content_json, content_html, reading_time_minutes, view_count, published_at, created_at, updated_at, ${CATEGORY_WITH_PARENT_SELECT}`,
+    )
+    .order("created_at", { ascending: true })
+    .overrideTypes<Array<{ category: CategoryRelation }>, { merge: true }>()
+
+  if (error) throw new Error(`讀取匯出文章失敗：${error.message}`)
+
+  return data.map((post) => ({
+    title: post.title,
+    slug: post.slug,
+    status: post.status,
+    excerpt: post.excerpt,
+    categoryPath: post.category
+      ? [post.category.parent?.name, post.category.name].filter(Boolean).join(" / ")
+      : null,
+    coverImageUrl: post.cover_image_url,
+    contentJson: post.content_json as JSONContent,
+    contentHtml: post.content_html,
+    readingMinutes: post.reading_time_minutes,
+    viewCount: post.view_count,
+    publishedAt: post.published_at,
+    createdAt: post.created_at,
+    updatedAt: post.updated_at,
+  }))
+}

@@ -6,6 +6,7 @@ import { PlusIcon } from "lucide-react"
 import { AdminPageHeader } from "@/components/admin/admin-page-header"
 import { PostListNavigationProvider } from "@/components/admin/posts/post-list-navigation"
 import { PostsToolbar, PostsToolbarSkeleton } from "@/components/admin/posts/posts-toolbar"
+import { ExportPostsButton } from "@/components/admin/tools/export-posts-button"
 import { PostsTable, PostsTableSkeleton } from "@/components/admin/posts/posts-table"
 import { Button } from "@/components/ui/button"
 import { ROUTES } from "@/config/routes"
@@ -21,12 +22,15 @@ export default function AdminPostsPage({ searchParams }: PageProps<"/admin/posts
         title="文章管理"
         description="撰寫、編輯與發布技術文章"
         actions={
-          <Button asChild size="lg">
-            <Link href={ROUTES.ADMIN_POST_NEW}>
-              <PlusIcon aria-hidden />
-              新增文章
-            </Link>
-          </Button>
+          <>
+            <ExportPostsButton size="lg" />
+            <Button asChild size="lg">
+              <Link href={ROUTES.ADMIN_POST_NEW}>
+                <PlusIcon aria-hidden />
+                新增文章
+              </Link>
+            </Button>
+          </>
         }
       />
       {/* 搜尋列與表格分屬不同 Suspense：切換條件時搜尋框保持掛載，輸入不會中斷 */}

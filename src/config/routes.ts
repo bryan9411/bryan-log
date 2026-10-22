@@ -19,6 +19,7 @@ export const ROUTES = {
   ADMIN_PROJECT_NEW: "/admin/projects/new",
   ADMIN_CATEGORIES: "/admin/categories",
   ADMIN_STORAGE: "/admin/storage",
+  ADMIN_TOOLS: "/admin/tools",
 } as const
 
 export const API_ROOT = "/api"
@@ -28,6 +29,7 @@ export const API_ROUTES = {
   SEARCH_INDEX: `${API_ROOT}/search`,
   PREVIEW_ENABLE: `${API_ROOT}/preview`,
   PREVIEW_DISABLE: `${API_ROOT}/preview/disable`,
+  POSTS_EXPORT: `${API_ROOT}/admin/export/posts`,
 } as const
 
 export const REDIRECT_PARAM = "next"

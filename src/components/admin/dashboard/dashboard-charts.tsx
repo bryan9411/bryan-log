@@ -110,7 +110,7 @@ export async function StorageUsageCard() {
     <Card>
       <CardHeader>
         <CardTitle>儲存空間</CardTitle>
-        <CardDescription>孤兒檔案為未被任何文章或作品引用的圖片</CardDescription>
+        <CardDescription>未引用檔案為未被任何文章或作品引用的圖片</CardDescription>
         <CardAction>
           <Button asChild variant="ghost" size="sm">
             <Link href={ROUTES.ADMIN_STORAGE}>

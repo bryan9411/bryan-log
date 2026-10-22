@@ -37,7 +37,7 @@ export function StorageUsageBar({ report }: StorageUsageBarProps) {
     },
     {
       key: "orphan",
-      label: "孤兒檔案",
+      label: "未引用檔案",
       files: report.orphans.length,
       bytes: report.orphanBytes,
       color: "var(--chart-2)",
@@ -85,7 +85,7 @@ export function StorageUsageBar({ report }: StorageUsageBarProps) {
     return (
       <div
         role="img"
-        aria-label={`孤兒檔案佔總容量 ${percentFormatter.format(orphanRatio)}`}
+        aria-label={`未引用檔案佔總容量 ${percentFormatter.format(orphanRatio)}`}
         className="flex h-3 w-full gap-0.5 overflow-hidden rounded-[4px]"
       >
         {segments.map(renderSegment)}
@@ -98,7 +98,7 @@ export function StorageUsageBar({ report }: StorageUsageBarProps) {
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-3xl font-semibold">{percentFormatter.format(orphanRatio)}</p>
         <p className="text-sm text-muted-foreground">
-          孤兒檔案佔總容量 {formatBytes(report.totalBytes)}，共 {report.totalFiles} 個檔案
+          未引用檔案佔總容量 {formatBytes(report.totalBytes)}，共 {report.totalFiles} 個檔案
         </p>
       </div>
       {maybeRenderBar()}
