@@ -1,6 +1,6 @@
 import "server-only"
 
-import { categoryFilterRoute, postDetailPath, ROUTES } from "@/config/routes"
+import { categoryFilterRoute, postDetailPath, ROUTES, sectionPath } from "@/config/routes"
 import { siteConfig } from "@/config/site"
 import { decodeHtmlEntities } from "@/lib/content/html-entities"
 import type { PostDetail } from "@/lib/data/public-posts"
@@ -28,7 +28,7 @@ const truncate = (text: string, maxLength: number) =>
 
 // 作者與網站以 @id 互相參照，同一頁的多個節點不必重複描述同一個實體
 const AUTHOR_ID = `${absoluteUrl(ROUTES.HOME)}#author`
-const BLOG_ID = `${absoluteUrl(ROUTES.POSTS)}#blog`
+const BLOG_ID = `${absoluteUrl(ROUTES.HOME)}#blog`
 
 function buildAuthor() {
   return {
@@ -42,16 +42,12 @@ function buildAuthor() {
 
 function buildBreadcrumb(post: PostDetail, url: string) {
   const category = post.parentCategory ?? post.category
+  const listPath = sectionPath(post.section.slug)
   const crumbs = [
     { name: siteConfig.name, item: absoluteUrl(ROUTES.HOME) },
-    { name: "技術文章", item: absoluteUrl(ROUTES.POSTS) },
+    { name: post.section.name, item: absoluteUrl(listPath) },
     ...(category
-      ? [
-          {
-            name: category.name,
-            item: absoluteUrl(categoryFilterRoute(ROUTES.POSTS, category.slug)),
-          },
-        ]
+      ? [{ name: category.name, item: absoluteUrl(categoryFilterRoute(listPath, category.slug)) }]
       : []),
     { name: post.title, item: url },
   ]
@@ -70,7 +66,7 @@ function buildBreadcrumb(post: PostDetail, url: string) {
 // TechArticle：技術文章專用的 Article 子類型，標明主題分類、閱讀時間與速讀摘要（abstract），
 // 並以 speakable 指向 TL;DR 卡片，讓 AI 搜尋與語音助理優先引用；同時輸出麵包屑
 export function buildPostStructuredData(post: PostDetail, speakableSelector: string) {
-  const url = absoluteUrl(postDetailPath(post.slug))
+  const url = absoluteUrl(postDetailPath(post.section.slug, post.slug))
   const keywords = [post.parentCategory?.name, post.category?.name].filter((name): name is string =>
     Boolean(name),
   )
@@ -94,9 +90,9 @@ export function buildPostStructuredData(post: PostDetail, speakableSelector: str
       "@type": "Blog",
       "@id": BLOG_ID,
       name: siteConfig.name,
-      url: absoluteUrl(ROUTES.POSTS),
+      url: absoluteUrl(ROUTES.HOME),
     },
-    articleSection: keywords[0],
+    articleSection: post.section.name,
     keywords: keywords.length > 0 ? keywords : undefined,
     wordCount: countWords(post.html),
     timeRequired: `PT${post.readingMinutes}M`,

@@ -1,6 +1,6 @@
 # Bryan Log
 
-個人品牌網站：技術文章與作品集。Next.js 16（App Router、React 19、Cache Components）+ Supabase + Tailwind CSS v4 + Shadcn UI。
+個人品牌網站：文章（可自訂內容區塊，例如技術文章、旅遊心得）與作品集。Next.js 16（App Router、React 19、Cache Components）+ Supabase + Tailwind CSS v4 + Shadcn UI。
 
 ## 環境需求
 
@@ -17,10 +17,11 @@ pnpm dev
 
 ## 資料庫初始化
 
-1. 在 Supabase 後台的 SQL Editor 依序執行 `supabase/supabase_schema.sql` 與 `supabase/seed.sql`
-2. 到 Authentication → Sign In / Providers 關閉「Allow new users to sign up」，並手動建立管理員帳號
+1. 全新的資料庫：在 Supabase 後台的 SQL Editor 執行 `supabase/supabase_schema.sql`（會建立預設區塊「技術文章」，網址 `/posts`）
+2. 已建立過的資料庫：依日期順序執行 `supabase/migrations/` 中尚未執行過的遷移檔
+3. 到 Authentication → Sign In / Providers 關閉「Allow new users to sign up」，並手動建立管理員帳號
 
-種子資料由 `scripts/seed/data.ts` 產生，修改內容後執行 `pnpm db:seed:generate` 重新輸出 `seed.sql`。
+文章、分類與內容區塊都從後台建立，專案不附種子資料。
 
 ## 常用指令
 

@@ -3,7 +3,7 @@
 import { revalidatePath, updateTag } from "next/cache"
 import { z } from "zod"
 
-import { ROUTES } from "@/config/routes"
+import { ROUTE_PATTERN, ROUTES } from "@/config/routes"
 import {
   createErrorState,
   createSuccessState,
@@ -12,6 +12,7 @@ import {
 } from "@/lib/actions/action-state"
 import { requireAdmin } from "@/lib/auth/session"
 import { CACHE_TAG } from "@/lib/cache-tags"
+import { CATEGORY_TYPE } from "@/lib/constants/content"
 import { createClient } from "@/lib/supabase/server"
 import { CATEGORY_FIELDS, categoryFormSchema, type CategoryField } from "@/lib/validations/category"
 
@@ -22,6 +23,11 @@ const POSTGRES_ERROR = {
   UNIQUE_VIOLATION: "23505",
   FOREIGN_KEY_VIOLATION: "23503",
   RAISE_EXCEPTION: "P0001",
+} as const
+
+// 唯一索引名稱，用來判斷是名稱還是網址代稱重複（定義於 supabase_schema.sql）
+const UNIQUE_INDEX = {
+  SIBLING_NAME: "categories_sibling_name_key",
 } as const
 
 const MESSAGE = {
@@ -35,8 +41,13 @@ type DatabaseError = { code?: string; message: string }
 function mapDatabaseError(error: DatabaseError): CategoryFormState {
   switch (error.code) {
     case POSTGRES_ERROR.UNIQUE_VIOLATION:
+      if (error.message.includes(UNIQUE_INDEX.SIBLING_NAME)) {
+        return createErrorState("分類名稱重複", {
+          fieldErrors: { name: ["同一層已有同名的分類，請換一個名稱（不同父分類底下可以同名）"] },
+        })
+      }
       return createErrorState("網址代稱重複", {
-        fieldErrors: { slug: ["同類型的分類已使用此網址代稱，請換一個"] },
+        fieldErrors: { slug: ["同一個區塊內已有分類使用此網址代稱，請換一個"] },
       })
     case POSTGRES_ERROR.FOREIGN_KEY_VIOLATION:
       return createErrorState("父分類不存在", {
@@ -56,9 +67,11 @@ function revalidateCategoryPaths() {
   updateTag(CACHE_TAG.POSTS)
   updateTag(CACHE_TAG.PROJECTS)
   revalidatePath(ROUTES.HOME)
-  revalidatePath(ROUTES.POSTS)
+  revalidatePath(ROUTE_PATTERN.SECTION, "page")
+  revalidatePath(ROUTE_PATTERN.POST_DETAIL, "page")
   revalidatePath(ROUTES.PROJECTS)
-  revalidatePath(ROUTES.ADMIN_CATEGORIES)
+  revalidatePath(ROUTES.ADMIN_POST_CATEGORIES)
+  revalidatePath(ROUTES.ADMIN_PROJECT_CATEGORIES)
   revalidatePath(ROUTES.ADMIN_POSTS)
 }
 
@@ -71,7 +84,12 @@ type Supabase = Awaited<ReturnType<typeof createClient>>
 // 縱深防禦：資料庫觸發器之外，先在伺服器端檢查兩層階層規則，回傳更精準的欄位錯誤
 async function validateHierarchy(
   supabase: Supabase,
-  { id, type, parentId }: { id?: string; type: string; parentId?: string },
+  {
+    id,
+    type,
+    sectionId,
+    parentId,
+  }: { id?: string; type: string; sectionId: string | null; parentId?: string },
 ): Promise<CategoryFormState | null> {
   if (!parentId) return null
 
@@ -83,7 +101,7 @@ async function validateHierarchy(
 
   const { data: parent } = await supabase
     .from("categories")
-    .select("type, parent_id")
+    .select("type, section_id, parent_id")
     .eq("id", parentId)
     .maybeSingle()
 
@@ -93,9 +111,9 @@ async function validateHierarchy(
     })
   }
 
-  if (parent.type !== type) {
-    return createErrorState("父分類類型不符", {
-      fieldErrors: { parentId: ["父分類必須與此分類屬於同一類型"] },
+  if (parent.type !== type || parent.section_id !== sectionId) {
+    return createErrorState("父分類不符", {
+      fieldErrors: { parentId: ["父分類必須與此分類屬於同一個區塊"] },
     })
   }
 
@@ -136,9 +154,16 @@ export async function saveCategoryAction(
   }
 
   const { id, type, name, slug, parentId, description, sortOrder } = parsed.data
+  // 文章分類一定隸屬某個區塊，作品分類則不屬於任何區塊（與資料庫 check constraint 一致）
+  const sectionId = type === CATEGORY_TYPE.POST ? (parsed.data.sectionId ?? null) : null
+
+  if (type === CATEGORY_TYPE.POST && !sectionId) {
+    return createErrorState("找不到所屬區塊，請重新整理頁面後再試")
+  }
+
   const supabase = await createClient()
 
-  const hierarchyError = await validateHierarchy(supabase, { id, type, parentId })
+  const hierarchyError = await validateHierarchy(supabase, { id, type, sectionId, parentId })
   if (hierarchyError) return hierarchyError
 
   const record = {
@@ -150,19 +175,20 @@ export async function saveCategoryAction(
   }
 
   if (!id) {
-    const { error } = await supabase.from("categories").insert({ ...record, type })
+    const { error } = await supabase
+      .from("categories")
+      .insert({ ...record, type, section_id: sectionId })
     if (error) return mapDatabaseError(error)
 
     revalidateCategoryPaths()
     return createSuccessState(`已新增分類「${name}」`)
   }
 
-  // 類型建立後即固定：更新時刻意不寫入 type，並以 type 條件確保不會改到其他類型的分類
-  const { data, error } = await supabase
-    .from("categories")
-    .update(record)
-    .eq("id", id)
-    .eq("type", type)
+  // 類型與區塊建立後即固定：更新時刻意不寫入，並以條件確保不會改到其他區塊的分類
+  const query = supabase.from("categories").update(record).eq("id", id).eq("type", type)
+  const { data, error } = await (
+    sectionId ? query.eq("section_id", sectionId) : query.is("section_id", null)
+  )
     .select("id")
     .maybeSingle()
 

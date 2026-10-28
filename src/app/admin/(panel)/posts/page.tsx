@@ -20,7 +20,7 @@ export default function AdminPostsPage({ searchParams }: PageProps<"/admin/posts
     <>
       <AdminPageHeader
         title="文章管理"
-        description="撰寫、編輯與發布技術文章"
+        description="撰寫、編輯與發布各內容區塊的文章"
         actions={
           <>
             <ExportPostsButton size="lg" />

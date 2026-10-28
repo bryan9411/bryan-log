@@ -1,6 +1,7 @@
 -- =============================================================================
 -- Bryan Log 資料庫綱要
 -- 執行方式：Supabase 後台 → SQL Editor 貼上執行，或 `supabase db reset`
+-- 既有資料庫升級：請改執行 supabase/migrations/ 底下對應的遷移檔
 -- 安全原則：
 --   1. 所有資料表啟用 RLS，匿名訪客僅能讀取「已發布」內容
 --   2. 寫入（INSERT / UPDATE / DELETE）僅限已認證用戶（管理員帳號由後台手動建立，請關閉公開註冊）
@@ -56,26 +57,76 @@ end;
 $$;
 
 -- =============================================================================
+-- sections：文章的內容區塊（例如技術文章、旅遊心得），每個區塊有獨立的前台列表頁 /{slug}
+-- 保留字與 src/lib/constants/content.ts 的 RESERVED_SECTION_SLUGS 一致，避免蓋過固定路由
+-- =============================================================================
+create table if not exists public.sections (
+  id uuid primary key default gen_random_uuid(),
+  name text not null check (char_length(name) between 1 and 30),
+  slug text not null unique check (
+    slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+    and slug not in ('admin', 'api', 'projects')
+  ),
+  description text check (char_length(description) <= 300),
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- 防呆：區塊名稱不分大小寫不可重複
+create unique index if not exists sections_name_key on public.sections (lower(name));
+create index if not exists sections_sort_idx on public.sections (sort_order);
+
+drop trigger if exists sections_set_updated_at on public.sections;
+create trigger sections_set_updated_at
+  before update on public.sections
+  for each row execute function public.set_updated_at();
+
+-- 預設區塊：沿用原本的 /posts 網址
+insert into public.sections (name, slug, description, sort_order)
+values ('技術文章', 'posts', '前端工程、全端架構與資安實踐的技術筆記。', 0)
+on conflict (slug) do nothing;
+
+-- =============================================================================
 -- categories：雙層分類（父分類 parent_id 為 null，子分類指向父分類）
+-- 文章分類（type = 'post'）必須隸屬某個內容區塊；作品分類（type = 'project'）不屬於任何區塊
 -- =============================================================================
 create table if not exists public.categories (
   id uuid primary key default gen_random_uuid(),
   parent_id uuid references public.categories (id) on delete restrict,
   type public.category_type not null,
+  section_id uuid references public.sections (id) on delete restrict,
   name text not null check (char_length(name) between 1 and 50),
   slug text not null check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
   description text check (char_length(description) <= 300),
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint categories_type_slug_key unique (type, slug),
-  constraint categories_not_self_parent check (parent_id is null or parent_id <> id)
+  constraint categories_not_self_parent check (parent_id is null or parent_id <> id),
+  constraint categories_section_matches_type check ((type = 'post') = (section_id is not null))
 );
 
 create index if not exists categories_parent_id_idx on public.categories (parent_id);
 create index if not exists categories_type_sort_idx on public.categories (type, sort_order);
+create index if not exists categories_section_id_idx on public.categories (section_id);
 
--- 防呆：限制最多兩層，且子分類必須與父分類同類型
+-- 防呆：網址代稱在同一個區塊（或作品集）內不可重複，前台篩選以 ?category=代稱 定位分類
+-- 作品分類的 section_id 為 null，以全零 uuid 代入，讓 null 也參與唯一性比較
+create unique index if not exists categories_scope_slug_key on public.categories (
+  type,
+  coalesce(section_id, '00000000-0000-0000-0000-000000000000'::uuid),
+  slug
+);
+
+-- 防呆：同一層的兄弟分類名稱不分大小寫不可重複；不同父分類底下可以有同名子分類
+create unique index if not exists categories_sibling_name_key on public.categories (
+  type,
+  coalesce(section_id, '00000000-0000-0000-0000-000000000000'::uuid),
+  coalesce(parent_id, '00000000-0000-0000-0000-000000000000'::uuid),
+  lower(name)
+);
+
+-- 防呆：限制最多兩層，子分類必須與父分類同類型、同區塊；建立後不可搬到其他區塊
 create or replace function public.enforce_category_hierarchy()
 returns trigger
 language plpgsql
@@ -84,11 +135,15 @@ as $$
 declare
   parent_record record;
 begin
+  if tg_op = 'UPDATE' and new.section_id is distinct from old.section_id then
+    raise exception '分類建立後不可變更所屬區塊';
+  end if;
+
   if new.parent_id is null then
     return new;
   end if;
 
-  select parent_id, type into parent_record
+  select parent_id, type, section_id into parent_record
   from public.categories
   where id = new.parent_id;
 
@@ -98,6 +153,10 @@ begin
 
   if parent_record.type <> new.type then
     raise exception '子分類的類型必須與父分類相同';
+  end if;
+
+  if parent_record.section_id is distinct from new.section_id then
+    raise exception '子分類必須與父分類屬於同一個區塊';
   end if;
 
   if exists (select 1 from public.categories where parent_id = new.id) then
@@ -110,7 +169,7 @@ $$;
 
 drop trigger if exists categories_enforce_hierarchy on public.categories;
 create trigger categories_enforce_hierarchy
-  before insert or update of parent_id, type on public.categories
+  before insert or update of parent_id, type, section_id on public.categories
   for each row execute function public.enforce_category_hierarchy();
 
 drop trigger if exists categories_set_updated_at on public.categories;
@@ -118,7 +177,7 @@ create trigger categories_set_updated_at
   before update on public.categories
   for each row execute function public.set_updated_at();
 
--- 防呆：文章與作品只能掛在對應類型的分類下
+-- 防呆：作品只能掛在作品類型的分類下（文章另有 enforce_post_category 檢查區塊）
 create or replace function public.enforce_category_type()
 returns trigger
 language plpgsql
@@ -143,11 +202,13 @@ end;
 $$;
 
 -- =============================================================================
--- posts：技術文章（content_json 供編輯器回填、content_html 供前台 SSR 直出）
+-- posts：文章（content_json 供編輯器回填、content_html 供前台 SSR 直出）
+-- 每篇文章必須隸屬一個內容區塊；網址為 /{區塊代稱}/{文章代稱}，文章代稱全站唯一
 -- =============================================================================
 create table if not exists public.posts (
   id uuid primary key default gen_random_uuid(),
   author_id uuid references auth.users (id) on delete set null default auth.uid(),
+  section_id uuid not null references public.sections (id) on delete restrict,
   category_id uuid references public.categories (id) on delete set null,
   title text not null check (char_length(title) between 1 and 120),
   slug text not null unique check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
@@ -177,6 +238,30 @@ alter table public.posts
 create index if not exists posts_status_published_at_idx
   on public.posts (status, published_at desc);
 create index if not exists posts_category_id_idx on public.posts (category_id);
+create index if not exists posts_section_published_at_idx
+  on public.posts (section_id, status, published_at desc);
+
+-- 防呆：文章的分類必須是文章類型，且與文章屬於同一個區塊
+create or replace function public.enforce_post_category()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.category_id is null then
+    return new;
+  end if;
+
+  if not exists (
+    select 1 from public.categories
+    where id = new.category_id and type = 'post' and section_id = new.section_id
+  ) then
+    raise exception '分類必須屬於文章所在的區塊，請重新選擇分類';
+  end if;
+
+  return new;
+end;
+$$;
 
 drop trigger if exists posts_sync_published_at on public.posts;
 create trigger posts_sync_published_at
@@ -184,9 +269,10 @@ create trigger posts_sync_published_at
   for each row execute function public.sync_published_at();
 
 drop trigger if exists posts_enforce_category_type on public.posts;
-create trigger posts_enforce_category_type
-  before insert or update of category_id on public.posts
-  for each row execute function public.enforce_category_type('post');
+drop trigger if exists posts_enforce_category on public.posts;
+create trigger posts_enforce_category
+  before insert or update of category_id, section_id on public.posts
+  for each row execute function public.enforce_post_category();
 
 drop trigger if exists posts_set_updated_at on public.posts;
 create trigger posts_set_updated_at
@@ -259,14 +345,38 @@ grant execute on function public.increment_post_view(text) to anon, authenticate
 -- =============================================================================
 -- Row Level Security
 -- =============================================================================
+alter table public.sections enable row level security;
 alter table public.categories enable row level security;
 alter table public.posts enable row level security;
 alter table public.projects enable row level security;
 
 -- 縱深防禦：即使政策設定失誤，匿名角色在權限層也無法寫入
-revoke insert, update, delete, truncate on public.categories, public.posts, public.projects from anon;
-grant select on public.categories, public.posts, public.projects to anon;
-grant select, insert, update, delete on public.categories, public.posts, public.projects to authenticated;
+revoke insert, update, delete, truncate
+  on public.sections, public.categories, public.posts, public.projects from anon;
+grant select on public.sections, public.categories, public.posts, public.projects to anon;
+grant select, insert, update, delete
+  on public.sections, public.categories, public.posts, public.projects to authenticated;
+
+-- sections：區塊為公開資訊，所有人可讀；僅認證用戶可寫
+drop policy if exists "sections_select_public" on public.sections;
+create policy "sections_select_public" on public.sections
+  for select to anon, authenticated
+  using (true);
+
+drop policy if exists "sections_insert_authenticated" on public.sections;
+create policy "sections_insert_authenticated" on public.sections
+  for insert to authenticated
+  with check (true);
+
+drop policy if exists "sections_update_authenticated" on public.sections;
+create policy "sections_update_authenticated" on public.sections
+  for update to authenticated
+  using (true) with check (true);
+
+drop policy if exists "sections_delete_authenticated" on public.sections;
+create policy "sections_delete_authenticated" on public.sections
+  for delete to authenticated
+  using (true);
 
 -- categories：分類為公開資訊，所有人可讀；僅認證用戶可寫
 drop policy if exists "categories_select_public" on public.categories;

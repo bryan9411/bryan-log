@@ -3,6 +3,7 @@
 import { headers } from "next/headers"
 import { z } from "zod"
 
+import { getAdminUser } from "@/lib/auth/session"
 import { getClientIp } from "@/lib/client-ip"
 import { VIEW_COOLDOWN_MS } from "@/lib/constants/post-views"
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from "@/lib/content/slug"
@@ -53,10 +54,12 @@ async function readViewCount(slug: string) {
 
 // 參數來自瀏覽器，先以與資料庫相同的 slug 規則驗證，不合法時直接略過；
 // 超過頻率限制時不累加，但仍回傳目前的瀏覽數，畫面行為與正常情況一致
+// 管理員登入時（例如發布後回前台檢查排版）同樣只讀取數字不累加，避免自己的瀏覽灌高閱讀數
 export async function recordPostView(slug: string): Promise<number | null> {
   const parsed = slugSchema.safeParse(slug)
   if (!parsed.success) return null
 
+  if (await getAdminUser()) return readViewCount(parsed.data)
   if (!(await isViewAllowed(parsed.data))) return readViewCount(parsed.data)
 
   const { error } = await createPublicClient().rpc("increment_post_view", {

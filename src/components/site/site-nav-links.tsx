@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Suspense } from "react"
 
-import { SITE_NAV_ITEMS } from "@/config/site-nav"
+import type { SiteNavItem } from "@/config/site-nav"
 import { isActiveHref } from "@/lib/navigation"
 import { cn } from "@/lib/utils"
 
@@ -16,6 +16,7 @@ const NAV_ORIENTATION = {
 type NavOrientation = (typeof NAV_ORIENTATION)[keyof typeof NAV_ORIENTATION]
 
 type SiteNavLinksProps = {
+  items: SiteNavItem[]
   orientation?: NavOrientation
   onNavigate?: () => void
 }
@@ -25,6 +26,7 @@ type SiteNavListProps = SiteNavLinksProps & {
 }
 
 function SiteNavList({
+  items,
   pathname,
   orientation = NAV_ORIENTATION.HORIZONTAL,
   onNavigate,
@@ -33,7 +35,7 @@ function SiteNavList({
 
   return (
     <ul className={cn("flex gap-1", isVertical && "flex-col")}>
-      {SITE_NAV_ITEMS.map(({ href, label }) => {
+      {items.map(({ href, label }) => {
         const isActive = isActiveHref(pathname, href)
 
         return (

@@ -4,12 +4,18 @@ import { ArrowRightIcon } from "lucide-react"
 import { SiteContainer } from "@/components/site/site-container"
 import { badgeVariants } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ROUTES } from "@/config/routes"
+import { ROUTES, sectionPath } from "@/config/routes"
 import { siteConfig } from "@/config/site"
+import type { Section } from "@/lib/data/sections"
 import { cn } from "@/lib/utils"
 
+type HeroSectionProps = {
+  // 排序第一的內容區塊作為主要行動按鈕；尚未建立任何區塊時不顯示
+  primarySection: Section | null
+}
+
 // 純靜態內容：建置時即預渲染進 HTML 外殼，首次載入不需等待任何資料
-export function HeroSection() {
+export function HeroSection({ primarySection }: HeroSectionProps) {
   const { eyebrow, headline, intro, skills } = siteConfig.hero
 
   const renderSkills = () => (
@@ -25,14 +31,22 @@ export function HeroSection() {
     </ul>
   )
 
-  const renderActions = () => (
-    <div className="flex flex-wrap gap-3">
+  const maybeRenderSectionAction = () => {
+    if (!primarySection) return null
+
+    return (
       <Button asChild size="lg" className="h-10 px-4">
-        <Link href={ROUTES.POSTS}>
-          閱讀技術文章
+        <Link href={sectionPath(primarySection.slug)}>
+          閱讀{primarySection.name}
           <ArrowRightIcon data-icon="inline-end" aria-hidden />
         </Link>
       </Button>
+    )
+  }
+
+  const renderActions = () => (
+    <div className="flex flex-wrap gap-3">
+      {maybeRenderSectionAction()}
       <Button asChild size="lg" variant="outline" className="h-10 px-4">
         <Link href={ROUTES.PROJECTS}>瀏覽作品集</Link>
       </Button>

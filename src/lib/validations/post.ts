@@ -68,6 +68,7 @@ export const postFormSchema = z.object({
         )
         .max(TLDR_MAX_ITEMS, `TL;DR 最多 ${TLDR_MAX_ITEMS} 點`),
     ),
+  sectionId: z.preprocess(emptyToUndefined, z.uuid("請選擇內容區塊")),
   categoryId: z.preprocess(emptyToUndefined, z.uuid("請重新選擇分類").optional()),
   coverImageUrl: z.preprocess(
     emptyToUndefined,

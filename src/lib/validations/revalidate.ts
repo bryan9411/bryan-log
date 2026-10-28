@@ -51,14 +51,16 @@ export type RevalidatePathInput = z.infer<typeof revalidatePathSchema>
 
 export type RevalidateField = "path" | "type"
 
-export const cacheTagSchema = z.enum([CACHE_TAG.POSTS, CACHE_TAG.PROJECTS, CACHE_TAG.CATEGORIES], {
-  error: "未知的快取標籤",
-})
+export const cacheTagSchema = z.enum(
+  [CACHE_TAG.POSTS, CACHE_TAG.PROJECTS, CACHE_TAG.CATEGORIES, CACHE_TAG.SECTIONS],
+  { error: "未知的快取標籤" },
+)
 
 export const CACHE_TAG_LABEL: Record<CacheTag, string> = {
   [CACHE_TAG.POSTS]: "文章資料",
   [CACHE_TAG.PROJECTS]: "作品資料",
   [CACHE_TAG.CATEGORIES]: "分類資料",
+  [CACHE_TAG.SECTIONS]: "內容區塊（導覽列）",
 }
 
 export type RevalidatePreset = {
@@ -71,11 +73,16 @@ export type RevalidatePreset = {
 // 一鍵預設：涵蓋前台主要頁面；「全站」以根版型重新驗證，影響範圍最大
 export const REVALIDATE_PRESETS: RevalidatePreset[] = [
   { label: "首頁", description: "/", path: "/", type: REVALIDATE_TYPE.AUTO },
-  { label: "文章列表", description: "/posts", path: "/posts", type: REVALIDATE_TYPE.AUTO },
+  {
+    label: "所有區塊列表",
+    description: "/[section]",
+    path: "/[section]",
+    type: REVALIDATE_TYPE.PAGE,
+  },
   {
     label: "所有文章內頁",
-    description: "/posts/[slug]",
-    path: "/posts/[slug]",
+    description: "/[section]/[slug]",
+    path: "/[section]/[slug]",
     type: REVALIDATE_TYPE.PAGE,
   },
   { label: "文章歸檔", description: "/archives", path: "/archives", type: REVALIDATE_TYPE.AUTO },

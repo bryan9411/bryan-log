@@ -1,12 +1,15 @@
+import type { ReactNode } from "react"
 import type { LucideIcon } from "lucide-react"
 
 type EmptyStateProps = {
   icon: LucideIcon
   title: string
   description: string
+  // 選填的行動按鈕，例如「前往新增」
+  children?: ReactNode
 }
 
-export function EmptyState({ icon: Icon, title, description }: EmptyStateProps) {
+export function EmptyState({ icon: Icon, title, description, children }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed bg-background px-6 py-16 text-center">
       <div className="flex size-11 items-center justify-center rounded-full bg-muted">
@@ -14,6 +17,7 @@ export function EmptyState({ icon: Icon, title, description }: EmptyStateProps) 
       </div>
       <p className="font-medium">{title}</p>
       <p className="max-w-sm text-sm text-pretty text-muted-foreground">{description}</p>
+      {children}
     </div>
   )
 }

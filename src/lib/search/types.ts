@@ -2,6 +2,8 @@
 export type SearchEntry = {
   title: string
   slug: string
+  sectionSlug: string
+  sectionName: string
   categoryPath: string | null
   readingMinutes: number
 }

@@ -44,7 +44,7 @@ export function ArchiveTimeline({ years }: ArchiveTimelineProps) {
         {posts.map((post) => (
           <li key={post.slug}>
             <Link
-              href={postDetailPath(post.slug)}
+              href={postDetailPath(post.section.slug, post.slug)}
               className="group -mx-3 flex items-baseline gap-4 rounded-lg px-3 py-2 transition-colors hover:bg-muted/60"
             >
               <time

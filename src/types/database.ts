@@ -11,11 +11,30 @@ type Timestamps = {
 export type Database = {
   public: {
     Tables: {
+      sections: {
+        Row: Timestamps & {
+          id: string
+          name: string
+          slug: string
+          description: string | null
+          sort_order: number
+        }
+        Insert: Partial<Timestamps> & {
+          id?: string
+          name: string
+          slug: string
+          description?: string | null
+          sort_order?: number
+        }
+        Update: Partial<Database["public"]["Tables"]["sections"]["Insert"]>
+        Relationships: []
+      }
       categories: {
         Row: Timestamps & {
           id: string
           parent_id: string | null
           type: Database["public"]["Enums"]["category_type"]
+          section_id: string | null
           name: string
           slug: string
           description: string | null
@@ -25,6 +44,7 @@ export type Database = {
           id?: string
           parent_id?: string | null
           type: Database["public"]["Enums"]["category_type"]
+          section_id?: string | null
           name: string
           slug: string
           description?: string | null
@@ -39,12 +59,20 @@ export type Database = {
             referencedRelation: "categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "categories_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "sections"
+            referencedColumns: ["id"]
+          },
         ]
       }
       posts: {
         Row: Timestamps & {
           id: string
           author_id: string | null
+          section_id: string
           category_id: string | null
           title: string
           slug: string
@@ -61,6 +89,7 @@ export type Database = {
         Insert: Partial<Timestamps> & {
           id?: string
           author_id?: string | null
+          section_id: string
           category_id?: string | null
           title: string
           slug: string
@@ -81,6 +110,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "sections"
             referencedColumns: ["id"]
           },
         ]

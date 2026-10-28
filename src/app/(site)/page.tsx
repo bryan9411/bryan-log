@@ -4,27 +4,36 @@ import { FeaturedProjects, FeaturedProjectsSkeleton } from "@/components/home/fe
 import { HeroSection } from "@/components/home/hero-section"
 import { HomeSection } from "@/components/home/home-section"
 import { LatestPosts, LatestPostsSkeleton } from "@/components/home/latest-posts"
-import { ROUTES } from "@/config/routes"
+import { ROUTES, sectionPath } from "@/config/routes"
+import { getSections } from "@/lib/data/sections"
 import { createPageMetadata } from "@/lib/seo"
 
 export const metadata = createPageMetadata({ path: ROUTES.HOME })
 
-// Hero 與各區塊標題屬於靜態外殼，資料庫查詢各自包在 Suspense 中並行串流，互不阻塞
-export default function HomePage() {
+const DEFAULT_SECTION_DESCRIPTION = "最新發布的內容。"
+
+// Hero 與各區塊標題屬於靜態外殼（區塊清單有 "use cache"），文章查詢各自包在 Suspense 中並行串流，互不阻塞
+// 每個內容區塊各自一段「最新文章」，後台新增區塊後首頁會自動出現
+export default async function HomePage() {
+  const sections = await getSections()
+
   return (
     <>
-      <HeroSection />
-      <HomeSection
-        id="latest-posts"
-        title="最新技術文章"
-        description="實戰筆記、架構取捨與踩坑紀錄。"
-        moreHref={ROUTES.POSTS}
-        moreLabel="所有文章"
-      >
-        <Suspense fallback={<LatestPostsSkeleton />}>
-          <LatestPosts />
-        </Suspense>
-      </HomeSection>
+      <HeroSection primarySection={sections[0] ?? null} />
+      {sections.map((section) => (
+        <HomeSection
+          key={section.id}
+          id={`latest-${section.slug}`}
+          title={`最新${section.name}`}
+          description={section.description ?? DEFAULT_SECTION_DESCRIPTION}
+          moreHref={sectionPath(section.slug)}
+          moreLabel={`所有${section.name}`}
+        >
+          <Suspense fallback={<LatestPostsSkeleton />}>
+            <LatestPosts section={section} />
+          </Suspense>
+        </HomeSection>
+      ))}
       <div className="border-t border-border/60 bg-muted/30">
         <HomeSection
           id="featured-projects"

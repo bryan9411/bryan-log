@@ -14,6 +14,7 @@ import { PostHealthChecks } from "@/components/admin/posts/post-health-checks"
 import { LazyTiptapEditor } from "@/components/editor/lazy-tiptap-editor"
 import { FieldShell, FormField, getFieldErrorId } from "@/components/forms/form-field"
 import { FormMessage } from "@/components/forms/form-message"
+import { NativeSelect } from "@/components/forms/native-select"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -27,6 +28,7 @@ import { CONTENT_STATUS } from "@/lib/constants/content"
 import { slugify } from "@/lib/content/slug"
 import type { CategoryTreeNode } from "@/lib/data/categories"
 import type { EditablePost } from "@/lib/data/posts"
+import type { Section } from "@/lib/data/sections"
 import {
   POST_EXCERPT_MAX_LENGTH,
   POST_INTENT,
@@ -43,13 +45,16 @@ type PostDraft = {
   excerpt: string
   // 多行文字，每行一點；送出時由伺服器拆成陣列
   tldr: string
+  sectionId: string
   categoryId: string | null
   coverImageUrl: string | null
   content: JSONContent | null
 }
 
 type PostFormProps = {
-  categories: CategoryTreeNode[]
+  sections: Section[]
+  // 以區塊 id 為鍵的分類樹；切換區塊時分類選單立即換成該區塊的分類
+  categoriesBySection: Record<string, CategoryTreeNode[]>
   post?: EditablePost
   createdIntent?: PostIntent | null
 }
@@ -66,25 +71,28 @@ const CREATED_MESSAGE: Record<PostIntent, string> = {
   [POST_INTENT.PUBLISH]: "文章已建立並發布，前台內容已即時更新",
 }
 
-function toDraft(post?: EditablePost): PostDraft {
+function toDraft(defaultSectionId: string, post?: EditablePost): PostDraft {
   return {
     title: post?.title ?? "",
     slug: post?.slug ?? "",
     excerpt: post?.excerpt ?? "",
     tldr: post?.tldr.join("\n") ?? "",
+    sectionId: post?.sectionId ?? defaultSectionId,
     categoryId: post?.categoryId ?? null,
     coverImageUrl: post?.coverImageUrl ?? null,
     content: post?.contentJson ?? null,
   }
 }
 
-export function PostForm({ categories, post, createdIntent }: PostFormProps) {
+export function PostForm({ sections, categoriesBySection, post, createdIntent }: PostFormProps) {
   const [state, formAction] = useActionState<PostFormState, FormData>(
     savePostAction,
     initialActionState,
   )
-  const [draft, setDraft] = useState(() => toDraft(post))
-  const [baseline, setBaseline] = useState(() => JSON.stringify(toDraft(post)))
+  // 新文章預設放在排序第一的區塊
+  const defaultSectionId = sections[0]?.id ?? ""
+  const [draft, setDraft] = useState(() => toDraft(defaultSectionId, post))
+  const [baseline, setBaseline] = useState(() => JSON.stringify(toDraft(defaultSectionId, post)))
   const [isSlugTouched, setIsSlugTouched] = useState(Boolean(post))
   const [isBackupResolved, setIsBackupResolved] = useState(false)
   const editorRef = useRef<Editor | null>(null)
@@ -99,6 +107,8 @@ export function PostForm({ categories, post, createdIntent }: PostFormProps) {
   const fieldErrors = state.fieldErrors ?? {}
   const tldrCount = parseTldrLines(draft.tldr).length
   const isPublished = post?.status === CONTENT_STATUS.PUBLISHED
+  const activeSection = sections.find((section) => section.id === draft.sectionId)
+  const categories = categoriesBySection[draft.sectionId] ?? []
 
   // 只有「存在比資料庫更新、且內容不同的舊暫存」時才需要詢問；詢問期間暫停自動暫存，避免覆蓋使用者還沒看過的備份
   const shouldOfferRestore =
@@ -148,10 +158,13 @@ export function PostForm({ categories, post, createdIntent }: PostFormProps) {
       slug: isSlugTouched ? current.slug : slugify(title),
     }))
 
+  // 分類只屬於單一區塊，換區塊時原本的分類一定不適用，因此一併清空
+  const handleSectionChange = (sectionId: string) => updateDraft({ sectionId, categoryId: null })
+
   const handleRestore = () => {
     if (!backup) return
-    // 舊版暫存可能沒有後來新增的欄位，以空白預設值補齊
-    setDraft({ ...toDraft(), ...backup.data })
+    // 舊版暫存可能沒有後來新增的欄位（例如 TL;DR、所屬區塊），以目前的預設值補齊
+    setDraft({ ...toDraft(draft.sectionId), ...backup.data })
     editorRef.current?.commands.setContent(backup.data.content ?? EMPTY_DOC)
     setIsSlugTouched(true)
     setIsBackupResolved(true)
@@ -223,6 +236,7 @@ export function PostForm({ categories, post, createdIntent }: PostFormProps) {
   return (
     <form action={handleSubmit} onReset={handleReset} noValidate className="grid gap-6">
       <input type="hidden" name="id" value={post?.id ?? ""} />
+      <input type="hidden" name="sectionId" value={draft.sectionId} />
       <input type="hidden" name="categoryId" value={draft.categoryId ?? ""} />
       <input type="hidden" name="coverImageUrl" value={draft.coverImageUrl ?? ""} />
       <input type="hidden" name="contentJson" value={JSON.stringify(draft.content ?? EMPTY_DOC)} />
@@ -254,7 +268,7 @@ export function PostForm({ categories, post, createdIntent }: PostFormProps) {
             autoComplete="off"
             spellCheck={false}
             errors={fieldErrors.slug}
-            hint={`文章網址：/posts/${draft.slug || "網址代稱"}。中文標題請手動輸入英文代稱`}
+            hint={`文章網址：/${activeSection?.slug ?? "區塊"}/${draft.slug || "網址代稱"}。中文標題請手動輸入英文代稱`}
             className="font-mono"
           />
           <FieldShell
@@ -308,6 +322,28 @@ export function PostForm({ categories, post, createdIntent }: PostFormProps) {
 
           <Card>
             <CardContent className="grid gap-5">
+              <FieldShell
+                id="section"
+                label="內容區塊"
+                errors={fieldErrors.sectionId}
+                hint="文章會出現在此區塊的前台列表頁"
+              >
+                {(describedBy, hasError) => (
+                  <NativeSelect
+                    id="section"
+                    value={draft.sectionId}
+                    aria-invalid={hasError}
+                    aria-describedby={describedBy}
+                    onChange={(event) => handleSectionChange(event.target.value)}
+                  >
+                    {sections.map((section) => (
+                      <option key={section.id} value={section.id}>
+                        {section.name}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                )}
+              </FieldShell>
               <CategorySelect
                 categories={categories}
                 value={draft.categoryId}

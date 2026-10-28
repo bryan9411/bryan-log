@@ -5,8 +5,9 @@ import { ExternalLink } from "@/components/site/external-link"
 import { GithubIcon } from "@/components/site/github-icon"
 import { SiteContainer } from "@/components/site/site-container"
 import { ROUTES } from "@/config/routes"
-import { SITE_NAV_ITEMS } from "@/config/site-nav"
 import { siteConfig } from "@/config/site"
+import { buildSiteNavItems } from "@/config/site-nav"
+import { getSections } from "@/lib/data/sections"
 
 // Cache Components 不允許在預渲染時直接讀取目前時間，以快取函式取得年份並每天更新
 async function CopyrightYears() {
@@ -22,10 +23,12 @@ async function CopyrightYears() {
   return <>{years}</>
 }
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const navItems = buildSiteNavItems(await getSections())
+
   const renderNavLinks = () => (
     <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
-      {SITE_NAV_ITEMS.map(({ href, label }) => (
+      {navItems.map(({ href, label }) => (
         <li key={href}>
           <Link
             href={href}

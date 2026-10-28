@@ -24,7 +24,8 @@ export const metadata: Metadata = {
 const STAT_SKELETON_COUNT = 4
 
 const QUICK_LINK_DESCRIPTION: Partial<Record<string, string>> = {
-  [ROUTES.ADMIN_POSTS]: "撰寫、編輯與發布技術文章",
+  [ROUTES.ADMIN_POSTS]: "撰寫、編輯與發布各內容區塊的文章",
+  [ROUTES.ADMIN_POST_CATEGORIES]: "管理內容區塊與文章分類",
   [ROUTES.ADMIN_PROJECTS]: "維護作品集與精選專案",
   [ROUTES.ADMIN_STORAGE]: "掃描並清除未被引用的圖片",
 }
@@ -75,7 +76,7 @@ export default function AdminDashboardPage({ searchParams }: PageProps<"/admin/d
   const renderQuickLinks = () => (
     <section className="grid gap-3">
       <h2 className="text-sm font-medium text-muted-foreground">快速操作</h2>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {quickLinks.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}

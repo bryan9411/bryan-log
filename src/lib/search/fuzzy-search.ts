@@ -124,7 +124,7 @@ export function searchEntries(entries: readonly SearchEntry[], query: string): S
 
   entries.forEach((entry) => {
     const title = normalize(entry.title)
-    const category = normalize(entry.categoryPath ?? "")
+    const category = normalize(`${entry.sectionName} ${entry.categoryPath ?? ""}`)
     let score = 0
     const highlights: HighlightRange[] = []
 

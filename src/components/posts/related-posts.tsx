@@ -18,7 +18,7 @@ export function RelatedPosts({ posts }: RelatedPostsProps) {
     return (
       <li key={post.slug} className="flex">
         <Link
-          href={postDetailPath(post.slug)}
+          href={postDetailPath(post.section.slug, post.slug)}
           className="flex w-full flex-col gap-2.5 rounded-xl border bg-card p-4 transition-colors hover:bg-muted/60"
         >
           {categoryPath ? (

@@ -32,18 +32,20 @@ function buildIntro() {
   ].join(SECTION_SEPARATOR)
 }
 
-// 依主分類分組（無父分類時分類本身即為主分類），保留文章原本由新到舊的順序
+// 依「內容區塊：主分類」分組（無父分類時分類本身即為主分類），保留文章原本由新到舊的順序
 function groupPostsByCategory(posts: PostSummary[]) {
   const groups = new Map<string, PostSummary[]>()
 
   posts.forEach((post) => {
-    const key = post.parentCategory?.name ?? post.category?.name ?? UNCATEGORIZED_LABEL
+    const category = post.parentCategory?.name ?? post.category?.name ?? UNCATEGORIZED_LABEL
+    const key = `${post.section.name}：${category}`
     groups.set(key, [...(groups.get(key) ?? []), post])
   })
 
-  // 「其他」固定排在最後
+  // 同一區塊內「其他」固定排在最後
+  const isUncategorized = (key: string) => key.endsWith(`：${UNCATEGORIZED_LABEL}`)
   return [...groups.entries()].sort(
-    ([a], [b]) => Number(a === UNCATEGORIZED_LABEL) - Number(b === UNCATEGORIZED_LABEL),
+    ([a], [b]) => Number(isUncategorized(a)) - Number(isUncategorized(b)),
   )
 }
 
@@ -51,9 +53,15 @@ function groupPostsByCategory(posts: PostSummary[]) {
 export function buildLlmsTxt(posts: PostSummary[], projects: ProjectSummary[]) {
   const postSections = groupPostsByCategory(posts).map(([category, items]) =>
     [
-      `## 技術文章：${category}`,
+      `## ${category}`,
       items
-        .map((post) => linkItem(post.title, absoluteUrl(postDetailPath(post.slug)), post.excerpt))
+        .map((post) =>
+          linkItem(
+            post.title,
+            absoluteUrl(postDetailPath(post.section.slug, post.slug)),
+            post.excerpt,
+          ),
+        )
         .join("\n"),
     ].join(SECTION_SEPARATOR),
   )
@@ -96,7 +104,8 @@ export function buildLlmsTxt(posts: PostSummary[], projects: ProjectSummary[]) {
 
 function buildPostSection(post: LlmsPost) {
   const meta = [
-    `- 網址：${absoluteUrl(postDetailPath(post.slug))}`,
+    `- 網址：${absoluteUrl(postDetailPath(post.section.slug, post.slug))}`,
+    `- 區塊：${post.section.name}`,
     `- 分類：${formatCategoryPath(post) ?? UNCATEGORIZED_LABEL}`,
     post.publishedAt ? `- 發布日期：${formatDate(post.publishedAt)}` : null,
     `- 最後更新：${formatDate(post.updatedAt)}`,

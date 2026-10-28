@@ -25,6 +25,8 @@ const NO_PARENT = ""
 
 type CategoryFormProps = {
   type: CategoryType
+  // 文章分類所屬的內容區塊；作品分類為 null
+  sectionId: string | null
   // 編輯時傳入既有分類；新增時為 null
   category: AdminCategory | null
   defaultParentId: string | null
@@ -35,6 +37,7 @@ type CategoryFormProps = {
 
 export function CategoryForm({
   type,
+  sectionId,
   category,
   defaultParentId,
   parents,
@@ -83,6 +86,7 @@ export function CategoryForm({
     <form action={formAction} onReset={handleReset} noValidate className="grid gap-5">
       <input type="hidden" name="id" value={category?.id ?? ""} />
       <input type="hidden" name="type" value={type} />
+      <input type="hidden" name="sectionId" value={sectionId ?? ""} />
 
       <FormMessage state={state} />
 
@@ -107,7 +111,7 @@ export function CategoryForm({
         autoComplete="off"
         spellCheck={false}
         className="font-mono"
-        hint="僅限小寫英文、數字與連字號；英文名稱會自動轉換，中文名稱請手動輸入"
+        hint="僅限小寫英文、數字與連字號，同一個區塊內不可重複；英文名稱會自動轉換，中文名稱請手動輸入"
         errors={fieldErrors.slug}
         required
       />

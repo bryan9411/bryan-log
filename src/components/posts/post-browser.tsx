@@ -13,9 +13,10 @@ const ESTIMATED_ITEM_HEIGHT = 150
 type PostBrowserProps = {
   posts: PostSummary[]
   categories: CategoryTreeNode[]
+  sectionName: string
 }
 
-export function PostBrowser({ posts, categories }: PostBrowserProps) {
+export function PostBrowser({ posts, categories, sectionName }: PostBrowserProps) {
   return (
     <ContentBrowser
       items={posts}
@@ -23,7 +24,7 @@ export function PostBrowser({ posts, categories }: PostBrowserProps) {
       unit="篇文章"
       emptyIcon={FileTextIcon}
       emptyTitle="尚無文章"
-      emptyDescription="第一篇技術文章正在撰寫中，敬請期待。"
+      emptyDescription={`第一篇${sectionName}正在撰寫中，敬請期待。`}
     >
       {(filteredPosts) => (
         <VirtualList

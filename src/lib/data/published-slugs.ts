@@ -2,7 +2,7 @@ import "server-only"
 
 import { cacheLife, cacheTag } from "next/cache"
 
-import { CACHE_TAG, type CacheTag } from "@/lib/cache-tags"
+import { CACHE_TAG } from "@/lib/cache-tags"
 import { CONTENT_STATUS } from "@/lib/constants/content"
 import { createPublicClient } from "@/lib/supabase/public"
 
@@ -11,26 +11,39 @@ export type PublishedSlug = {
   updatedAt: string
 }
 
-const PUBLISHED_CONTENT_TABLE = {
-  POSTS: "posts",
-  PROJECTS: "projects",
-} as const
-
-type PublishedContentTable = (typeof PUBLISHED_CONTENT_TABLE)[keyof typeof PUBLISHED_CONTENT_TABLE]
-
-const TABLE_CACHE_TAG: Record<PublishedContentTable, CacheTag> = {
-  [PUBLISHED_CONTENT_TABLE.POSTS]: CACHE_TAG.POSTS,
-  [PUBLISHED_CONTENT_TABLE.PROJECTS]: CACHE_TAG.PROJECTS,
+export type PublishedPostSlug = PublishedSlug & {
+  sectionSlug: string
 }
 
-// 文章與作品的 sitemap 查詢結構相同，共用同一個查詢並各自掛上對應的快取標籤
-async function getPublishedSlugs(table: PublishedContentTable): Promise<PublishedSlug[]> {
+// 文章網址包含區塊代稱，因此一併取回所屬區塊；section_id 為必填外鍵，關聯一定存在
+export async function getPublishedPostSlugs(): Promise<PublishedPostSlug[]> {
   "use cache"
   cacheLife("hours")
-  cacheTag(TABLE_CACHE_TAG[table])
+  cacheTag(CACHE_TAG.POSTS)
 
   const { data, error } = await createPublicClient()
-    .from(table)
+    .from("posts")
+    .select("slug, updated_at, section:sections(slug)")
+    .eq("status", CONTENT_STATUS.PUBLISHED)
+    .order("updated_at", { ascending: false })
+    .overrideTypes<Array<{ section: { slug: string } }>, { merge: true }>()
+
+  if (error) throw new Error(`讀取 sitemap 資料失敗：${error.message}`)
+
+  return data.map(({ slug, updated_at, section }) => ({
+    slug,
+    updatedAt: updated_at,
+    sectionSlug: section.slug,
+  }))
+}
+
+export async function getPublishedProjectSlugs(): Promise<PublishedSlug[]> {
+  "use cache"
+  cacheLife("hours")
+  cacheTag(CACHE_TAG.PROJECTS)
+
+  const { data, error } = await createPublicClient()
+    .from("projects")
     .select("slug, updated_at")
     .eq("status", CONTENT_STATUS.PUBLISHED)
     .order("updated_at", { ascending: false })
@@ -38,12 +51,4 @@ async function getPublishedSlugs(table: PublishedContentTable): Promise<Publishe
   if (error) throw new Error(`讀取 sitemap 資料失敗：${error.message}`)
 
   return data.map(({ slug, updated_at }) => ({ slug, updatedAt: updated_at }))
-}
-
-export function getPublishedPostSlugs() {
-  return getPublishedSlugs(PUBLISHED_CONTENT_TABLE.POSTS)
-}
-
-export function getPublishedProjectSlugs() {
-  return getPublishedSlugs(PUBLISHED_CONTENT_TABLE.PROJECTS)
 }

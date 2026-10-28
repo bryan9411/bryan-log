@@ -9,7 +9,7 @@ type PostListItemProps = {
 }
 
 export function PostListItem({ post }: PostListItemProps) {
-  const { title, slug, excerpt } = post
+  const { title, slug, excerpt, section } = post
 
   const maybeRenderExcerpt = () => {
     if (!excerpt) return null
@@ -21,7 +21,10 @@ export function PostListItem({ post }: PostListItemProps) {
       <PostMeta post={post} />
       <h3 className="text-lg leading-snug font-semibold tracking-tight text-pretty">
         {/* 以偽元素讓整張卡片可點擊，同時保持單一連結的語意 */}
-        <Link href={postDetailPath(slug)} className="after:absolute after:inset-0 after:rounded-xl">
+        <Link
+          href={postDetailPath(section.slug, slug)}
+          className="after:absolute after:inset-0 after:rounded-xl"
+        >
           {title}
         </Link>
       </h3>

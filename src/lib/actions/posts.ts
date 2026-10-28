@@ -4,7 +4,7 @@ import { revalidatePath, updateTag } from "next/cache"
 import { redirect } from "next/navigation"
 import { z } from "zod"
 
-import { adminEditPostRoute, POST_CREATED_PARAM, postDetailPath, ROUTES } from "@/config/routes"
+import { adminEditPostRoute, POST_CREATED_PARAM, ROUTE_PATTERN, ROUTES } from "@/config/routes"
 import {
   createErrorState,
   createSuccessState,
@@ -41,29 +41,31 @@ function mapDatabaseError(error: DatabaseError): PostFormState {
         fieldErrors: { slug: ["此網址代稱已被其他文章使用，請換一個"] },
       })
     case POSTGRES_ERROR.FOREIGN_KEY_VIOLATION:
-      return createErrorState("分類不存在", {
-        fieldErrors: { categoryId: ["所選分類已被刪除，請重新選擇"] },
+      return createErrorState("區塊或分類不存在", {
+        fieldErrors: { categoryId: ["所選區塊或分類已被刪除，請重新整理後再選擇"] },
       })
     case POSTGRES_ERROR.RAISE_EXCEPTION:
-      // 資料庫觸發器拋出的訊息本身即為繁體中文（例如分類類型不符）
-      return createErrorState(error.message)
+      // 資料庫觸發器拋出的訊息本身即為繁體中文（例如分類不屬於文章所在的區塊）
+      return createErrorState(error.message, { fieldErrors: { categoryId: [error.message] } })
     default:
       return createErrorState(GENERIC_SAVE_ERROR)
   }
 }
 
-// 首頁、文章列表與文章內頁都可能顯示這篇文章，發布或修改後一併讓快取失效
-function revalidatePostPaths(slugs: string[]) {
+// 首頁、區塊列表與文章內頁都可能顯示這篇文章，發布或修改後一併讓快取失效
+// 文章可能搬到其他區塊，因此以路由樣式一次失效所有區塊列表與文章內頁
+function revalidatePostPaths() {
   // 前台資料以 "use cache" 快取，需以標籤失效才能讓首頁、列表與 sitemap 立即反映變更
   updateTag(CACHE_TAG.POSTS)
   revalidatePath(ROUTES.HOME)
-  revalidatePath(ROUTES.POSTS)
+  revalidatePath(ROUTE_PATTERN.SECTION, "page")
+  revalidatePath(ROUTE_PATTERN.POST_DETAIL, "page")
   revalidatePath(ROUTES.ARCHIVES)
   revalidatePath(ROUTES.ADMIN_POSTS)
+  revalidatePath(ROUTES.ADMIN_POST_CATEGORIES)
   revalidatePath(ROUTES.ADMIN_DASHBOARD)
   revalidatePath(ROUTES.LLMS_TXT)
   revalidatePath(ROUTES.LLMS_FULL_TXT)
-  new Set(slugs).forEach((slug) => revalidatePath(postDetailPath(slug)))
 }
 
 function readPostForm(formData: FormData) {
@@ -84,8 +86,18 @@ export async function savePostAction(
     })
   }
 
-  const { id, title, slug, excerpt, tldr, categoryId, coverImageUrl, contentJson, intent } =
-    parsed.data
+  const {
+    id,
+    title,
+    slug,
+    excerpt,
+    tldr,
+    sectionId,
+    categoryId,
+    coverImageUrl,
+    contentJson,
+    intent,
+  } = parsed.data
   const isPublishing = intent === POST_INTENT.PUBLISH
 
   let rendered: Awaited<ReturnType<typeof renderPostContent>>
@@ -108,6 +120,7 @@ export async function savePostAction(
     slug,
     excerpt: excerpt || rendered.excerpt || null,
     tldr,
+    section_id: sectionId,
     category_id: categoryId ?? null,
     cover_image_url: coverImageUrl ?? null,
     content_json: rendered.json,
@@ -123,22 +136,22 @@ export async function savePostAction(
 
     if (error) return mapDatabaseError(error)
 
-    revalidatePostPaths([slug])
+    revalidatePostPaths()
     // 新文章建立後轉往編輯頁，之後的存檔都會更新同一筆資料，避免重複新增
     redirect(`${adminEditPostRoute(data.id)}?${POST_CREATED_PARAM}=${intent}`)
   }
 
-  const { data: previous } = await supabase.from("posts").select("slug").eq("id", id).maybeSingle()
-
-  if (!previous) {
-    return createErrorState("找不到這篇文章，可能已被刪除")
-  }
-
-  const { error } = await supabase.from("posts").update(record).eq("id", id)
+  const { data, error } = await supabase
+    .from("posts")
+    .update(record)
+    .eq("id", id)
+    .select("id")
+    .maybeSingle()
 
   if (error) return mapDatabaseError(error)
+  if (!data) return createErrorState("找不到這篇文章，可能已被刪除")
 
-  revalidatePostPaths([previous.slug, slug])
+  revalidatePostPaths()
 
   return {
     ...createSuccessState<PostField>(
@@ -167,12 +180,12 @@ export async function deletePostsAction(
   if (!parsed.success) return createErrorState(parsed.error.issues[0].message)
 
   const supabase = await createClient()
-  const { data, error } = await supabase.from("posts").delete().in("id", parsed.data).select("slug")
+  const { data, error } = await supabase.from("posts").delete().in("id", parsed.data).select("id")
 
   if (error) return createErrorState("刪除失敗，請稍後再試")
   if (data.length === 0) return createErrorState("找不到選取的文章，可能已被刪除")
 
-  revalidatePostPaths(data.map((post) => post.slug))
+  revalidatePostPaths()
 
   return createSuccessState(data.length === 1 ? "文章已刪除" : `已刪除 ${data.length} 篇文章`)
 }

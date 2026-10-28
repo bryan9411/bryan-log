@@ -7,8 +7,7 @@ import { ProjectGridSkeleton } from "@/components/projects/project-grid-skeleton
 import { PageHeader } from "@/components/site/page-header"
 import { SiteContainer } from "@/components/site/site-container"
 import { ROUTES } from "@/config/routes"
-import { CATEGORY_TYPE } from "@/lib/constants/content"
-import { getCategoryTree } from "@/lib/data/categories"
+import { getProjectCategoryTree } from "@/lib/data/categories"
 import { getPublishedProjects } from "@/lib/data/public-projects"
 import { createPageMetadata } from "@/lib/seo"
 
@@ -28,7 +27,7 @@ async function ProjectsExplorer() {
 
   const [projects, categories] = await Promise.all([
     getPublishedProjects(),
-    getCategoryTree(CATEGORY_TYPE.PROJECT),
+    getProjectCategoryTree(),
   ])
 
   return <ProjectBrowser projects={projects} categories={categories} />

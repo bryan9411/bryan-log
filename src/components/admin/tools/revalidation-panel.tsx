@@ -205,7 +205,7 @@ export function RevalidationPanel() {
             autoComplete="off"
             spellCheck={false}
             errors={fieldErrors.path}
-            hint="站內路徑，例如 /posts/文章代稱；動態路由請寫成 /posts/[slug]"
+            hint="站內路徑，例如 /區塊代稱/文章代稱；動態路由請寫成 /[section]/[slug]"
             className="font-mono"
           />
           <FieldShell id="type" label="類型" errors={fieldErrors.type}>

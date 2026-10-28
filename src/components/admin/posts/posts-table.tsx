@@ -30,7 +30,7 @@ export async function PostsTable({ searchParams }: PostsTableProps) {
       <EmptyState
         icon={FileTextIcon}
         title="還沒有任何文章"
-        description="點擊右上角的「新增文章」開始撰寫第一篇技術文章。"
+        description="點擊右上角的「新增文章」開始撰寫第一篇文章。"
       />
     )
   }

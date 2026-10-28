@@ -69,13 +69,14 @@ export function SearchPanel({ onNavigate }: SearchPanelProps) {
     ? searchEntries(entries, query).slice(0, MAX_RESULTS)
     : entries.slice(0, LATEST_ENTRIES_LIMIT).map((entry) => ({ entry, highlights: [] }))
   const activeResult = results[activeIndex]
-  const activeSlug = activeResult?.entry.slug
+  const activeEntry = activeResult?.entry
+  const activeSlug = activeEntry?.slug
   const getOptionId = (slug: string) => `${listboxId}-${slug}`
 
   // 預先載入目前選取的文章，按下 Enter 時幾乎可以立即切換頁面
   useEffect(() => {
-    if (activeSlug) router.prefetch(postDetailPath(activeSlug))
-  }, [activeSlug, router])
+    if (activeEntry) router.prefetch(postDetailPath(activeEntry.sectionSlug, activeEntry.slug))
+  }, [activeEntry, router])
 
   const changeQuery = (value: string) => {
     setQuery(value)
@@ -92,7 +93,7 @@ export function SearchPanel({ onNavigate }: SearchPanelProps) {
   const openEntry = (entry: SearchEntry) => {
     if (hasQuery) addSearch(query)
     onNavigate()
-    router.push(postDetailPath(entry.slug))
+    router.push(postDetailPath(entry.sectionSlug, entry.slug))
   }
 
   const moveActive = (step: number) => {
@@ -250,7 +251,7 @@ export function SearchPanel({ onNavigate }: SearchPanelProps) {
                     {renderHighlightedTitle(entry.title, highlights)}
                   </span>
                   <span className="truncate text-xs text-muted-foreground">
-                    {entry.categoryPath ?? "未分類"}・約 {entry.readingMinutes} 分鐘
+                    {`${entry.sectionName}・${entry.categoryPath ?? "未分類"}・約 ${entry.readingMinutes} 分鐘閱讀`}
                   </span>
                 </div>
                 <CornerDownLeftIcon

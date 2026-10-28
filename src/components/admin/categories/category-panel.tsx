@@ -7,7 +7,6 @@ import { CategoryForm } from "@/components/admin/categories/category-form"
 import { CategoryTree } from "@/components/admin/categories/category-tree"
 import { DeleteCategoryForm } from "@/components/admin/categories/delete-category-form"
 import { EmptyState } from "@/components/empty-state"
-import { FormMessage } from "@/components/forms/form-message"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -16,33 +15,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ACTION_STATUS } from "@/lib/actions/action-state"
-import {
-  CATEGORY_TAB_LABEL,
-  CATEGORY_TYPE,
-  categoryTypeSchema,
-  type CategoryType,
-} from "@/lib/constants/content"
-import type {
-  AdminCategory,
-  AdminCategoryNode,
-  AdminCategoryTrees,
-} from "@/lib/data/admin-categories"
-
-const CATEGORY_TYPES = categoryTypeSchema.options
+import type { CategoryType } from "@/lib/constants/content"
+import type { AdminCategory, AdminCategoryNode } from "@/lib/data/admin-categories"
 
 type FormDialogState = {
-  type: CategoryType
   category: AdminCategory | null
   defaultParentId: string | null
 }
 
-type CategoryManagerProps = {
-  trees: AdminCategoryTrees
+type CategoryPanelProps = {
+  type: CategoryType
+  // 文章分類所屬的內容區塊；作品分類為 null
+  sectionId: string | null
+  // 對話框副標題，例如「技術文章」的分類
+  scopeLabel: string
+  nodes: AdminCategoryNode[]
+  onSuccess: (message: string) => void
 }
 
-function countCategories(nodes: AdminCategoryNode[]) {
+export function countCategories(nodes: AdminCategoryNode[]) {
   return nodes.reduce((total, node) => total + 1 + node.children.length, 0)
 }
 
@@ -51,8 +42,14 @@ function findChildCount(nodes: AdminCategoryNode[], categoryId: string) {
   return nodes.find((node) => node.id === categoryId)?.children.length ?? 0
 }
 
-export function CategoryManager({ trees }: CategoryManagerProps) {
-  const [activeType, setActiveType] = useState<CategoryType>(CATEGORY_TYPE.POST)
+// 單一範圍（某個內容區塊，或作品集）的雙層分類：清單、新增／編輯對話框與刪除確認
+export function CategoryPanel({
+  type,
+  sectionId,
+  scopeLabel,
+  nodes,
+  onSuccess,
+}: CategoryPanelProps) {
   // 對話框內容與開關狀態分開保存：關閉動畫播放期間內容仍保留，不會閃成空白
   const [formDialog, setFormDialog] = useState<FormDialogState | null>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -60,17 +57,14 @@ export function CategoryManager({ trees }: CategoryManagerProps) {
   const [formSession, setFormSession] = useState(0)
   const [deleting, setDeleting] = useState<AdminCategory | null>(null)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
-  const [notice, setNotice] = useState<string | null>(null)
 
   const openForm = (dialog: FormDialogState) => {
-    setNotice(null)
     setFormDialog(dialog)
     setFormSession((session) => session + 1)
     setIsFormOpen(true)
   }
 
   const openDelete = (category: AdminCategory) => {
-    setNotice(null)
     setDeleting(category)
     setIsDeleteOpen(true)
   }
@@ -78,69 +72,45 @@ export function CategoryManager({ trees }: CategoryManagerProps) {
   const handleSuccess = (message: string) => {
     setIsFormOpen(false)
     setIsDeleteOpen(false)
-    setNotice(message)
+    onSuccess(message)
   }
 
-  const renderTabContent = (type: CategoryType) => {
-    const nodes = trees[type]
-
-    const maybeRenderTree = () => {
-      if (nodes.length === 0) {
-        return (
-          <EmptyState
-            icon={FolderTreeIcon}
-            title="尚未建立分類"
-            description="新增第一個父分類後，就能在底下建立子分類。"
-          />
-        )
-      }
-
+  const maybeRenderTree = () => {
+    if (nodes.length === 0) {
       return (
-        <CategoryTree
-          nodes={nodes}
-          onEdit={(category) => openForm({ type, category, defaultParentId: null })}
-          onDelete={openDelete}
-          onAddChild={(parent) => openForm({ type, category: null, defaultParentId: parent.id })}
+        <EmptyState
+          icon={FolderTreeIcon}
+          title="尚未建立分類"
+          description="新增第一個父分類後，就能在底下建立子分類。"
         />
       )
     }
 
     return (
-      <TabsContent key={type} value={type} className="grid gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground">
-            共 {countCategories(nodes)} 個分類，最多兩層；刪除分類後，所屬內容會變為未分類
-          </p>
-          <Button onClick={() => openForm({ type, category: null, defaultParentId: null })}>
-            <PlusIcon aria-hidden />
-            新增分類
-          </Button>
-        </div>
-        {maybeRenderTree()}
-      </TabsContent>
+      <CategoryTree
+        nodes={nodes}
+        onEdit={(category) => openForm({ category, defaultParentId: null })}
+        onDelete={openDelete}
+        onAddChild={(parent) => openForm({ category: null, defaultParentId: parent.id })}
+      />
     )
-  }
-
-  const maybeRenderNotice = () => {
-    if (!notice) return null
-    return <FormMessage state={{ status: ACTION_STATUS.SUCCESS, message: notice }} />
   }
 
   const maybeRenderFormDialogContent = () => {
     if (!formDialog) return null
 
-    const { type, category, defaultParentId } = formDialog
-    const nodes = trees[type]
+    const { category, defaultParentId } = formDialog
 
     return (
       <>
         <DialogHeader>
           <DialogTitle>{category ? `編輯「${category.name}」` : "新增分類"}</DialogTitle>
-          <DialogDescription>{CATEGORY_TAB_LABEL[type]}</DialogDescription>
+          <DialogDescription>「{scopeLabel}」的分類</DialogDescription>
         </DialogHeader>
         <CategoryForm
           key={formSession}
           type={type}
+          sectionId={sectionId}
           category={category}
           defaultParentId={defaultParentId}
           parents={nodes}
@@ -162,7 +132,7 @@ export function CategoryManager({ trees }: CategoryManagerProps) {
         <DeleteCategoryForm
           key={deleting.id}
           category={deleting}
-          childCount={findChildCount(trees[deleting.type], deleting.id)}
+          childCount={findChildCount(nodes, deleting.id)}
           onSuccess={handleSuccess}
         />
       </>
@@ -170,25 +140,18 @@ export function CategoryManager({ trees }: CategoryManagerProps) {
   }
 
   return (
-    <div className="grid gap-5">
-      {maybeRenderNotice()}
-
-      <Tabs
-        value={activeType}
-        onValueChange={(value) => setActiveType(categoryTypeSchema.parse(value))}
-      >
-        <TabsList aria-label="分類類型">
-          {CATEGORY_TYPES.map((type) => (
-            <TabsTrigger key={type} value={type}>
-              {CATEGORY_TAB_LABEL[type]}
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {countCategories(trees[type])}
-              </span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        <div className="mt-4">{CATEGORY_TYPES.map(renderTabContent)}</div>
-      </Tabs>
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          共 {countCategories(nodes)}{" "}
+          個分類，最多兩層；同一層名稱不可重複，刪除分類後所屬內容會變為未分類
+        </p>
+        <Button onClick={() => openForm({ category: null, defaultParentId: null })}>
+          <PlusIcon aria-hidden />
+          新增分類
+        </Button>
+      </div>
+      {maybeRenderTree()}
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent>{maybeRenderFormDialogContent()}</DialogContent>

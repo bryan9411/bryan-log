@@ -10,8 +10,7 @@
     "lint": "eslint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "next typegen && tsc --noEmit",
-    "db:seed:generate": "node --experimental-strip-types --no-warnings=ExperimentalWarning scripts/seed/generate.ts"
+    "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

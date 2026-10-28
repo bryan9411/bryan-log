@@ -6,19 +6,20 @@ import { PostListItem } from "@/components/posts/post-list-item"
 import { PostListSkeleton } from "@/components/posts/post-list-skeleton"
 import { HOME_LATEST_POSTS_LIMIT } from "@/config/home"
 import { getPublishedPosts } from "@/lib/data/public-posts"
+import type { Section } from "@/lib/data/sections"
 
 // connection() 讓此區塊成為請求時才渲染的動態洞，於 Suspense 內串流；
 // 查詢本身仍有 "use cache"，命中快取時幾乎零延遲，後台更新後也能即時反映
-export async function LatestPosts() {
+export async function LatestPosts({ section }: { section: Section }) {
   await connection()
-  const posts = await getPublishedPosts(HOME_LATEST_POSTS_LIMIT)
+  const posts = await getPublishedPosts({ sectionId: section.id, limit: HOME_LATEST_POSTS_LIMIT })
 
   if (posts.length === 0) {
     return (
       <EmptyState
         icon={FileTextIcon}
         title="尚無文章"
-        description="第一篇技術文章正在撰寫中，敬請期待。"
+        description={`第一篇${section.name}正在撰寫中，敬請期待。`}
       />
     )
   }

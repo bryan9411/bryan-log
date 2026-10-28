@@ -4,32 +4,49 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Suspense } from "react"
 
-import { ADMIN_NAV_ITEMS } from "@/config/admin-nav"
+import { ADMIN_NAV_GROUPS, type AdminNavItem } from "@/config/admin-nav"
 import { isActiveHref } from "@/lib/navigation"
 import { cn } from "@/lib/utils"
 
 function AdminNavList({ pathname }: { pathname: string | null }) {
+  const renderItem = ({ href, label, icon: Icon }: AdminNavItem) => {
+    const isActive = isActiveHref(pathname, href)
+
+    return (
+      <Link
+        key={href}
+        href={href}
+        aria-current={isActive ? "page" : undefined}
+        className={cn(
+          "flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors",
+          "hover:bg-muted hover:text-foreground",
+          isActive && "bg-muted font-medium text-foreground",
+        )}
+      >
+        <Icon className="size-4" aria-hidden />
+        {label}
+      </Link>
+    )
+  }
+
+  const maybeRenderGroupLabel = (label: string | null) => {
+    if (!label) return null
+    // 手機版導覽列為橫向捲動，群組標題只在桌面版側邊欄顯示
+    return (
+      <p className="hidden px-3 pt-3 pb-1 text-xs font-medium text-muted-foreground/80 md:block">
+        {label}
+      </p>
+    )
+  }
+
   return (
     <nav aria-label="後台導覽" className="flex gap-1 overflow-x-auto md:flex-col">
-      {ADMIN_NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-        const isActive = isActiveHref(pathname, href)
-
-        return (
-          <Link
-            key={href}
-            href={href}
-            aria-current={isActive ? "page" : undefined}
-            className={cn(
-              "flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors",
-              "hover:bg-muted hover:text-foreground",
-              isActive && "bg-muted font-medium text-foreground",
-            )}
-          >
-            <Icon className="size-4" aria-hidden />
-            {label}
-          </Link>
-        )
-      })}
+      {ADMIN_NAV_GROUPS.map(({ label, items }, index) => (
+        <div key={label ?? index} className="contents md:flex md:flex-col md:gap-1">
+          {maybeRenderGroupLabel(label)}
+          {items.map(renderItem)}
+        </div>
+      ))}
     </nav>
   )
 }

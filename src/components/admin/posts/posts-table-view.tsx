@@ -91,7 +91,15 @@ export function PostsTableView({ posts, total, pageCount, params, now }: PostsTa
     setNotice(message)
   }
 
-  const renderCategory = (post: AdminPostListItem) => {
+  // 欄寬有限，區塊名稱放在分類上方一行，不另開欄位
+  const renderCategory = (post: AdminPostListItem) => (
+    <>
+      <span className="block truncate text-xs text-muted-foreground">{post.section.name}</span>
+      {renderCategoryPath(post)}
+    </>
+  )
+
+  const renderCategoryPath = (post: AdminPostListItem) => {
     if (!post.categoryName) return <span className="text-muted-foreground">未分類</span>
 
     const fullCategoryName = post.parentCategoryName
@@ -136,7 +144,7 @@ export function PostsTableView({ posts, total, pageCount, params, now }: PostsTa
             {post.title}
           </Link>
           <span className="mt-1 block truncate font-mono text-xs text-muted-foreground">
-            /{post.slug}
+            /{post.section.slug}/{post.slug}
           </span>
         </TableCell>
         <TableCell className="w-52 px-5 py-4 text-sm text-foreground/80">
@@ -255,7 +263,7 @@ export function PostsTableView({ posts, total, pageCount, params, now }: PostsTa
               </TableHead>
               <TableHead className="w-20 px-3 py-3.5">封面</TableHead>
               <TableHead className="py-3.5 pr-5 pl-2">標題</TableHead>
-              <TableHead className="w-52 px-5 py-3.5">分類</TableHead>
+              <TableHead className="w-52 px-5 py-3.5">區塊／分類</TableHead>
               <TableHead className="w-24 px-5 py-3.5">狀態</TableHead>
               <TableHead className="w-28 px-5 py-3.5 text-right">瀏覽數</TableHead>
               <TableHead className="w-36 px-5 py-3.5">最後更新</TableHead>

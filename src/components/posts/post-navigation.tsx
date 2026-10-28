@@ -30,7 +30,7 @@ export function PostNavigation({ previous, next }: AdjacentPosts) {
 
     return (
       <Link
-        href={postDetailPath(post.slug)}
+        href={postDetailPath(post.section.slug, post.slug)}
         rel={isNext ? "next" : "prev"}
         className={cn(
           "group flex flex-col gap-1.5 rounded-xl border bg-card p-4 transition-colors hover:bg-muted/60",

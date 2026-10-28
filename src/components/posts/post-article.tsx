@@ -9,7 +9,7 @@ import { PostMeta } from "@/components/posts/post-meta"
 import { TableOfContents } from "@/components/posts/table-of-contents"
 import { TldrCard } from "@/components/posts/tldr-card"
 import { SiteContainer } from "@/components/site/site-container"
-import { ROUTES } from "@/config/routes"
+import { sectionPath } from "@/config/routes"
 import { TOC_VARIANT } from "@/lib/content/toc"
 import type { PostDetail } from "@/lib/data/public-posts"
 import { cn } from "@/lib/utils"
@@ -70,7 +70,7 @@ export function PostArticle({ post, metaExtra, footer }: PostArticleProps) {
     >
       <article className="flex max-w-3xl min-w-0 flex-col gap-8">
         <header className="flex flex-col gap-5">
-          <BackLink href={ROUTES.POSTS} label="所有文章" />
+          <BackLink href={sectionPath(post.section.slug)} label={`所有${post.section.name}`} />
           <h1 className="text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-4xl sm:leading-tight">
             {post.title}
           </h1>

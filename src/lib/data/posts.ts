@@ -6,6 +6,7 @@ import type { ContentStatus } from "@/lib/constants/content"
 import { isAutoExcerpt } from "@/lib/content/render-post"
 import { CATEGORY_WITH_PARENT_SELECT, type CategoryRelation } from "@/lib/data/categories"
 import { POST_DETAIL_COLUMNS, toPostDetail, type PostDetail } from "@/lib/data/public-posts"
+import { SECTION_RELATION_SELECT, type SectionRef } from "@/lib/data/sections"
 import { createClient } from "@/lib/supabase/server"
 import {
   ADMIN_POSTS_PAGE_SIZE,
@@ -17,6 +18,7 @@ export type AdminPostListItem = {
   id: string
   title: string
   slug: string
+  section: SectionRef
   status: ContentStatus
   viewCount: number
   updatedAt: string
@@ -31,6 +33,7 @@ export type EditablePost = {
   slug: string
   excerpt: string
   tldr: string[]
+  sectionId: string
   categoryId: string | null
   coverImageUrl: string | null
   contentJson: JSONContent
@@ -46,7 +49,7 @@ export type AdminPostListPage = {
   pageCount: number
 }
 
-const ADMIN_POST_LIST_COLUMNS = `id, title, slug, status, view_count, updated_at, cover_image_url, ${CATEGORY_WITH_PARENT_SELECT}`
+const ADMIN_POST_LIST_COLUMNS = `id, title, slug, status, view_count, updated_at, cover_image_url, ${CATEGORY_WITH_PARENT_SELECT}, ${SECTION_RELATION_SELECT}`
 
 // PostgREST 回應「請求範圍超出資料筆數」的錯誤代碼
 const RANGE_NOT_SATISFIABLE = "PGRST103"
@@ -80,7 +83,10 @@ async function queryAdminPosts({ query, status }: AdminPostListParams, page: num
     request = request.or(`title.ilike.${pattern},slug.ilike.${pattern}`)
   }
 
-  return request.overrideTypes<Array<{ category: CategoryRelation }>, { merge: true }>()
+  return request.overrideTypes<
+    Array<{ category: CategoryRelation; section: SectionRef }>,
+    { merge: true }
+  >()
 }
 
 // 伺服器端分頁：每次只取一頁資料，並以 count 取得符合條件的總筆數
@@ -109,6 +115,7 @@ export async function listAdminPosts(params: AdminPostListParams): Promise<Admin
       id: post.id,
       title: post.title,
       slug: post.slug,
+      section: post.section,
       status: post.status,
       viewCount: post.view_count,
       updatedAt: post.updated_at,
@@ -125,7 +132,7 @@ export async function getEditablePost(id: string): Promise<EditablePost | null> 
   const { data, error } = await supabase
     .from("posts")
     .select(
-      "id, title, slug, excerpt, tldr, category_id, cover_image_url, content_json, status, updated_at",
+      "id, title, slug, excerpt, tldr, section_id, category_id, cover_image_url, content_json, status, updated_at",
     )
     .eq("id", id)
     .maybeSingle()
@@ -139,6 +146,7 @@ export async function getEditablePost(id: string): Promise<EditablePost | null> 
     slug: data.slug,
     excerpt: isAutoExcerpt(data.excerpt, data.content_json) ? "" : (data.excerpt ?? ""),
     tldr: data.tldr,
+    sectionId: data.section_id,
     categoryId: data.category_id,
     coverImageUrl: data.cover_image_url,
     contentJson: data.content_json as JSONContent,
@@ -160,7 +168,7 @@ export async function getPreviewPost(id: string): Promise<PreviewPost | null> {
     .select(`${POST_DETAIL_COLUMNS}, status`)
     .eq("id", id)
     .maybeSingle()
-    .overrideTypes<{ category: CategoryRelation }, { merge: true }>()
+    .overrideTypes<{ category: CategoryRelation; section: SectionRef }, { merge: true }>()
 
   if (error) throw new Error(`讀取預覽文章失敗：${error.message}`)
   if (!data) return null

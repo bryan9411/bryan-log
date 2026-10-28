@@ -10,9 +10,8 @@ import { PostFormSkeleton } from "@/components/admin/posts/post-form-skeleton"
 import { ProjectForm } from "@/components/admin/projects/project-form"
 import { Button } from "@/components/ui/button"
 import { POST_CREATED_PARAM, ROUTES } from "@/config/routes"
-import { CATEGORY_TYPE } from "@/lib/constants/content"
 import { getEditableProject } from "@/lib/data/admin-projects"
-import { getCategoryTree } from "@/lib/data/categories"
+import { getProjectCategoryTree } from "@/lib/data/categories"
 import { postIntentSchema } from "@/lib/validations/post"
 
 export const metadata: Metadata = {
@@ -30,7 +29,7 @@ async function EditProjectFormLoader({
 
   const [project, categories] = await Promise.all([
     getEditableProject(id),
-    getCategoryTree(CATEGORY_TYPE.PROJECT),
+    getProjectCategoryTree(),
   ])
 
   if (!project) notFound()

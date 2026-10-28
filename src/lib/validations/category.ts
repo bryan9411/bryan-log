@@ -14,6 +14,8 @@ const emptyToUndefined = (value: unknown) => (value === "" || value === null ? u
 export const categoryFormSchema = z.object({
   id: z.preprocess(emptyToUndefined, z.uuid("分類識別碼不正確").optional()),
   type: z.enum(categoryTypeSchema.options, { error: "分類類型不正確，請重新整理頁面" }),
+  // 文章分類必填（所屬內容區塊），作品分類留空；兩者的對應關係於伺服器動作中檢查
+  sectionId: z.preprocess(emptyToUndefined, z.uuid("所屬區塊不正確，請重新整理頁面").optional()),
   name: z
     .string({ error: "請輸入分類名稱" })
     .trim()

@@ -13,9 +13,11 @@ import {
   splitCategoryRelation,
   type CategoryRelation,
 } from "@/lib/data/categories"
+import { SECTION_RELATION_SELECT, type SectionRef } from "@/lib/data/sections"
 import { createPublicClient } from "@/lib/supabase/public"
 
 export type PostSummary = CategorizedItem & {
+  section: SectionRef
   title: string
   slug: string
   excerpt: string | null
@@ -32,9 +34,10 @@ export type PostDetail = PostSummary & {
   updatedAt: string
 }
 
-type CategoryOverride = Array<{ category: CategoryRelation }>
+// section_id 為必填外鍵，關聯一定存在
+export type RelationOverride = Array<{ category: CategoryRelation; section: SectionRef }>
 
-export const POST_SUMMARY_COLUMNS = `title, slug, excerpt, reading_time_minutes, published_at, ${CATEGORY_WITH_PARENT_SELECT}`
+export const POST_SUMMARY_COLUMNS = `title, slug, excerpt, reading_time_minutes, published_at, ${CATEGORY_WITH_PARENT_SELECT}, ${SECTION_RELATION_SELECT}`
 
 export const POST_DETAIL_COLUMNS = `${POST_SUMMARY_COLUMNS}, tldr, content_html, cover_image_url, view_count, updated_at`
 
@@ -45,8 +48,10 @@ export function toPostSummary(post: {
   reading_time_minutes: number
   published_at: string | null
   category: CategoryRelation
+  section: SectionRef
 }): PostSummary {
   return {
+    section: post.section,
     title: post.title,
     slug: post.slug,
     excerpt: post.excerpt,
@@ -57,22 +62,25 @@ export function toPostSummary(post: {
 }
 
 // 以 "use cache" 跨請求共用查詢結果；後台存檔時以 updateTag 失效，平時每小時背景重新驗證一次
-// 未傳入 limit 時回傳全部已發布文章，供列表頁的虛擬捲動清單使用
-export async function getPublishedPosts(limit?: number): Promise<PostSummary[]> {
+// 未傳入 sectionId 時涵蓋所有區塊（搜尋索引）；未傳入 limit 時回傳全部，供列表頁的虛擬捲動清單使用
+export async function getPublishedPosts({
+  sectionId,
+  limit,
+}: { sectionId?: string; limit?: number } = {}): Promise<PostSummary[]> {
   "use cache"
   cacheLife("hours")
   cacheTag(CACHE_TAG.POSTS)
 
-  const query = createPublicClient()
+  let query = createPublicClient()
     .from("posts")
     .select(POST_SUMMARY_COLUMNS)
     .eq("status", CONTENT_STATUS.PUBLISHED)
     .order("published_at", { ascending: false })
 
-  const { data, error } = await (limit ? query.limit(limit) : query).overrideTypes<
-    CategoryOverride,
-    { merge: true }
-  >()
+  if (sectionId) query = query.eq("section_id", sectionId)
+  if (limit) query = query.limit(limit)
+
+  const { data, error } = await query.overrideTypes<RelationOverride, { merge: true }>()
 
   if (error) throw new Error(`讀取文章列表失敗：${error.message}`)
 
@@ -92,7 +100,7 @@ export async function getPublishedPost(slug: string): Promise<PostDetail | null>
     .eq("status", CONTENT_STATUS.PUBLISHED)
     .eq("slug", slug)
     .maybeSingle()
-    .overrideTypes<CategoryOverride[number], { merge: true }>()
+    .overrideTypes<RelationOverride[number], { merge: true }>()
 
   if (error) throw new Error(`讀取文章失敗：${error.message}`)
   if (!data) return null
@@ -141,7 +149,7 @@ export async function getPublishedPostsForLlms(): Promise<LlmsPost[]> {
     .select(`${POST_SUMMARY_COLUMNS}, tldr, content_json, updated_at`)
     .eq("status", CONTENT_STATUS.PUBLISHED)
     .order("published_at", { ascending: false })
-    .overrideTypes<CategoryOverride, { merge: true }>()
+    .overrideTypes<RelationOverride, { merge: true }>()
 
   if (error) throw new Error(`讀取文章全文失敗：${error.message}`)
 

@@ -25,15 +25,10 @@ export const categoryTypeSchema = z.enum([CATEGORY_TYPE.POST, CATEGORY_TYPE.PROJ
 
 export type CategoryType = z.infer<typeof categoryTypeSchema>
 
-export const CATEGORY_TYPE_LABEL: Record<CategoryType, string> = {
-  [CATEGORY_TYPE.POST]: "技術文章",
-  [CATEGORY_TYPE.PROJECT]: "精選專案",
-}
-
-// 後台分類管理的頁籤名稱與關聯內容單位，例如「已有 4 篇文章」
+// 後台儀表板分類占比圖的標題，與側邊欄的「文章分類」「專案分類」一致
 export const CATEGORY_TAB_LABEL: Record<CategoryType, string> = {
-  [CATEGORY_TYPE.POST]: "技術文章分類",
-  [CATEGORY_TYPE.PROJECT]: "作品集分類",
+  [CATEGORY_TYPE.POST]: "文章分類",
+  [CATEGORY_TYPE.PROJECT]: "專案分類",
 }
 
 export const CATEGORY_CONTENT_UNIT: Record<CategoryType, string> = {
@@ -57,4 +52,12 @@ export function formatCategoryContentCount(type: CategoryType, count: number) {
   return count > 0
     ? `已有 ${count} ${CATEGORY_CONTENT_UNIT[type]}`
     : `尚無${CATEGORY_CONTENT_NOUN[type]}`
+}
+
+// 內容區塊的網址是 /{代稱}，不可與固定路由撞名；資料庫 sections.slug 的 check constraint 擋下前三個，
+// 之後新增的固定路由（歸檔、草稿預覽）由伺服器端驗證擋下
+export const RESERVED_SECTION_SLUGS = ["admin", "api", "projects", "archives", "preview"] as const
+
+export function isReservedSectionSlug(slug: string) {
+  return (RESERVED_SECTION_SLUGS as readonly string[]).includes(slug)
 }

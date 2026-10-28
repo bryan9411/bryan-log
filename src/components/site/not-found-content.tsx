@@ -2,9 +2,22 @@ import Link from "next/link"
 
 import { SiteContainer } from "@/components/site/site-container"
 import { Button } from "@/components/ui/button"
-import { ROUTES } from "@/config/routes"
+import { ROUTES, sectionPath } from "@/config/routes"
+import { getSections } from "@/lib/data/sections"
 
-export function NotFoundContent() {
+export async function NotFoundContent() {
+  const [primarySection] = await getSections()
+
+  const maybeRenderSectionLink = () => {
+    if (!primarySection) return null
+
+    return (
+      <Button asChild variant="outline">
+        <Link href={sectionPath(primarySection.slug)}>瀏覽{primarySection.name}</Link>
+      </Button>
+    )
+  }
+
   return (
     <SiteContainer className="flex flex-1 flex-col items-start justify-center gap-4 py-24">
       <p className="font-mono text-sm text-muted-foreground">404</p>
@@ -16,9 +29,7 @@ export function NotFoundContent() {
         <Button asChild>
           <Link href={ROUTES.HOME}>回首頁</Link>
         </Button>
-        <Button asChild variant="outline">
-          <Link href={ROUTES.POSTS}>瀏覽技術文章</Link>
-        </Button>
+        {maybeRenderSectionLink()}
       </div>
     </SiteContainer>
   )

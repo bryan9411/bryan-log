@@ -28,6 +28,8 @@ export async function GET() {
     entries: posts.map((post) => ({
       title: post.title,
       slug: post.slug,
+      sectionSlug: post.section.slug,
+      sectionName: post.section.name,
       categoryPath: formatCategoryPath(post),
       readingMinutes: post.readingMinutes,
     })),

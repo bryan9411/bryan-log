@@ -10,9 +10,9 @@ import { PostForm } from "@/components/admin/posts/post-form"
 import { PostFormSkeleton } from "@/components/admin/posts/post-form-skeleton"
 import { Button } from "@/components/ui/button"
 import { POST_CREATED_PARAM, ROUTES } from "@/config/routes"
-import { CATEGORY_TYPE } from "@/lib/constants/content"
-import { getCategoryTree } from "@/lib/data/categories"
+import { getCategoryTreesBySection } from "@/lib/data/categories"
 import { getEditablePost } from "@/lib/data/posts"
+import { getSections } from "@/lib/data/sections"
 import { postIntentSchema } from "@/lib/validations/post"
 
 export const metadata: Metadata = {
@@ -26,9 +26,10 @@ async function EditPostFormLoader({ params, searchParams }: PageProps<"/admin/po
 
   if (!z.uuid().safeParse(id).success) notFound()
 
-  const [post, categories] = await Promise.all([
+  const [post, sections, categoriesBySection] = await Promise.all([
     getEditablePost(id),
-    getCategoryTree(CATEGORY_TYPE.POST),
+    getSections(),
+    getCategoryTreesBySection(),
   ])
 
   if (!post) notFound()
@@ -39,7 +40,8 @@ async function EditPostFormLoader({ params, searchParams }: PageProps<"/admin/po
     <PostForm
       key={post.id}
       post={post}
-      categories={categories}
+      sections={sections}
+      categoriesBySection={categoriesBySection}
       createdIntent={createdIntent.success ? createdIntent.data : null}
     />
   )

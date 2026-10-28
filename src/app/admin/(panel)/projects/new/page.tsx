@@ -8,15 +8,14 @@ import { PostFormSkeleton } from "@/components/admin/posts/post-form-skeleton"
 import { ProjectForm } from "@/components/admin/projects/project-form"
 import { Button } from "@/components/ui/button"
 import { ROUTES } from "@/config/routes"
-import { CATEGORY_TYPE } from "@/lib/constants/content"
-import { getCategoryTree } from "@/lib/data/categories"
+import { getProjectCategoryTree } from "@/lib/data/categories"
 
 export const metadata: Metadata = {
   title: "新增作品",
 }
 
 async function NewProjectFormLoader() {
-  const categories = await getCategoryTree(CATEGORY_TYPE.PROJECT)
+  const categories = await getProjectCategoryTree()
   return <ProjectForm categories={categories} />
 }
 
