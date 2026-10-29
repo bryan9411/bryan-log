@@ -59,7 +59,7 @@ export async function LatestPostsFeed({ sections }: { sections: Section[] }) {
   }
 
   const toneBySlug = new Map(
-    sections.map((section, index) => [section.slug, getSectionTone(index)]),
+    sections.map((section, index) => [section.slug, getSectionTone(index).badge]),
   )
   const tabs = buildFeedTabs(sections, posts)
 

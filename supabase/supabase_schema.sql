@@ -68,10 +68,16 @@ create table if not exists public.sections (
     and slug not in ('admin', 'api', 'projects')
   ),
   description text check (char_length(description) <= 300),
+  -- 首頁「探索主題」卡片的封面；未設定時前台顯示預設圖
+  cover_image_url text check (cover_image_url ~ '^https?://'),
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- 舊版資料庫補上後來新增的欄位，讓本檔可重複執行完成升級
+alter table public.sections
+  add column if not exists cover_image_url text check (cover_image_url ~ '^https?://');
 
 -- 防呆：區塊名稱不分大小寫不可重複
 create unique index if not exists sections_name_key on public.sections (lower(name));

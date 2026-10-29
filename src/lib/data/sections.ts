@@ -11,6 +11,7 @@ export type Section = {
   name: string
   slug: string
   description: string | null
+  coverImageUrl: string | null
 }
 
 export type AdminSection = Section & {
@@ -24,7 +25,23 @@ export const SECTION_RELATION_SELECT = "section:sections(name, slug)"
 
 export type SectionRef = { name: string; slug: string }
 
-const SECTION_COLUMNS = "id, name, slug, description"
+const SECTION_COLUMNS = "id, name, slug, description, cover_image_url"
+
+function toSection(row: {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  cover_image_url: string | null
+}): Section {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    description: row.description,
+    coverImageUrl: row.cover_image_url,
+  }
+}
 
 // 導覽列、首頁與列表頁共用；區塊為公開資訊，以公開 Client 查詢並跨請求快取
 export async function getSections(): Promise<Section[]> {
@@ -40,7 +57,7 @@ export async function getSections(): Promise<Section[]> {
 
   if (error) throw new Error(`讀取內容區塊失敗：${error.message}`)
 
-  return data
+  return data.map(toSection)
 }
 
 export async function getSectionBySlug(slug: string): Promise<Section | null> {
@@ -64,10 +81,7 @@ export async function getAdminSections(): Promise<AdminSection[]> {
   if (error) throw new Error(`讀取內容區塊失敗：${error.message}`)
 
   return data.map((row) => ({
-    id: row.id,
-    name: row.name,
-    slug: row.slug,
-    description: row.description,
+    ...toSection(row),
     sortOrder: row.sort_order,
     postCount: row.posts[0]?.count ?? 0,
     categoryCount: row.categories[0]?.count ?? 0,

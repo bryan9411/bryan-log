@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react"
 
+import { CoverImageField } from "@/components/admin/posts/cover-image-field"
 import { FieldShell, FormField } from "@/components/forms/form-field"
 import { FormMessage } from "@/components/forms/form-message"
 import { SubmitButton } from "@/components/forms/submit-button"
@@ -11,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { ACTION_STATUS, initialActionState } from "@/lib/actions/action-state"
 import { saveSectionAction, type SectionFormState } from "@/lib/actions/sections"
 import { slugify } from "@/lib/content/slug"
+import { STORAGE_FOLDER } from "@/lib/storage/constants"
 import type { AdminSection } from "@/lib/data/sections"
 import {
   SECTION_DESCRIPTION_MAX_LENGTH,
@@ -42,6 +44,7 @@ export function SectionForm({ section, onSuccess }: SectionFormProps) {
   // 編輯既有區塊時不自動改寫網址代稱，避免前台既有連結失效
   const [isSlugTouched, setIsSlugTouched] = useState(section !== null)
   const [description, setDescription] = useState(section?.description ?? "")
+  const [coverImageUrl, setCoverImageUrl] = useState(section?.coverImageUrl ?? null)
   const [sortOrder, setSortOrder] = useState(String(section?.sortOrder ?? 0))
 
   const fieldErrors = state.fieldErrors ?? {}
@@ -67,6 +70,7 @@ export function SectionForm({ section, onSuccess }: SectionFormProps) {
   return (
     <form action={formAction} onReset={handleReset} noValidate className="grid gap-5">
       <input type="hidden" name="id" value={section?.id ?? ""} />
+      <input type="hidden" name="coverImageUrl" value={coverImageUrl ?? ""} />
 
       <FormMessage state={state} />
 
@@ -116,6 +120,19 @@ export function SectionForm({ section, onSuccess }: SectionFormProps) {
           />
         )}
       </FieldShell>
+
+      <div className="grid gap-1.5">
+        <CoverImageField
+          value={coverImageUrl}
+          onChange={setCoverImageUrl}
+          errors={fieldErrors.coverImageUrl}
+          folder={STORAGE_FOLDER.SECTIONS}
+          label="封面圖片"
+        />
+        <p className="text-xs text-muted-foreground">
+          選填。顯示在首頁「探索主題」卡片上方，建議 16:9；未上傳時以區塊配色顯示預設圖
+        </p>
+      </div>
 
       <FormField
         name="sortOrder"

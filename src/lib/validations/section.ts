@@ -33,6 +33,10 @@ export const sectionFormSchema = z.object({
     .trim()
     .max(SECTION_DESCRIPTION_MAX_LENGTH, `描述不可超過 ${SECTION_DESCRIPTION_MAX_LENGTH} 字`)
     .default(""),
+  coverImageUrl: z.preprocess(
+    emptyToUndefined,
+    z.url({ protocol: /^https?$/, error: "封面圖片網址不正確，請重新上傳" }).optional(),
+  ),
   sortOrder: z.preprocess(
     (value) => (value === "" || value === null ? 0 : value),
     z.coerce

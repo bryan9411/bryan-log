@@ -89,8 +89,14 @@ export async function saveSectionAction(
     })
   }
 
-  const { id, name, slug, description, sortOrder } = parsed.data
-  const record = { name, slug, description: description || null, sort_order: sortOrder }
+  const { id, name, slug, description, coverImageUrl, sortOrder } = parsed.data
+  const record = {
+    name,
+    slug,
+    description: description || null,
+    cover_image_url: coverImageUrl ?? null,
+    sort_order: sortOrder,
+  }
 
   const supabase = await createClient()
 

@@ -6,11 +6,13 @@ export const STORAGE_BUCKET = "media"
 export const STORAGE_FOLDER = {
   POSTS: "posts",
   PROJECTS: "projects",
+  SECTIONS: "sections",
 } as const
 
-export const storageFolderSchema = z.enum([STORAGE_FOLDER.POSTS, STORAGE_FOLDER.PROJECTS], {
-  error: "上傳目錄不正確",
-})
+export const storageFolderSchema = z.enum(
+  [STORAGE_FOLDER.POSTS, STORAGE_FOLDER.PROJECTS, STORAGE_FOLDER.SECTIONS],
+  { error: "上傳目錄不正確" },
+)
 
 export type StorageFolder = z.infer<typeof storageFolderSchema>
 

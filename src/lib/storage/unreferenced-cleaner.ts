@@ -84,13 +84,15 @@ async function listAllObjects(supabase: TypedClient): Promise<StoredObject[]> {
 async function collectReferencedPaths(supabase: TypedClient): Promise<Set<string>> {
   const prefix = getPublicUrlPrefix()
 
-  const [postsResult, projectsResult] = await Promise.all([
+  const [postsResult, projectsResult, sectionsResult] = await Promise.all([
     supabase.from("posts").select("content_html, cover_image_url"),
     supabase.from("projects").select("description_html, cover_image_url"),
+    supabase.from("sections").select("cover_image_url"),
   ])
 
   if (postsResult.error) throw new Error(`讀取文章引用失敗：${postsResult.error.message}`)
   if (projectsResult.error) throw new Error(`讀取作品引用失敗：${projectsResult.error.message}`)
+  if (sectionsResult.error) throw new Error(`讀取區塊引用失敗：${sectionsResult.error.message}`)
 
   const sources = [
     ...postsResult.data.flatMap((post) => [post.content_html, post.cover_image_url]),
@@ -98,6 +100,7 @@ async function collectReferencedPaths(supabase: TypedClient): Promise<Set<string
       project.description_html,
       project.cover_image_url,
     ]),
+    ...sectionsResult.data.map((section) => section.cover_image_url),
   ]
 
   const referenced = new Set<string>()

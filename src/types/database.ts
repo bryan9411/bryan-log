@@ -17,6 +17,7 @@ export type Database = {
           name: string
           slug: string
           description: string | null
+          cover_image_url: string | null
           sort_order: number
         }
         Insert: Partial<Timestamps> & {
@@ -24,6 +25,7 @@ export type Database = {
           name: string
           slug: string
           description?: string | null
+          cover_image_url?: string | null
           sort_order?: number
         }
         Update: Partial<Database["public"]["Tables"]["sections"]["Insert"]>
