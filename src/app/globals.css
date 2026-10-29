@@ -189,8 +189,11 @@ body.dark:has(.site-theme) {
  * Shiki 以 --shiki-light / --shiki-dark 輸出雙主題色彩，依目前主題切換
  * ========================================================================== */
 @layer components {
+  /* prose 預設的程式碼字色是為深色背景設計的淺色字，純文字區塊不經 Shiki 會直接沿用而在淺色模式下看不見；
+   * prose 位於 utilities 層，元件層的 color 蓋不過，改以覆寫其 CSS 變數處理 */
   .code-block {
     @apply my-6 overflow-hidden rounded-xl border bg-muted/40;
+    --tw-prose-pre-code: var(--foreground);
   }
 
   .code-block-header {
