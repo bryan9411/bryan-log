@@ -4,6 +4,7 @@ import { useEditorState, type Editor } from "@tiptap/react"
 import {
   BoldIcon,
   CodeIcon,
+  CodeXmlIcon,
   Heading2Icon,
   Heading3Icon,
   Heading4Icon,
@@ -13,6 +14,7 @@ import {
   LinkIcon,
   ListIcon,
   ListOrderedIcon,
+  EyeIcon,
   MinusIcon,
   QuoteIcon,
   Redo2Icon,
@@ -39,6 +41,8 @@ type ToolbarAction = {
 type EditorToolbarProps = {
   editor: Editor
   isShortcutHelpOpen: boolean
+  isSourceMode: boolean
+  onToggleSourceMode: () => void
   onToggleShortcutHelp: () => void
   onPickImage: () => void
 }
@@ -228,6 +232,8 @@ function ToolbarButton({ label, icon: Icon, isActive, disabled, onClick }: Toolb
 export function EditorToolbar({
   editor,
   isShortcutHelpOpen,
+  isSourceMode,
+  onToggleSourceMode,
   onToggleShortcutHelp,
   onPickImage,
 }: EditorToolbarProps) {
@@ -267,20 +273,35 @@ export function EditorToolbar({
       aria-label="編輯器工具列"
       className="sticky top-0 z-10 flex flex-wrap items-center gap-1 border-b bg-background/95 px-2 py-1.5 backdrop-blur"
     >
-      {ACTION_GROUPS.map(renderGroup)}
-      <div className="flex items-center gap-0.5">
-        <ToolbarButton
-          label="插入圖片（也可直接拖曳或貼上）"
-          icon={ImagePlusIcon}
-          onClick={onPickImage}
-        />
-        <ToolbarButton
-          label="Markdown 快捷語法"
-          icon={KeyboardIcon}
-          isActive={isShortcutHelpOpen}
-          onClick={onToggleShortcutHelp}
-        />
-      </div>
+      {isSourceMode ? null : ACTION_GROUPS.map(renderGroup)}
+      {isSourceMode ? null : (
+        <div className="flex items-center gap-0.5">
+          <ToolbarButton
+            label="插入圖片（也可直接拖曳或貼上）"
+            icon={ImagePlusIcon}
+            onClick={onPickImage}
+          />
+          <ToolbarButton
+            label="Markdown 快捷語法"
+            icon={KeyboardIcon}
+            isActive={isShortcutHelpOpen}
+            onClick={onToggleShortcutHelp}
+          />
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={onToggleSourceMode}
+        aria-pressed={isSourceMode}
+        className="ml-auto flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      >
+        {isSourceMode ? (
+          <EyeIcon className="size-4" aria-hidden />
+        ) : (
+          <CodeXmlIcon className="size-4" aria-hidden />
+        )}
+        {isSourceMode ? "預覽" : "Markdown 原始碼"}
+      </button>
     </div>
   )
 }

@@ -14,6 +14,8 @@ import { CircleAlertIcon, Loader2Icon, XIcon } from "lucide-react"
 
 import { CodeBlockShiki } from "@/components/editor/code-block-shiki"
 import { EditorToolbar } from "@/components/editor/editor-toolbar"
+import { MarkdownPaste } from "@/components/editor/markdown-paste"
+import { MarkdownSourceEditor } from "@/components/editor/markdown-source-editor"
 import { MarkdownShortcutHelp } from "@/components/editor/markdown-shortcut-help"
 import { useImageUpload } from "@/hooks/use-image-upload"
 import { createContentExtensions } from "@/lib/editor/extensions"
@@ -58,6 +60,7 @@ export function TiptapEditor({
     isUploading,
   } = useImageUpload(STORAGE_FOLDER.POSTS)
   const [isShortcutHelpOpen, setIsShortcutHelpOpen] = useState(false)
+  const [isSourceMode, setIsSourceMode] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const onChangeRef = useRef(onChange)
 
@@ -94,6 +97,7 @@ export function TiptapEditor({
         placeholder: "開始撰寫內容⋯⋯可直接使用 Markdown 語法，或拖曳圖片至此",
       }),
       CharacterCount,
+      MarkdownPaste,
       FileHandler.configure({
         allowedMimeTypes: ACCEPTED_IMAGE_TYPES,
         onDrop: (current, files, position) => insertImages(current, files, position),
@@ -133,6 +137,8 @@ export function TiptapEditor({
       <EditorToolbar
         editor={editor}
         isShortcutHelpOpen={isShortcutHelpOpen}
+        isSourceMode={isSourceMode}
+        onToggleSourceMode={() => setIsSourceMode((isSource) => !isSource)}
         onToggleShortcutHelp={() => setIsShortcutHelpOpen((isOpen) => !isOpen)}
         onPickImage={() => fileInputRef.current?.click()}
       />
@@ -140,7 +146,7 @@ export function TiptapEditor({
   }
 
   const maybeRenderShortcutHelp = () => {
-    if (!isShortcutHelpOpen) return null
+    if (!isShortcutHelpOpen || isSourceMode) return null
     return <MarkdownShortcutHelp />
   }
 
@@ -179,7 +185,13 @@ export function TiptapEditor({
       {maybeRenderToolbar()}
       {maybeRenderShortcutHelp()}
       <div className="px-5 py-4 content-auto sm:px-8">
-        <EditorContent editor={editor} />
+        {editor && isSourceMode ? (
+          <MarkdownSourceEditor editor={editor} isInvalid={isInvalid} describedBy={describedBy} />
+        ) : null}
+        {/* 原始碼模式只隱藏編輯器而不卸載，保留游標位置與復原紀錄 */}
+        <div hidden={isSourceMode}>
+          <EditorContent editor={editor} />
+        </div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 border-t px-4 py-2 text-xs text-muted-foreground">
         <div className="flex flex-wrap items-center gap-3">

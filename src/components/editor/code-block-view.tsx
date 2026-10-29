@@ -1,16 +1,47 @@
 "use client"
 
 import { NodeViewContent, NodeViewWrapper, type ReactNodeViewProps } from "@tiptap/react"
-import { CheckIcon, CopyIcon } from "lucide-react"
+import { CheckIcon, CopyIcon, WandSparklesIcon } from "lucide-react"
 
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard"
 import { CODE_LANGUAGES, normalizeCodeLanguage } from "@/lib/editor/languages"
+import { markdownToEditorHtml } from "@/lib/editor/markdown-paste"
 
-export function CodeBlockView({ node, updateAttributes, editor }: ReactNodeViewProps) {
+export function CodeBlockView({ node, updateAttributes, editor, getPos }: ReactNodeViewProps) {
   const { isCopied, copy } = useCopyToClipboard()
 
   const language = normalizeCodeLanguage(node.attrs.language)
   const isEditable = editor.isEditable
+
+  // 將整個 Markdown 程式碼區塊替換為解析後的標題、段落、清單等內容
+  const convertToContent = () => {
+    const position = getPos()
+    if (typeof position !== "number") return
+
+    editor
+      .chain()
+      .focus()
+      .insertContentAt(
+        { from: position, to: position + node.nodeSize },
+        markdownToEditorHtml(node.textContent),
+      )
+      .run()
+  }
+
+  const maybeRenderConvertButton = () => {
+    if (!isEditable || language !== "markdown") return null
+
+    return (
+      <button
+        type="button"
+        onClick={convertToContent}
+        className="ml-auto flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      >
+        <WandSparklesIcon className="size-3.5" />
+        轉為文章格式
+      </button>
+    )
+  }
 
   const renderCopyButton = () => (
     <button
@@ -40,6 +71,7 @@ export function CodeBlockView({ node, updateAttributes, editor }: ReactNodeViewP
             </option>
           ))}
         </select>
+        {maybeRenderConvertButton()}
         {renderCopyButton()}
       </div>
       <pre className="shiki" spellCheck={false}>
