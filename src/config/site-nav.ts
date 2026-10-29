@@ -49,7 +49,13 @@ export function buildSiteNavItems(
   return [...sectionItems, ...FIXED_NAV_ITEMS]
 }
 
-// 頁尾空間充足，所有連結攤平列出
-export function flattenSiteNavItems(items: SiteNavItem[]): SiteNavLink[] {
-  return items.flatMap((item) => (isSiteNavGroup(item) ? item.items : [item]))
+const FOOTER_SITE_GROUP_LABEL = "網站"
+
+// 頁尾以分欄呈現：導覽列的下拉群組各自一欄，其餘單一連結集中到「網站」欄
+// 只有一個區塊時沒有群組，該區塊會和作品集、歸檔一起放在「網站」欄
+export function buildFooterNavGroups(items: SiteNavItem[]): SiteNavGroup[] {
+  const groups = items.filter(isSiteNavGroup)
+  const links = items.filter((item): item is SiteNavLink => !isSiteNavGroup(item))
+
+  return [...groups, { label: FOOTER_SITE_GROUP_LABEL, items: links }]
 }
