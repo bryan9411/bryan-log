@@ -6,9 +6,10 @@ import type { PostSummary } from "@/lib/data/public-posts"
 
 type PostListItemProps = {
   post: PostSummary
+  sectionTone?: string
 }
 
-export function PostListItem({ post }: PostListItemProps) {
+export function PostListItem({ post, sectionTone }: PostListItemProps) {
   const { title, slug, excerpt, section } = post
 
   const maybeRenderExcerpt = () => {
@@ -18,7 +19,7 @@ export function PostListItem({ post }: PostListItemProps) {
 
   return (
     <article className="group relative flex flex-col gap-2.5 rounded-xl px-4 py-5 transition-colors hover:bg-muted/60 sm:px-5">
-      <PostMeta post={post} />
+      <PostMeta post={post} sectionTone={sectionTone} />
       <h3 className="text-lg leading-snug font-semibold tracking-tight text-pretty">
         {/* 以偽元素讓整張卡片可點擊，同時保持單一連結的語意 */}
         <Link

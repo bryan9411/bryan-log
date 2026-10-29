@@ -14,6 +14,7 @@ import {
 import { requireAdmin } from "@/lib/auth/session"
 import { CACHE_TAG } from "@/lib/cache-tags"
 import { CONTENT_STATUS } from "@/lib/constants/content"
+import { SLUG_MAX_LENGTH, SLUG_PATTERN } from "@/lib/content/slug"
 import { ContentValidationError, renderPostContent } from "@/lib/content/render-post"
 import { createClient } from "@/lib/supabase/server"
 import { ADMIN_POSTS_PAGE_SIZE, DELETE_POSTS_FIELD } from "@/lib/validations/admin-post-list"
@@ -188,4 +189,38 @@ export async function deletePostsAction(
   revalidatePostPaths()
 
   return createSuccessState(data.length === 1 ? "文章已刪除" : `已刪除 ${data.length} 篇文章`)
+}
+
+export type SlugAvailability = {
+  available: boolean
+  // 被占用時回傳占用者的標題，方便判斷要改哪一篇
+  conflictTitle?: string
+}
+
+const slugCheckSchema = z.object({
+  slug: z.string().max(SLUG_MAX_LENGTH).regex(SLUG_PATTERN),
+  excludeId: z.uuid().optional(),
+})
+
+// 編輯時即時檢查網址代稱是否已被其他文章使用；資料庫的唯一限制仍是最終防線
+// 格式不正確或查詢失敗時回傳 null，由表單顯示格式錯誤或略過提示，存檔時資料庫會再檢查一次
+export async function checkPostSlugAction(
+  slug: string,
+  excludeId?: string,
+): Promise<SlugAvailability | null> {
+  await requireAdmin()
+
+  const parsed = slugCheckSchema.safeParse({ slug, excludeId })
+  if (!parsed.success) return null
+
+  const supabase = await createClient()
+  let query = supabase.from("posts").select("title").eq("slug", parsed.data.slug)
+  if (parsed.data.excludeId) query = query.neq("id", parsed.data.excludeId)
+
+  const { data, error } = await query.maybeSingle()
+
+  if (error) return null
+  if (!data) return { available: true }
+
+  return { available: false, conflictTitle: data.title }
 }

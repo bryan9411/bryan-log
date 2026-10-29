@@ -11,13 +11,25 @@ type PostMetaProps = {
   post: PostSummary
   // 額外的資訊欄位（例如文章內頁的瀏覽數），接在閱讀時間之後
   extra?: ReactNode
+  // 混合多個區塊的列表（例如首頁）需要標出所屬區塊，傳入區塊配色時才顯示
+  sectionTone?: string
   className?: string
 }
 
 // 分類、發布日期與閱讀時間；列表與文章內頁共用
-export function PostMeta({ post, extra, className }: PostMetaProps) {
+export function PostMeta({ post, extra, sectionTone, className }: PostMetaProps) {
   const { readingMinutes, publishedAt } = post
   const categoryPath = formatCategoryPath(post)
+
+  const maybeRenderSection = () => {
+    if (!sectionTone) return null
+
+    return (
+      <Badge variant="outline" className={cn("font-medium", sectionTone)}>
+        {post.section.name}
+      </Badge>
+    )
+  }
 
   const maybeRenderCategory = () => {
     if (!categoryPath) return null
@@ -47,7 +59,10 @@ export function PostMeta({ post, extra, className }: PostMetaProps) {
         className,
       )}
     >
-      {maybeRenderCategory()}
+      <span className="flex flex-wrap items-center gap-2">
+        {maybeRenderSection()}
+        {maybeRenderCategory()}
+      </span>
       {maybeRenderPublishedAt()}
       <span className="flex items-center gap-1">
         <ClockIcon className="size-3.5" aria-hidden />約 {readingMinutes} 分鐘閱讀

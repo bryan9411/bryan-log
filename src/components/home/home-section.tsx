@@ -7,8 +7,8 @@ type HomeSectionProps = {
   id: string
   title: string
   description: string
-  moreHref: Route
-  moreLabel: string
+  moreHref?: Route
+  moreLabel?: string
   children: React.ReactNode
 }
 

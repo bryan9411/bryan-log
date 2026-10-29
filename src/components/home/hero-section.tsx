@@ -1,21 +1,26 @@
 import Link from "next/link"
+import type { Route } from "next"
 import { ArrowRightIcon } from "lucide-react"
 
 import { SiteContainer } from "@/components/site/site-container"
 import { badgeVariants } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ROUTES, sectionPath } from "@/config/routes"
+import { ROUTES } from "@/config/routes"
 import { siteConfig } from "@/config/site"
-import type { Section } from "@/lib/data/sections"
 import { cn } from "@/lib/utils"
 
+export type HeroAction = {
+  href: Route
+  label: string
+}
+
 type HeroSectionProps = {
-  // 排序第一的內容區塊作為主要行動按鈕；尚未建立任何區塊時不顯示
-  primarySection: Section | null
+  // 主要行動按鈕；尚未建立任何區塊時不顯示
+  primaryAction: HeroAction | null
 }
 
 // 純靜態內容：建置時即預渲染進 HTML 外殼，首次載入不需等待任何資料
-export function HeroSection({ primarySection }: HeroSectionProps) {
+export function HeroSection({ primaryAction }: HeroSectionProps) {
   const { eyebrow, headline, intro, skills } = siteConfig.hero
 
   const renderSkills = () => (
@@ -32,12 +37,12 @@ export function HeroSection({ primarySection }: HeroSectionProps) {
   )
 
   const maybeRenderSectionAction = () => {
-    if (!primarySection) return null
+    if (!primaryAction) return null
 
     return (
       <Button asChild size="lg" className="h-10 px-4">
-        <Link href={sectionPath(primarySection.slug)}>
-          閱讀{primarySection.name}
+        <Link href={primaryAction.href}>
+          {primaryAction.label}
           <ArrowRightIcon data-icon="inline-end" aria-hidden />
         </Link>
       </Button>

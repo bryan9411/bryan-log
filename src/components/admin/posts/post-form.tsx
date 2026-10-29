@@ -11,6 +11,8 @@ import { PostStatusBadge } from "@/components/admin/posts/post-status-badge"
 import { PostSubmitButtons } from "@/components/admin/posts/post-submit-buttons"
 import { RestoreBackupBanner } from "@/components/admin/posts/restore-backup-banner"
 import { PostHealthChecks } from "@/components/admin/posts/post-health-checks"
+import { SlugField } from "@/components/admin/posts/slug-field"
+import { TldrEditor } from "@/components/admin/posts/tldr-editor"
 import { LazyTiptapEditor } from "@/components/editor/lazy-tiptap-editor"
 import { FieldShell, FormField, getFieldErrorId } from "@/components/forms/form-field"
 import { FormMessage } from "@/components/forms/form-message"
@@ -254,41 +256,32 @@ export function PostForm({ sections, categoriesBySection, post, createdIntent }:
             placeholder="例如：React 19 useActionState 完全指南"
             maxLength={POST_TITLE_MAX_LENGTH}
             errors={fieldErrors.title}
-            className="h-11 text-lg font-medium"
+            className="h-14 px-4 text-xl font-semibold md:text-xl"
           />
-          <FormField
-            name="slug"
-            label="網址代稱"
+          <SlugField
             value={draft.slug}
-            onChange={(event) => {
+            onChange={(slug) => {
               setIsSlugTouched(true)
-              updateDraft({ slug: event.target.value.toLowerCase() })
+              updateDraft({ slug })
             }}
-            placeholder="react-19-use-action-state"
-            autoComplete="off"
-            spellCheck={false}
+            sectionSlug={activeSection?.slug}
+            postId={post?.id}
             errors={fieldErrors.slug}
-            hint={`文章網址：/${activeSection?.slug ?? "區塊"}/${draft.slug || "網址代稱"}。中文標題請手動輸入英文代稱`}
-            className="font-mono"
           />
           <FieldShell
             id="tldr"
-            label="⚡ TL;DR 核心速讀"
+            label={`⚡ TL;DR 核心速讀（${tldrCount} / ${TLDR_MAX_ITEMS} 點）`}
             errors={fieldErrors.tldr}
-            hint={`每行一點，最多 ${TLDR_MAX_ITEMS} 點、每點 ${TLDR_ITEM_MAX_LENGTH} 字內；顯示於文章頂部，也是 AI 搜尋最常引用的段落（目前 ${tldrCount} 點）`}
+            hint={`每點一句、最多 ${TLDR_ITEM_MAX_LENGTH} 字；顯示於文章頂部，也是 AI 搜尋最常引用的段落`}
           >
             {(describedBy, hasError) => (
-              <Textarea
+              <TldrEditor
                 id="tldr"
                 name="tldr"
-                rows={4}
                 value={draft.tldr}
-                onChange={(event) => updateDraft({ tldr: event.target.value })}
-                placeholder={
-                  "React 19 以 useActionState 取代 useFormState\n一個 Hook 同時管理 pending、錯誤與回傳值"
-                }
-                aria-invalid={hasError}
-                aria-describedby={describedBy}
+                onChange={(tldr) => updateDraft({ tldr })}
+                describedBy={describedBy}
+                hasError={hasError}
               />
             )}
           </FieldShell>

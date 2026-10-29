@@ -6,7 +6,7 @@ import { GithubIcon } from "@/components/site/github-icon"
 import { SiteContainer } from "@/components/site/site-container"
 import { ROUTES } from "@/config/routes"
 import { siteConfig } from "@/config/site"
-import { buildSiteNavItems } from "@/config/site-nav"
+import { buildSiteNavItems, flattenSiteNavItems } from "@/config/site-nav"
 import { getSections } from "@/lib/data/sections"
 
 // Cache Components 不允許在預渲染時直接讀取目前時間，以快取函式取得年份並每天更新
@@ -24,7 +24,7 @@ async function CopyrightYears() {
 }
 
 export async function SiteFooter() {
-  const navItems = buildSiteNavItems(await getSections())
+  const navItems = flattenSiteNavItems(buildSiteNavItems(await getSections()))
 
   const renderNavLinks = () => (
     <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
