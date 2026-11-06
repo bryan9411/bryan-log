@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { FontSizeToggle } from "@/components/layout/font-size-toggle"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { SearchCommand } from "@/components/search/search-command"
 import { MobileNav } from "@/components/site/mobile-nav"
@@ -25,6 +26,7 @@ export async function SiteHeader() {
             <SiteNavLinks items={navItems} />
           </nav>
           <SearchCommand />
+          <FontSizeToggle contentClassName="site-theme" className="hidden md:inline-flex" />
           <ThemeToggle contentClassName="site-theme" />
           <MobileNav items={navItems} />
         </div>

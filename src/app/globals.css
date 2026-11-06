@@ -391,6 +391,14 @@ body.dark:has(.site-theme) {
   html.dark {
     color-scheme: dark;
   }
+  /* 文字大小：調整根字級，Tailwind 的 rem 與文章 prose 的 em 會一併縮放；
+   * 以百分比為基準，仍尊重使用者在瀏覽器設定的預設字級 */
+  html[data-font-size="large"] {
+    font-size: 112.5%;
+  }
+  html[data-font-size="xlarge"] {
+    font-size: 125%;
+  }
   body {
     @apply bg-background text-foreground;
   }

@@ -4,6 +4,7 @@ import { ArrowUpRightIcon, LogOutIcon } from "lucide-react"
 
 import { AdminNavLinks } from "@/components/admin/admin-nav-links"
 import { SubmitButton } from "@/components/forms/submit-button"
+import { FontSizeToggle } from "@/components/layout/font-size-toggle"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ROUTES } from "@/config/routes"
@@ -28,7 +29,10 @@ export function AdminSidebar() {
         {siteConfig.name}
         <span className="ml-1.5 text-xs font-normal text-muted-foreground">管理後台</span>
       </Link>
-      <ThemeToggle />
+      <div className="flex items-center">
+        <FontSizeToggle />
+        <ThemeToggle />
+      </div>
     </div>
   )
 

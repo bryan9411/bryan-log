@@ -5,6 +5,7 @@ import { SpeedInsights } from "@/components/analytics/speed-insights"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { siteConfig } from "@/config/site"
+import { FONT_SIZE_INIT_SCRIPT } from "@/lib/constants/font-size"
 import { createPageMetadata } from "@/lib/seo"
 import { cn } from "@/lib/utils"
 
@@ -41,6 +42,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
       className={cn(geistSans.variable, geistMono.variable, "h-full antialiased")}
     >
+      <head>
+        {/* 於首次繪製前套用已儲存的字級，避免載入時字級閃動；會改寫 <html> 屬性，同樣仰賴 suppressHydrationWarning */}
+        <script dangerouslySetInnerHTML={{ __html: FONT_SIZE_INIT_SCRIPT }} />
+      </head>
       <body className="flex min-h-full flex-col">
         <ThemeProvider>
           {children}

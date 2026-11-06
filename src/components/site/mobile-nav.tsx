@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react"
 import { MenuIcon, XIcon } from "lucide-react"
 
+import { FontSizeSegmented } from "@/components/layout/font-size-toggle"
 import { SiteContainer } from "@/components/site/site-container"
 import { SiteNavLinks } from "@/components/site/site-nav-links"
 import { Button } from "@/components/ui/button"
@@ -46,6 +47,7 @@ export function MobileNav({ items }: MobileNavProps) {
       >
         <SiteContainer className="py-3">
           <SiteNavLinks items={items} orientation="vertical" onNavigate={closeMenu} />
+          <FontSizeSegmented className="mt-2 border-t px-3 pt-3" />
         </SiteContainer>
       </nav>
     )

@@ -114,11 +114,11 @@ export function TldrEditor({ id, name, value, onChange, describedBy, hasError }:
           placeholder={(isEmpty && PLACEHOLDERS[index]) || FALLBACK_PLACEHOLDER}
           onChange={(event) => handleChange(index, event.target.value)}
           onKeyDown={(event) => handleKeyDown(index, event)}
-          className="field-sizing-content min-h-0 flex-1 resize-none bg-transparent py-1 text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground/70"
+          className="field-sizing-content min-h-0 flex-1 resize-none bg-transparent py-1 text-[0.9375rem] leading-relaxed outline-none placeholder:text-muted-foreground/70"
         />
         <span
           className={cn(
-            "shrink-0 pt-1.5 font-mono text-[11px] text-muted-foreground tabular-nums",
+            "shrink-0 pt-1.5 font-mono text-[0.6875rem] text-muted-foreground tabular-nums",
             isTooLong && "font-semibold text-destructive",
           )}
         >
