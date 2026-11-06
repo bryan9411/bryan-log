@@ -1,9 +1,9 @@
 "use client"
 
-import Image from "next/image"
 import { useRef } from "react"
 import { ImageUpIcon, Loader2Icon, XIcon } from "lucide-react"
 
+import { ContainedCover } from "@/components/content/contained-cover"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { useImageUpload } from "@/hooks/use-image-upload"
@@ -66,7 +66,7 @@ export function CoverImageField({
 
     return (
       <div className="relative aspect-video overflow-hidden rounded-lg border bg-muted">
-        <Image src={value} alt={`${label}預覽`} fill sizes="320px" className="object-contain" />
+        <ContainedCover src={value} alt={`${label}預覽`} sizes="320px" />
         <Button
           type="button"
           size="icon"

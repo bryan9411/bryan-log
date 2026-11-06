@@ -1,7 +1,7 @@
-import Image from "next/image"
 import Link from "next/link"
 import { ExternalLinkIcon } from "lucide-react"
 
+import { ContainedCover } from "@/components/content/contained-cover"
 import { ExternalLink } from "@/components/site/external-link"
 import { GithubIcon } from "@/components/site/github-icon"
 import { Badge } from "@/components/ui/badge"
@@ -24,12 +24,11 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
     return (
       <div className="relative aspect-video overflow-hidden border-b bg-muted">
-        <Image
+        <ContainedCover
           src={coverImageUrl}
           alt=""
-          fill
           sizes="(min-width: 1024px) 320px, (min-width: 640px) 50vw, 100vw"
-          className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+          className="transition-transform duration-300 group-hover:scale-[1.02]"
         />
       </div>
     )

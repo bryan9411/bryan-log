@@ -1,6 +1,6 @@
-import Image from "next/image"
 import { ImageIcon } from "lucide-react"
 
+import { ContainedCover } from "@/components/content/contained-cover"
 import { cn } from "@/lib/utils"
 
 const THUMBNAIL_CLASS = "relative h-10 w-14 shrink-0 overflow-hidden rounded-md border"
@@ -25,9 +25,10 @@ export function CoverThumbnail({ src }: CoverThumbnailProps) {
     )
   }
 
+  // 與前台封面一致完整顯示不裁切，比例不同的部分以模糊背景補滿
   return (
     <div className={cn(THUMBNAIL_CLASS, "bg-muted")}>
-      <Image src={src} alt="" fill sizes="56px" className="object-cover" />
+      <ContainedCover src={src} alt="" sizes="56px" blur="sm" />
     </div>
   )
 }
