@@ -318,6 +318,15 @@ body.dark:has(.site-theme) {
     @apply rotate-180;
   }
 
+  /* Mermaid 圖表：由瀏覽器端把 mermaid 程式碼區塊替換而成，過寬時可橫向捲動 */
+  .mermaid-diagram {
+    @apply my-6 flex justify-center overflow-x-auto rounded-xl border bg-muted/40 p-4;
+  }
+
+  .mermaid-diagram svg {
+    @apply h-auto max-w-full;
+  }
+
   /* 文章圖片燈箱的觸發按鈕：保留圖片原本的排版，只加上放大游標與鍵盤焦點外框 */
   .article-image-zoom {
     @apply block w-fit max-w-full cursor-zoom-in rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;

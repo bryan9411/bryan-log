@@ -5,6 +5,7 @@ import { ExternalLinkIcon } from "lucide-react"
 import { BackLink } from "@/components/content/back-link"
 import { CodeBlockInteractions } from "@/components/content/code-block-interactions"
 import { ImageLightbox } from "@/components/content/image-lightbox"
+import { MermaidDiagrams } from "@/components/content/mermaid-diagrams"
 import { CoverImage } from "@/components/content/cover-image"
 import { RichContent } from "@/components/content/rich-content"
 import { ExternalLink } from "@/components/site/external-link"
@@ -110,6 +111,7 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[slug
         {maybeRenderCover()}
         <RichContent html={html} className="border-t border-border/60 pt-8" />
         <CodeBlockInteractions />
+        <MermaidDiagrams />
         <ImageLightbox />
       </article>
     </SiteContainer>

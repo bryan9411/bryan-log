@@ -30,6 +30,7 @@ const LANGUAGE_LOADERS: Record<HighlightableLanguage, () => LanguageInput> = {
   go: () => import("shiki/langs/go.mjs"),
   rust: () => import("shiki/langs/rust.mjs"),
   markdown: () => import("shiki/langs/markdown.mjs"),
+  mermaid: () => import("shiki/langs/mermaid.mjs"),
 }
 
 let highlighterPromise: Promise<HighlighterCore> | null = null

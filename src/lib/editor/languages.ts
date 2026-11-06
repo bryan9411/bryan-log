@@ -17,6 +17,7 @@ export const CODE_LANGUAGES = [
   { id: "go", label: "Go", shortLabel: "Go" },
   { id: "rust", label: "Rust", shortLabel: "Rust" },
   { id: "markdown", label: "Markdown", shortLabel: "Markdown" },
+  { id: "mermaid", label: "Mermaid 圖表", shortLabel: "Mermaid" },
   { id: PLAIN_TEXT_LANGUAGE, label: "純文字", shortLabel: "Text" },
 ] as const
 
@@ -36,6 +37,7 @@ const LANGUAGE_ALIASES: Record<string, CodeLanguage> = {
   yml: "yaml",
   md: "markdown",
   py: "python",
+  mmd: "mermaid",
   text: PLAIN_TEXT_LANGUAGE,
   txt: PLAIN_TEXT_LANGUAGE,
 }
