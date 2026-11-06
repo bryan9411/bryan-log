@@ -66,7 +66,7 @@ export function CoverImageField({
 
     return (
       <div className="relative aspect-video overflow-hidden rounded-lg border bg-muted">
-        <Image src={value} alt={`${label}預覽`} fill sizes="320px" className="object-cover" />
+        <Image src={value} alt={`${label}預覽`} fill sizes="320px" className="object-contain" />
         <Button
           type="button"
           size="icon"
