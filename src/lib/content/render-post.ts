@@ -22,7 +22,6 @@ export type RenderedPostContent = {
   json: JSONContent
   html: string
   plainText: string
-  excerpt: string
   readingMinutes: number
 }
 
@@ -36,7 +35,8 @@ function parseDocument(rawJson: unknown) {
   }
 }
 
-// 摘要只取標題與段落文字，程式碼區塊放進摘要既不易讀也不利於 SEO
+// 舊版存檔時會在摘要留空的情況下自動擷取（只取標題與段落文字、前 120 字）；
+// 現已不再自動擷取，保留同樣的規則僅用於辨認資料庫中的舊自動摘要
 function buildExcerpt(doc: ProseMirrorNode) {
   const parts: string[] = []
 
@@ -85,13 +85,12 @@ export async function renderPostContent(rawJson: unknown): Promise<RenderedPostC
     json: doc.toJSON(),
     html,
     plainText,
-    excerpt: buildExcerpt(doc),
     readingMinutes: estimateReadingMinutes(plainText.length),
   }
 }
 
-// 摘要欄位留空時，存檔會寫入自動擷取的摘要；編輯時需辨認出這種情況並顯示為空白，
-// 否則之後修改內文時摘要不會跟著更新，「留空即自動擷取」的行為也會失效
+// 舊文章的摘要可能是當年自動擷取的內文；編輯時辨認出來並顯示為空白，
+// 重新存檔後即清為空值，前台不再顯示與標題、開頭段落重複的摘要
 export function isAutoExcerpt(excerpt: string | null, rawJson: unknown) {
   if (!excerpt) return true
 

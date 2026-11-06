@@ -119,7 +119,8 @@ export async function savePostAction(
   const record = {
     title,
     slug,
-    excerpt: excerpt || rendered.excerpt || null,
+    // 摘要留空就存空值，不再自動擷取內文：擷取結果常與標題或開頭段落重複，顯示在文章頁頂端反而突兀
+    excerpt: excerpt || null,
     tldr,
     section_id: sectionId,
     category_id: categoryId ?? null,

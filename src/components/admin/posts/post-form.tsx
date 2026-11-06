@@ -352,7 +352,7 @@ export function PostForm({ sections, categoriesBySection, post, createdIntent }:
                 id="excerpt"
                 label="摘要"
                 errors={fieldErrors.excerpt}
-                hint="留空時將自動擷取內文前 120 字"
+                hint="留空則不顯示摘要，搜尋結果與分享預覽會改用網站預設描述"
               >
                 {(describedBy, hasError) => (
                   <Textarea
