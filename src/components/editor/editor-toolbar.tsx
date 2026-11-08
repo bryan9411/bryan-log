@@ -2,9 +2,12 @@
 
 import { useEditorState, type Editor } from "@tiptap/react"
 import {
+  BetweenHorizontalEndIcon,
+  BetweenVerticalEndIcon,
   BoldIcon,
   CodeIcon,
   CodeXmlIcon,
+  Grid2x2XIcon,
   Heading2Icon,
   Heading3Icon,
   Heading4Icon,
@@ -20,6 +23,9 @@ import {
   Redo2Icon,
   SquareCodeIcon,
   StrikethroughIcon,
+  TableColumnsSplitIcon,
+  TableIcon,
+  TableRowsSplitIcon,
   Undo2Icon,
   type LucideIcon,
 } from "lucide-react"
@@ -179,6 +185,51 @@ const ACTION_GROUPS: ToolbarAction[][] = [
       shortcut: "---",
       icon: MinusIcon,
       run: (editor) => editor.chain().focus().setHorizontalRule().run(),
+    },
+  ],
+  [
+    {
+      key: "insertTable",
+      label: "插入表格",
+      icon: TableIcon,
+      run: (editor) =>
+        editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
+      canRun: (editor) => !editor.isActive("table"),
+    },
+    {
+      key: "addRowAfter",
+      label: "在下方新增一列",
+      icon: BetweenHorizontalEndIcon,
+      run: (editor) => editor.chain().focus().addRowAfter().run(),
+      canRun: (editor) => editor.can().addRowAfter(),
+    },
+    {
+      key: "deleteRow",
+      label: "刪除此列",
+      icon: TableRowsSplitIcon,
+      run: (editor) => editor.chain().focus().deleteRow().run(),
+      canRun: (editor) => editor.can().deleteRow(),
+    },
+    {
+      key: "addColumnAfter",
+      label: "在右側新增一欄",
+      icon: BetweenVerticalEndIcon,
+      run: (editor) => editor.chain().focus().addColumnAfter().run(),
+      canRun: (editor) => editor.can().addColumnAfter(),
+    },
+    {
+      key: "deleteColumn",
+      label: "刪除此欄",
+      icon: TableColumnsSplitIcon,
+      run: (editor) => editor.chain().focus().deleteColumn().run(),
+      canRun: (editor) => editor.can().deleteColumn(),
+    },
+    {
+      key: "deleteTable",
+      label: "刪除表格",
+      icon: Grid2x2XIcon,
+      run: (editor) => editor.chain().focus().deleteTable().run(),
+      canRun: (editor) => editor.can().deleteTable(),
     },
   ],
   [

@@ -378,6 +378,53 @@ body.dark:has(.site-theme) {
   .article-content .code-block pre {
     @apply m-0 rounded-none bg-transparent;
   }
+
+  /* 表格：前台與編輯器共用。外層負責水平捲動，表格本身不會撐破內文寬度；
+   * 標題列輸出在 tbody 內，prose 的 thead 規則不會生效，樣式一律針對 th，並同樣在此層以較高權重覆寫 */
+  .article-table-scroll,
+  .tiptap-content .tableWrapper {
+    @apply my-6 overflow-x-auto rounded-xl border;
+  }
+
+  .article-table-scroll:focus-visible {
+    @apply ring-2 ring-ring outline-none;
+  }
+
+  :is(.article-table-scroll, .tiptap-content .tableWrapper) table {
+    @apply m-0 w-full border-collapse text-sm;
+  }
+
+  :is(.article-table-scroll, .tiptap-content .tableWrapper) :is(th, td) {
+    @apply min-w-24 border-r border-b px-3 py-2 text-start align-top;
+  }
+
+  :is(.article-table-scroll, .tiptap-content .tableWrapper) :is(th, td):last-child {
+    @apply border-r-0;
+  }
+
+  :is(.article-table-scroll, .tiptap-content .tableWrapper) tr:last-child :is(th, td) {
+    @apply border-b-0;
+  }
+
+  :is(.article-table-scroll, .tiptap-content .tableWrapper) th {
+    @apply bg-muted/60 font-semibold text-foreground;
+  }
+
+  :is(.article-table-scroll, .tiptap-content .tableWrapper) :is(th, td)[align="center"] {
+    @apply text-center;
+  }
+
+  :is(.article-table-scroll, .tiptap-content .tableWrapper) :is(th, td)[align="right"] {
+    @apply text-end;
+  }
+
+  :is(.article-table-scroll, .tiptap-content .tableWrapper) :is(th, td) :is(p, img) {
+    @apply m-0;
+  }
+
+  .tiptap-content :is(th, td).selectedCell {
+    @apply bg-primary/10;
+  }
 }
 
 @layer base {

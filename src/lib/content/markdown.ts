@@ -1,6 +1,6 @@
 import type { JSONContent } from "@tiptap/core"
 
-// 將編輯器的 JSON 文件轉為 Markdown（CommonMark + GFM 刪除線）。
+// 將編輯器的 JSON 文件轉為 Markdown（CommonMark + GFM 刪除線與表格）。
 // 節點與標記對應 createContentExtensions 的 schema；未知節點只輸出其子內容，不會遺失文字
 
 type Mark = NonNullable<JSONContent["marks"]>[number]
@@ -114,8 +114,75 @@ function serializeList(node: JSONContent, ordered: boolean) {
     .join("\n")
 }
 
+const TABLE_DELIMITERS: Record<string, string> = {
+  left: ":---",
+  center: ":---:",
+  right: "---:",
+}
+const DEFAULT_TABLE_DELIMITER = "---"
+
+// 直線符號即使在行內程式碼內也會切開欄位，必須在包上反引號之前先轉義
+function escapeCodePipes(node: JSONContent): JSONContent {
+  const isCode = node.marks?.some((mark) => mark.type === "code")
+  return isCode && node.text ? { ...node, text: node.text.replace(/\|/g, "\\|") } : node
+}
+
+// GFM 儲存格必須維持單行：換行與多個段落都以 <br> 表示
+function serializeTableCell(cell: JSONContent) {
+  return (cell.content ?? [])
+    .map((block) =>
+      block.type === "image"
+        ? serializeImage(block)
+        : serializeInline(block.content?.map(escapeCodePipes)),
+    )
+    .join("<br>")
+    .replace(/\\\n/g, "<br>")
+    .replace(/\n/g, " ")
+}
+
+const cellSpan = (value: unknown) => (typeof value === "number" && value > 1 ? value : 1)
+
+// GFM 不支援合併儲存格：展開成完整的格線，被合併的位置留空，其餘欄位才不會錯位
+function serializeTable(node: JSONContent) {
+  const rows = node.content ?? []
+  const grid: string[][] = rows.map(() => [])
+  const delimiters: string[] = []
+
+  rows.forEach((row, rowIndex) => {
+    let column = 0
+
+    for (const cell of row.content ?? []) {
+      while (grid[rowIndex][column] !== undefined) column += 1
+
+      const colspan = cellSpan(cell.attrs?.colspan)
+      const rowspan = cellSpan(cell.attrs?.rowspan)
+
+      for (let r = rowIndex; r < Math.min(rowIndex + rowspan, rows.length); r += 1) {
+        for (let c = column; c < column + colspan; c += 1) grid[r][c] = ""
+      }
+
+      grid[rowIndex][column] = serializeTableCell(cell)
+      delimiters[column] ??= TABLE_DELIMITERS[String(cell.attrs?.align)] ?? DEFAULT_TABLE_DELIMITER
+      column += colspan
+    }
+  })
+
+  const columnCount = Math.max(...grid.map((line) => line.length))
+  const toLine = (cells: (string | undefined)[]) =>
+    `| ${Array.from({ length: columnCount }, (_, index) => cells[index] ?? "").join(" | ")} |`
+  const delimiterLine = Array.from(
+    { length: columnCount },
+    (_, index) => delimiters[index] ?? DEFAULT_TABLE_DELIMITER,
+  )
+
+  // GFM 的第一列一定是表頭，因此即使原表格沒有標題列也以第一列輸出
+  return [toLine(grid[0]), toLine(delimiterLine), ...grid.slice(1).map(toLine)].join("\n")
+}
+
 function serializeBlock(node: JSONContent): string {
   switch (node.type) {
+    case "table":
+      return serializeTable(node)
     case "paragraph":
       return serializeInline(node.content)
     case "heading": {

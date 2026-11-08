@@ -40,7 +40,16 @@ export const MarkdownPaste = Extension.create({
             const markdown = getPastedMarkdown(event.clipboardData)
             if (!markdown) return false
 
-            editor.commands.insertContent(markdownToEditorHtml(unwrapMarkdownFence(markdown)))
+            const html = markdownToEditorHtml(unwrapMarkdownFence(markdown))
+
+            // 儲存格內改走標準貼上流程，由表格外掛把內容填入儲存格；insertContent 會把表格切開。
+            // 不傳入事件，pasteHTML 的 handlePaste 就拿不到剪貼簿資料，不會再次進入這裡
+            if (editor.isActive("table")) {
+              view.pasteHTML(html)
+            } else {
+              editor.commands.insertContent(html)
+            }
+
             return true
           },
         },

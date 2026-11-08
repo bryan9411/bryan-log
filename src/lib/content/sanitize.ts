@@ -24,9 +24,25 @@ const ALLOWED_TAGS = [
   "img",
   "hr",
   "br",
+  "table",
+  "thead",
+  "tbody",
+  "tr",
+  "th",
+  "td",
 ]
 
 const ALLOWED_ATTR = ["href", "target", "rel", "src", "alt", "title", "class", "start"]
+
+// 表格屬性只開放儲存格的合併與對齊，且逐一驗證屬性值
+const TABLE_CELL_ATTR_PATTERNS: Record<string, RegExp> = {
+  colspan: /^[1-9]\d{0,2}$/,
+  rowspan: /^[1-9]\d{0,2}$/,
+  align: /^(?:left|center|right)$/,
+}
+const TABLE_CELL_ATTR = Object.keys(TABLE_CELL_ATTR_PATTERNS)
+const TABLE_STRUCTURE_TAGS = ["table", "thead", "tbody", "tr"]
+const TABLE_CELL_TAGS = ["th", "td"]
 
 // 前台輸出時另需保留 Shiki 預先高亮產生的外層容器、色彩 span 與語言標記
 const ARTICLE_ALLOWED_TAGS = [...ALLOWED_TAGS, "div", "span"]
@@ -41,12 +57,28 @@ const ARTICLE_ALLOWED_ATTR = [
 // href 與 src 只允許這些協定（相對路徑不受影響），javascript:、data: 等一律移除
 const ALLOWED_SCHEMES = ["http", "https", "mailto", "tel"]
 
+// "*" 白名單（含前台的 style）會套用到所有標籤，表格標籤需在此先收斂成僅剩合法的儲存格屬性
+const keepValidTableAttributes: Transformer = (tagName, attribs) => ({
+  tagName,
+  attribs: Object.fromEntries(
+    Object.entries(attribs).filter(
+      ([name, value]) =>
+        TABLE_CELL_TAGS.includes(tagName) && TABLE_CELL_ATTR_PATTERNS[name]?.test(value),
+    ),
+  ),
+})
+
+const TABLE_TRANSFORMS = Object.fromEntries(
+  [...TABLE_STRUCTURE_TAGS, ...TABLE_CELL_TAGS].map((tag) => [tag, keepValidTableAttributes]),
+)
+
 // 屬性白名單套用到所有標籤，未列出的屬性（含 data-*）一律移除
 const toOptions = (allowedTags: string[], allowedAttributes: string[]): IOptions => ({
   allowedTags,
-  allowedAttributes: { "*": allowedAttributes },
+  allowedAttributes: { "*": allowedAttributes, th: TABLE_CELL_ATTR, td: TABLE_CELL_ATTR },
   allowedSchemes: ALLOWED_SCHEMES,
   allowProtocolRelative: false,
+  transformTags: TABLE_TRANSFORMS,
 })
 
 const STYLE_ATTR = "style"
@@ -69,7 +101,7 @@ const EDITOR_OPTIONS = toOptions(ALLOWED_TAGS, ALLOWED_ATTR)
 
 const ARTICLE_OPTIONS: IOptions = {
   ...toOptions(ARTICLE_ALLOWED_TAGS, ARTICLE_ALLOWED_ATTR),
-  transformTags: { "*": restrictStyleToShiki },
+  transformTags: { ...TABLE_TRANSFORMS, "*": restrictStyleToShiki },
   // style 已由上方的 Shiki 規則把關；不再以 postcss 逐條解析，避免 --shiki-* 自訂屬性被當成未知屬性移除
   parseStyleAttributes: false,
 }

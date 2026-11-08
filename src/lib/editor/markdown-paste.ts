@@ -11,6 +11,8 @@ const WRAPPING_FENCE = /^\s*(`{3,}|~{3,})\s*(?:markdown|md)\s*\n([\s\S]*?)\n\1\s
 // 只要出現區塊層級的 Markdown 語法（標題、清單、引言、程式碼圍欄、分隔線）就視為 Markdown
 const BLOCK_SYNTAX = /^(?:#{1,6}\s|[-*+]\s|\d+[.)]\s|>\s?|`{3,}|~{3,}|(?:-{3,}|\*{3,}|_{3,})\s*$)/m
 const INLINE_SYNTAX = /\*\*[^*\n]+\*\*|\[[^\]\n]+\]\([^)\s]+\)/
+// GFM 表格：含直線符號的表頭列，下一行緊接分隔列（例如 | --- | :---: |）
+const TABLE_SYNTAX = /^[^\n]*\|[^\n]*\n[ \t]*\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*\|?\s*$/m
 
 const HTML_ESCAPES: Record<string, string> = {
   "&": "&amp;",
@@ -46,7 +48,7 @@ export function unwrapMarkdownFence(text: string) {
 }
 
 export function looksLikeMarkdown(text: string) {
-  return BLOCK_SYNTAX.test(text) || INLINE_SYNTAX.test(text)
+  return BLOCK_SYNTAX.test(text) || INLINE_SYNTAX.test(text) || TABLE_SYNTAX.test(text)
 }
 
 function collectHeadings(tokens: Token[]) {
@@ -68,7 +70,7 @@ function fitHeadingLevels(tokens: Token[]) {
   }
 }
 
-// 轉為 HTML 後交給編輯器依 schema 解析，不支援的標籤（例如表格）會自動降級為段落文字
+// 轉為 HTML 後交給編輯器依 schema 解析，schema 不支援的標籤會自動降級為段落文字
 export function markdownToEditorHtml(markdown: string) {
   const tokens = marked.lexer(markdown)
   fitHeadingLevels(tokens)
