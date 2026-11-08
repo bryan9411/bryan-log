@@ -69,6 +69,7 @@ export function SiteNavDropdown({ group, pathname, onNavigate }: SiteNavDropdown
           return (
             <li key={href}>
               <Link
+                prefetch
                 href={href}
                 onClick={handleNavigate}
                 aria-current={isActive ? "page" : undefined}

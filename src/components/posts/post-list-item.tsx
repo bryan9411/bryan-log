@@ -21,8 +21,9 @@ export function PostListItem({ post, sectionTone }: PostListItemProps) {
     <article className="group relative flex flex-col gap-2.5 rounded-xl px-4 py-5 transition-colors hover:bg-muted/60 sm:px-5">
       <PostMeta post={post} sectionTone={sectionTone} />
       <h3 className="text-lg leading-snug font-semibold tracking-tight text-pretty">
-        {/* 以偽元素讓整張卡片可點擊，同時保持單一連結的語意 */}
+        {/* 以偽元素讓整張卡片可點擊，同時保持單一連結的語意；prefetch 預載完整內頁（資料已快取），點擊時不必再等伺服器 */}
         <Link
+          prefetch
           href={postDetailPath(section.slug, slug)}
           className="after:absolute after:inset-0 after:rounded-xl"
         >

@@ -1,9 +1,9 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import { useEffect, useId, useState } from "react"
 import { MenuIcon, XIcon } from "lucide-react"
 
-import { FontSizeSegmented } from "@/components/layout/font-size-toggle"
 import { SiteContainer } from "@/components/site/site-container"
 import { SiteNavLinks } from "@/components/site/site-nav-links"
 import { Button } from "@/components/ui/button"
@@ -11,8 +11,14 @@ import type { SiteNavItem } from "@/config/site-nav"
 
 const ESCAPE_KEY = "Escape"
 
+// 只有開啟行動版選單時才用得到
+const FontSizeSegmented = dynamic(
+  () =>
+    import("@/components/layout/font-size-segmented").then((module) => module.FontSizeSegmented),
+  { ssr: false, loading: () => <div className="mt-2 h-12" /> },
+)
+
 // 選單面板以絕對定位貼齊頁首下緣，因此頁首必須是定位元素（sticky 即可）
-// 頁首本身已有 backdrop-filter，巢狀元素的模糊不會生效，面板因此使用不透明背景
 type MobileNavProps = {
   items: SiteNavItem[]
 }

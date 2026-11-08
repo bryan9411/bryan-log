@@ -2,7 +2,6 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 
 import { ThemeProvider } from "@/components/providers/theme-provider"
-import { Toaster } from "@/components/ui/sonner"
 import { siteConfig } from "@/config/site"
 import { FONT_SIZE_INIT_SCRIPT } from "@/lib/constants/font-size"
 import { createPageMetadata } from "@/lib/seo"
@@ -15,9 +14,11 @@ const geistSans = Geist({
   subsets: ["latin"],
 })
 
+// 等寬字只用在程式碼與標籤，不搶首屏的下載順位
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  preload: false,
 })
 
 // 全站預設值：metadataBase 讓 canonical 與 og:url 等相對路徑自動補成完整網址
@@ -46,10 +47,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: FONT_SIZE_INIT_SCRIPT }} />
       </head>
       <body className="flex min-h-full flex-col">
-        <ThemeProvider>
-          {children}
-          <Toaster position="bottom-center" />
-        </ThemeProvider>
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   )

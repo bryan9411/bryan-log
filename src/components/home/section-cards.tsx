@@ -65,6 +65,7 @@ export async function SectionCards({ sections }: { sections: Section[] }) {
                 <h3 className="text-base font-semibold tracking-tight">
                   {/* 以偽元素讓整張卡片可點擊，同時保持單一連結的語意 */}
                   <Link
+                    prefetch
                     href={sectionPath(section.slug)}
                     className="after:absolute after:inset-0 after:rounded-xl"
                   >

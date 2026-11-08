@@ -30,6 +30,7 @@ export function PostNavigation({ previous, next }: AdjacentPosts) {
 
     return (
       <Link
+        prefetch
         href={postDetailPath(post.section.slug, post.slug)}
         rel={isNext ? "next" : "prev"}
         className={cn(

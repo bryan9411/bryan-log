@@ -5,6 +5,7 @@ import { cacheLife, cacheTag } from "next/cache"
 import { CACHE_TAG } from "@/lib/cache-tags"
 import { CONTENT_STATUS } from "@/lib/constants/content"
 import { prepareArticleHtml } from "@/lib/content/article-html"
+import { readImageDimensions, type ImageDimensions } from "@/lib/content/article-images"
 import type { CategorizedItem } from "@/lib/content/category-filter"
 import {
   CATEGORY_WITH_PARENT_SELECT,
@@ -25,6 +26,7 @@ export type ProjectSummary = CategorizedItem & {
 
 export type ProjectDetail = ProjectSummary & {
   html: string
+  coverDimensions: ImageDimensions | null
   publishedAt: string | null
   updatedAt: string
 }
@@ -115,9 +117,15 @@ export async function getPublishedProject(slug: string): Promise<ProjectDetail |
   if (error) throw new Error(`讀取作品失敗：${error.message}`)
   if (!data) return null
 
+  const [html, coverDimensions] = await Promise.all([
+    prepareArticleHtml(data.description_html),
+    data.cover_image_url ? readImageDimensions(data.cover_image_url) : null,
+  ])
+
   return {
     ...toProjectSummary(data),
-    html: await prepareArticleHtml(data.description_html),
+    html,
+    coverDimensions,
     publishedAt: data.published_at,
     updatedAt: data.updated_at,
   }

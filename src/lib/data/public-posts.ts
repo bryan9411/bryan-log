@@ -6,6 +6,7 @@ import { cacheLife, cacheTag } from "next/cache"
 import { CACHE_TAG, POSTS_CACHE_LIFE, POSTS_FULL_TEXT_TAG, postContentTag } from "@/lib/cache-tags"
 import { CONTENT_STATUS } from "@/lib/constants/content"
 import { prepareArticleHtml } from "@/lib/content/article-html"
+import { readImageDimensions, type ImageDimensions } from "@/lib/content/article-images"
 import type { CategorizedItem } from "@/lib/content/category-filter"
 import { addHeadingAnchors, type TocItem } from "@/lib/content/toc"
 import {
@@ -31,6 +32,7 @@ export type PostDetail = PostSummary & {
   toc: TocItem[]
   viewCount: number
   coverImageUrl: string | null
+  coverDimensions: ImageDimensions | null
   updatedAt: string
 }
 
@@ -119,7 +121,11 @@ export async function toPostDetail(
   },
 ): Promise<PostDetail> {
   // 錨點 id 在清理之後才加上：id 不在清理白名單內，且由伺服器自行產生，內容可信
-  const { html, toc } = addHeadingAnchors(await prepareArticleHtml(post.content_html))
+  const [rawHtml, coverDimensions] = await Promise.all([
+    prepareArticleHtml(post.content_html),
+    post.cover_image_url ? readImageDimensions(post.cover_image_url) : null,
+  ])
+  const { html, toc } = addHeadingAnchors(rawHtml)
 
   return {
     ...toPostSummary(post),
@@ -128,6 +134,7 @@ export async function toPostDetail(
     toc,
     viewCount: post.view_count,
     coverImageUrl: post.cover_image_url,
+    coverDimensions,
     updatedAt: post.updated_at,
   }
 }

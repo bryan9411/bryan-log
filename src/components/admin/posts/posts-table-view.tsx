@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { PencilIcon, Trash2Icon, XIcon } from "lucide-react"
 
 import { CoverThumbnail } from "@/components/admin/cover-thumbnail"
@@ -31,6 +31,7 @@ import { adminEditPostRoute } from "@/config/routes"
 import { ACTION_STATUS } from "@/lib/actions/action-state"
 import type { AdminPostListItem, AdminPostListPage } from "@/lib/data/posts"
 import { formatDateTime, formatRelativeTime } from "@/lib/format"
+import { runWhenIdle } from "@/lib/idle"
 import { cn } from "@/lib/utils"
 import type { AdminPostListParams } from "@/lib/validations/admin-post-list"
 
@@ -50,6 +51,9 @@ const toDeleteTarget = ({ id, title }: AdminPostListItem): DeletePostTarget => (
 
 export function PostsTableView({ posts, total, pageCount, params, now }: PostsTableViewProps) {
   const { isPending } = usePostListNavigation()
+
+  // 編輯器體積大，在文章列表閒置時先下載，點進編輯頁就不必等
+  useEffect(() => runWhenIdle(() => void import("@/components/editor/tiptap-editor")), [])
 
   const listKey = posts.map((post) => post.id).join(",")
   const [selection, setSelection] = useState<Selection>({ listKey, ids: new Set() })

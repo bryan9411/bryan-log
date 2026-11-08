@@ -1,22 +1,22 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import { useMemo, useRef, useState } from "react"
 import { ListIcon } from "lucide-react"
 
-import {
-  Sheet,
-  SHEET_SIDE,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
 import { useActiveHeading } from "@/hooks/use-active-heading"
 import { TOC_LEVEL, TOC_VARIANT, type TocItem, type TocVariant } from "@/lib/content/toc"
 import { cn } from "@/lib/utils"
 
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)"
+
+const loadTocDrawerSheet = () => import("@/components/posts/toc-drawer-sheet")
+
+const preloadTocDrawerSheet = () => void loadTocDrawerSheet()
+
+const TocDrawerSheet = dynamic(() => loadTocDrawerSheet().then((module) => module.TocDrawerSheet), {
+  ssr: false,
+})
 
 type TableOfContentsProps = {
   items: TocItem[]
@@ -45,6 +45,8 @@ export function TableOfContents({ items, variant }: TableOfContentsProps) {
   const pendingHeadingRef = useRef<string | null>(null)
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [hasOpenedDrawer, setHasOpenedDrawer] = useState(false)
+  const drawerButtonRef = useRef<HTMLButtonElement>(null)
 
   const activeText = items.find(({ id }) => id === activeId)?.text
 
@@ -60,13 +62,17 @@ export function TableOfContents({ items, variant }: TableOfContentsProps) {
     scrollToHeading(id)
   }
 
-  // 關閉後 Radix 會把焦點還給懸浮按鈕；有選取標題時改為捲動到該段落，
+  // 關閉後把焦點還給懸浮按鈕；有選取標題時改為捲動到該段落，
   // 並延到下一個影格執行，確保捲動鎖定已解除
   const handleDrawerCloseAutoFocus = (event: Event) => {
-    const id = pendingHeadingRef.current
-    if (!id) return
-
     event.preventDefault()
+
+    const id = pendingHeadingRef.current
+    if (!id) {
+      drawerButtonRef.current?.focus()
+      return
+    }
+
     pendingHeadingRef.current = null
     window.requestAnimationFrame(() => scrollToHeading(id))
   }
@@ -99,34 +105,34 @@ export function TableOfContents({ items, variant }: TableOfContentsProps) {
 
   if (variant === TOC_VARIANT.DRAWER) {
     return (
-      <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <SheetTrigger asChild>
-          <button
-            type="button"
-            aria-label="開啟文章目錄"
-            className="fixed right-4 bottom-5 z-40 flex h-11 max-w-[min(18rem,calc(100vw-2rem))] items-center gap-2 rounded-full border bg-popover px-4 text-sm font-medium text-popover-foreground shadow-lg transition-transform active:scale-95 lg:hidden"
-          >
-            <ListIcon className="size-4 shrink-0" aria-hidden />
-            <span className="truncate">{activeText ?? "目錄"}</span>
-          </button>
-        </SheetTrigger>
-        <SheetContent
-          side={SHEET_SIDE.BOTTOM}
-          className="site-theme"
-          onCloseAutoFocus={handleDrawerCloseAutoFocus}
+      <>
+        <button
+          ref={drawerButtonRef}
+          type="button"
+          aria-label="開啟文章目錄"
+          aria-haspopup="dialog"
+          aria-expanded={isDrawerOpen}
+          onPointerEnter={preloadTocDrawerSheet}
+          onFocus={preloadTocDrawerSheet}
+          onClick={() => {
+            setHasOpenedDrawer(true)
+            setIsDrawerOpen(true)
+          }}
+          className="fixed right-4 bottom-5 z-40 flex h-11 max-w-[min(18rem,calc(100vw-2rem))] items-center gap-2 rounded-full border bg-popover px-4 text-sm font-medium text-popover-foreground shadow-lg transition-transform active:scale-95 lg:hidden"
         >
-          <SheetHeader>
-            <SheetTitle>文章目錄</SheetTitle>
-            <SheetDescription>點選章節即可跳轉</SheetDescription>
-          </SheetHeader>
-          <nav
-            aria-label="文章目錄（行動版）"
-            className="overflow-y-auto px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+          <ListIcon className="size-4 shrink-0" aria-hidden />
+          <span className="truncate">{activeText ?? "目錄"}</span>
+        </button>
+        {hasOpenedDrawer ? (
+          <TocDrawerSheet
+            open={isDrawerOpen}
+            onOpenChange={setIsDrawerOpen}
+            onCloseAutoFocus={handleDrawerCloseAutoFocus}
           >
             {renderList()}
-          </nav>
-        </SheetContent>
-      </Sheet>
+          </TocDrawerSheet>
+        ) : null}
+      </>
     )
   }
 

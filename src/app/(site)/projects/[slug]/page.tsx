@@ -50,7 +50,8 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[slug
 
   if (!project) notFound()
 
-  const { title, summary, coverImageUrl, demoUrl, repoUrl, techStack, html } = project
+  const { title, summary, coverImageUrl, coverDimensions, demoUrl, repoUrl, techStack, html } =
+    project
   const categoryPath = formatCategoryPath(project)
 
   const maybeRenderCategory = () => {
@@ -82,7 +83,7 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[slug
 
   const maybeRenderCover = () => {
     if (!coverImageUrl) return null
-    return <CoverImage src={coverImageUrl} alt={title} />
+    return <CoverImage src={coverImageUrl} alt={title} dimensions={coverDimensions} />
   }
 
   return (

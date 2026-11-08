@@ -5,6 +5,7 @@ import { EyeIcon } from "lucide-react"
 
 import { getPostViewCount, recordPostView } from "@/lib/actions/post-views"
 import { VIEW_COOLDOWN_MS } from "@/lib/constants/post-views"
+import { runWhenIdle } from "@/lib/idle"
 
 const VIEWED_STORAGE_PREFIX = "bryan-log-viewed:"
 
@@ -36,15 +37,20 @@ export function PostViewCount({ slug, initialCount }: PostViewCountProps) {
 
   useEffect(() => {
     let isActive = true
-    const alreadyViewed = isWithinCooldown(`${VIEWED_STORAGE_PREFIX}${slug}`)
-    const request = alreadyViewed ? getPostViewCount(slug) : recordPostView(slug)
 
-    request.then((latest) => {
-      if (isActive && latest !== null) setCount(latest)
+    // 瀏覽數不影響閱讀，等首屏完成後才向伺服器請求
+    const cancelIdle = runWhenIdle(() => {
+      const alreadyViewed = isWithinCooldown(`${VIEWED_STORAGE_PREFIX}${slug}`)
+      const request = alreadyViewed ? getPostViewCount(slug) : recordPostView(slug)
+
+      request.then((latest) => {
+        if (isActive && latest !== null) setCount(latest)
+      })
     })
 
     return () => {
       isActive = false
+      cancelIdle()
     }
   }, [slug])
 

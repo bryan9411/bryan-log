@@ -40,7 +40,9 @@ export function PostArticle({ post, metaExtra, footer }: PostArticleProps) {
 
   const maybeRenderCover = () => {
     if (!post.coverImageUrl) return null
-    return <CoverImage src={post.coverImageUrl} alt={post.title} />
+    return (
+      <CoverImage src={post.coverImageUrl} alt={post.title} dimensions={post.coverDimensions} />
+    )
   }
 
   const maybeRenderDrawerToc = () => {

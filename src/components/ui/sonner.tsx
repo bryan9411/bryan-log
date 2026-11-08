@@ -1,9 +1,12 @@
 "use client"
 
 import { useTheme } from "next-themes"
-import { Toaster as Sonner, type ToasterProps } from "sonner"
+import { Toaster as Sonner, toast, type ToasterProps } from "sonner"
 
 import { isTheme, THEME } from "@/lib/constants/theme"
+
+// 延遲載入時 toast 與 Toaster 必須來自同一個模組，由此處一併匯出
+export { toast }
 
 // 依 next-themes 目前的主題切換 Toast 配色，並沿用網站的色彩變數
 export function Toaster(props: ToasterProps) {

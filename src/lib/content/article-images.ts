@@ -22,12 +22,12 @@ const FETCH_TIMEOUT_MS = 3000
 // EXIF 方向 5～8 代表圖片需旋轉 90 度顯示，寬高要對調
 const ROTATED_ORIENTATION_MIN = 5
 
-type Dimensions = { width: number; height: number }
+export type ImageDimensions = { width: number; height: number }
 
 const escapeAttribute = (value: string) => value.replace(/&/g, "&amp;").replace(/"/g, "&quot;")
 
 // 尺寸只用來預留版面，讀取失敗時略過，不影響文章輸出
-async function readImageDimensions(src: string): Promise<Dimensions | null> {
+export async function readImageDimensions(src: string): Promise<ImageDimensions | null> {
   try {
     const response = await fetch(src, {
       headers: { Range: `bytes=0-${HEADER_BYTES - 1}` },
@@ -51,7 +51,7 @@ function getImageSource(tag: string) {
   return match ? decodeHtmlEntities(match[1]) : null
 }
 
-function toResponsiveAttributes(src: string, dimensions: Dimensions | null) {
+function toResponsiveAttributes(src: string, dimensions: ImageDimensions | null) {
   const { width, height } = dimensions ?? FALLBACK_DIMENSIONS
   const { props } = getImageProps({ src, alt: "", width, height, sizes: ARTICLE_IMAGE_SIZES })
 

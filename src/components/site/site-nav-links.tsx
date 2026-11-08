@@ -51,6 +51,7 @@ function SiteNavList({
 
     return (
       <Link
+        prefetch
         href={href}
         onClick={onNavigate}
         aria-current={isActive ? "page" : undefined}

@@ -31,6 +31,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   images: {
     remotePatterns: buildSupabaseImagePatterns(),
+    // 上傳的檔名都是 UUID，內容不會變動，最佳化結果可長期保存，不必反覆重新產生
+    minimumCacheTTL: 31_536_000,
   },
   turbopack: {
     rules: {

@@ -1,7 +1,7 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import { useEffect } from "react"
-import { toast } from "sonner"
 
 import {
   CODE_BLOCK_ACTION,
@@ -11,6 +11,15 @@ import {
   CODE_BLOCK_FOLD_LABEL,
   CODE_BLOCK_LINE_NUMBERS_ATTR,
 } from "@/lib/content/code-block"
+
+// Toast 只有複製程式碼時會用到，不放進首屏載入的程式
+const LazyToaster = dynamic(
+  () => import("@/components/ui/sonner").then((module) => module.Toaster),
+  {
+    ssr: false,
+  },
+)
+const loadToast = () => import("@/components/ui/sonner").then((module) => module.toast)
 
 const COPIED_RESET_MS = 2000
 const CODE_BLOCK_SELECTOR = ".code-block"
@@ -48,12 +57,14 @@ async function copyCode(block: HTMLElement, button: HTMLElement) {
   try {
     await navigator.clipboard.writeText(code)
   } catch {
+    const toast = await loadToast()
     toast.error("複製失敗，請手動選取程式碼")
     return
   }
 
   button.setAttribute(CODE_BLOCK_COPIED_ATTR, "")
   button.setAttribute("aria-label", "已複製")
+  const toast = await loadToast()
   toast.success("已複製程式碼到剪貼簿")
 
   window.setTimeout(() => {
@@ -90,5 +101,10 @@ export function CodeBlockInteractions() {
     return () => document.removeEventListener("click", handleClick)
   }, [])
 
-  return null
+  // 絕對定位避免空的 Toast 容器佔用文章欄位的間距，通知本身為 fixed 定位，不受影響
+  return (
+    <div className="absolute size-0">
+      <LazyToaster position="bottom-center" />
+    </div>
+  )
 }
