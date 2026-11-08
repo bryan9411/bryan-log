@@ -341,6 +341,80 @@ body.dark:has(.site-theme) {
     content-visibility: auto;
     contain-intrinsic-size: auto 120px;
   }
+
+  /* 互動 Demo：預設只顯示原本的程式碼區塊（未啟用 JavaScript 時的樣子），
+   * 瀏覽器可執行腳本時預留執行畫面的高度並切換版面，hydration 前後不會跳版；執行失敗時退回預設樣子 */
+  .article-content > .demo-block {
+    content-visibility: visible;
+    contain-intrinsic-size: none;
+  }
+
+  .demo-block-panel {
+    @apply hidden;
+  }
+
+  .demo-block-header {
+    @apply flex items-center justify-between gap-2 border-b py-1 pr-1.5 pl-4;
+  }
+
+  .demo-block-title {
+    @apply min-w-0 text-sm font-medium text-foreground;
+  }
+
+  .demo-block-rerun {
+    @apply flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 text-xs text-muted-foreground transition-colors outline-none hover:bg-foreground/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50;
+  }
+
+  .demo-block-stage {
+    height: var(--demo-height);
+  }
+
+  .demo-block-stage iframe {
+    @apply block size-full border-0;
+  }
+
+  @media (scripting: enabled) {
+    .demo-block:not([data-demo-state="failed"]) {
+      @apply my-6 grid grid-cols-[minmax(0,1fr)] gap-4;
+
+      .demo-block-code {
+        @apply min-w-0;
+      }
+
+      .demo-block-code .code-block {
+        @apply m-0;
+      }
+
+      .demo-block-panel {
+        @apply block min-w-0 self-start overflow-hidden rounded-xl border bg-background;
+      }
+
+      .demo-block-source {
+        @apply hidden;
+      }
+    }
+  }
+
+  @media (scripting: enabled) and (min-width: 48rem) {
+    .demo-block[data-demo-layout="split"]:not([data-demo-state="failed"]) {
+      @apply grid-cols-[minmax(0,1fr)_minmax(0,1fr)];
+    }
+  }
+
+  /* 並排區塊可超出內文欄：沒有目錄時左右對稱加寬，有目錄時只往左加寬以免蓋到右側目錄；
+   * 加寬量依版心外的留白計算，字級調整使 rem 變大時以 max() 確保不會變成負值 */
+  @media (scripting: enabled) and (min-width: 64rem) {
+    .article-content > .demo-block[data-demo-layout="split"]:not([data-demo-state="failed"]) {
+      --demo-breakout: max(0px, min(12rem, (100vw - 48rem) / 2));
+      margin-inline: calc(var(--demo-breakout) * -1);
+    }
+
+    .article-content-with-toc
+      > .demo-block[data-demo-layout="split"]:not([data-demo-state="failed"]) {
+      --demo-breakout: max(0px, min(14rem, (100vw - 64rem) / 2));
+      margin-right: 0;
+    }
+  }
 }
 
 @keyframes code-copied {

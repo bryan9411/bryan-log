@@ -1,5 +1,8 @@
 export const PLAIN_TEXT_LANGUAGE = "plaintext"
 
+// 互動 Demo 的原始碼：存檔時仍是一般程式碼區塊，不做語法高亮才能保留 language-demo 標記，供前台辨識
+export const DEMO_LANGUAGE = "demo"
+
 // label 用於編輯器選單；shortLabel 顯示於前台程式碼區塊頂部的語言標籤
 export const CODE_LANGUAGES = [
   { id: "typescript", label: "TypeScript", shortLabel: "TS" },
@@ -18,12 +21,16 @@ export const CODE_LANGUAGES = [
   { id: "rust", label: "Rust", shortLabel: "Rust" },
   { id: "markdown", label: "Markdown", shortLabel: "Markdown" },
   { id: "mermaid", label: "Mermaid 圖表", shortLabel: "Mermaid" },
+  { id: DEMO_LANGUAGE, label: "互動 Demo", shortLabel: "Demo" },
   { id: PLAIN_TEXT_LANGUAGE, label: "純文字", shortLabel: "Text" },
 ] as const
 
 export type CodeLanguage = (typeof CODE_LANGUAGES)[number]["id"]
 
-export type HighlightableLanguage = Exclude<CodeLanguage, typeof PLAIN_TEXT_LANGUAGE>
+export type HighlightableLanguage = Exclude<
+  CodeLanguage,
+  typeof PLAIN_TEXT_LANGUAGE | typeof DEMO_LANGUAGE
+>
 
 export const DEFAULT_CODE_LANGUAGE: CodeLanguage = "typescript"
 

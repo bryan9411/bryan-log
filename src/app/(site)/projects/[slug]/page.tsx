@@ -4,6 +4,7 @@ import { ExternalLinkIcon } from "lucide-react"
 
 import { BackLink } from "@/components/content/back-link"
 import { CodeBlockInteractions } from "@/components/content/code-block-interactions"
+import { DemoEmbeds } from "@/components/content/demo-embeds"
 import { ImageLightbox } from "@/components/content/image-lightbox"
 import { MermaidDiagrams } from "@/components/content/mermaid-diagrams"
 import { CoverImage } from "@/components/content/cover-image"
@@ -112,6 +113,7 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[slug
         <RichContent html={html} className="border-t border-border/60 pt-8" />
         <CodeBlockInteractions />
         <MermaidDiagrams />
+        <DemoEmbeds />
         <ImageLightbox />
       </article>
     </SiteContainer>

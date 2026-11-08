@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 
 import { BackLink } from "@/components/content/back-link"
 import { CodeBlockInteractions } from "@/components/content/code-block-interactions"
+import { DemoEmbeds } from "@/components/content/demo-embeds"
 import { ImageLightbox } from "@/components/content/image-lightbox"
 import { MermaidDiagrams } from "@/components/content/mermaid-diagrams"
 import { CoverImage } from "@/components/content/cover-image"
@@ -81,9 +82,13 @@ export function PostArticle({ post, metaExtra, footer }: PostArticleProps) {
         <TldrCard points={post.tldr} />
         {maybeRenderCover()}
         {maybeRenderDrawerToc()}
-        <RichContent html={post.html} className="border-t border-border/60 pt-8" />
+        <RichContent
+          html={post.html}
+          className={cn("border-t border-border/60 pt-8", hasToc && "article-content-with-toc")}
+        />
         <CodeBlockInteractions />
         <MermaidDiagrams />
+        <DemoEmbeds />
         <ImageLightbox />
         {maybeRenderFooter()}
       </article>

@@ -2,6 +2,7 @@ import { createHighlighterCore, type HighlighterCore, type LanguageInput } from 
 import { createJavaScriptRegexEngine } from "shiki/engine/javascript"
 
 import {
+  DEMO_LANGUAGE,
   PLAIN_TEXT_LANGUAGE,
   type CodeLanguage,
   type HighlightableLanguage,
@@ -48,7 +49,7 @@ function getHighlighter() {
 }
 
 export function isHighlightable(language: CodeLanguage): language is HighlightableLanguage {
-  return language !== PLAIN_TEXT_LANGUAGE
+  return language !== PLAIN_TEXT_LANGUAGE && language !== DEMO_LANGUAGE
 }
 
 export async function loadHighlighter(languages: CodeLanguage[]) {

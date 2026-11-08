@@ -1,8 +1,4 @@
-import {
-  getCodeLanguageLabel,
-  normalizeCodeLanguage,
-  PLAIN_TEXT_LANGUAGE,
-} from "@/lib/editor/languages"
+import { getCodeLanguageLabel, normalizeCodeLanguage } from "@/lib/editor/languages"
 import { decodeHtmlEntities } from "@/lib/content/html-entities"
 import { CODE_LANGUAGE_CLASS_PREFIX } from "@/lib/editor/extensions"
 import { isHighlightable, loadHighlighter, SHIKI_THEMES } from "@/lib/shiki/highlighter"
@@ -37,7 +33,7 @@ export async function highlightCodeBlocks(html: string) {
       const label = getCodeLanguageLabel(language)
 
       if (!isHighlightable(language)) {
-        return wrapCodeBlock(PLAIN_TEXT_LANGUAGE, label, original)
+        return wrapCodeBlock(language, label, original)
       }
 
       const highlighted = highlighter.codeToHtml(decodeHtmlEntities(escapedCode), {

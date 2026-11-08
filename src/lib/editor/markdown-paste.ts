@@ -1,5 +1,6 @@
 import { Marked, type Token, type Tokens } from "marked"
 
+import { escapeHtml } from "@/lib/content/html-entities"
 import { HEADING_LEVELS } from "@/lib/editor/extensions"
 
 const MIN_HEADING_LEVEL = HEADING_LEVELS[0]
@@ -13,14 +14,6 @@ const BLOCK_SYNTAX = /^(?:#{1,6}\s|[-*+]\s|\d+[.)]\s|>\s?|`{3,}|~{3,}|(?:-{3,}|\
 const INLINE_SYNTAX = /\*\*[^*\n]+\*\*|\[[^\]\n]+\]\([^)\s]+\)/
 // GFM 表格：含直線符號的表頭列，下一行緊接分隔列（例如 | --- | :---: |）
 const TABLE_SYNTAX = /^[^\n]*\|[^\n]*\n[ \t]*\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*\|?\s*$/m
-
-const HTML_ESCAPES: Record<string, string> = {
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  '"': "&quot;",
-}
-const escapeHtml = (text: string) => text.replace(/[&<>"]/g, (char) => HTML_ESCAPES[char] ?? char)
 
 const marked = new Marked({
   gfm: true,

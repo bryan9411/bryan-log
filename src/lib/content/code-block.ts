@@ -31,7 +31,7 @@ export const CODE_BLOCK_FOLD_LABEL = {
 
 // 輸入為 sanitizeArticleHtml 清理後的 HTML：.code-block 容器由存檔時的高亮流程產生，
 // 內含單一 <pre>，程式碼內容已轉義，不可能出現未轉義的 </pre>，因此可安全以正則比對
-const CODE_BLOCK_PATTERN = /<div class="code-block"([^>]*)>(<pre[\s\S]*?<\/pre>)<\/div>/g
+export const CODE_BLOCK_PATTERN = /<div class="code-block"([^>]*)>(<pre[\s\S]*?<\/pre>)<\/div>/g
 const LANGUAGE_ATTR_PATTERN = /data-language="([\w-]+)"/
 const SHIKI_LINE_PATTERN = /<span class="line">/g
 const NEWLINE_PATTERN = /\n/g
@@ -39,14 +39,14 @@ const NEWLINE_PATTERN = /\n/g
 const TRAILING_NEWLINE_PATTERN = /\n(?=<\/code><\/pre>$)/
 
 // lucide 圖示（copy、check、list-ordered），以字串輸出避免在伺服器端渲染 React 元件
-const ICON_ATTRS =
+export const CODE_BLOCK_ICON_ATTRS =
   'xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"'
 
 const ICON = {
-  COPY: `<svg class="code-block-icon code-block-icon-copy" ${ICON_ATTRS}><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`,
-  CHECK: `<svg class="code-block-icon code-block-icon-check" ${ICON_ATTRS}><path d="M20 6 9 17l-5-5"/></svg>`,
-  LINE_NUMBERS: `<svg class="code-block-icon" ${ICON_ATTRS}><path d="M10 12h11"/><path d="M10 18h11"/><path d="M10 6h11"/><path d="M4 10h2"/><path d="M4 6h1v4"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>`,
-  CHEVRON_DOWN: `<svg class="code-block-icon code-block-fold-icon" ${ICON_ATTRS}><path d="m6 9 6 6 6-6"/></svg>`,
+  COPY: `<svg class="code-block-icon code-block-icon-copy" ${CODE_BLOCK_ICON_ATTRS}><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`,
+  CHECK: `<svg class="code-block-icon code-block-icon-check" ${CODE_BLOCK_ICON_ATTRS}><path d="M20 6 9 17l-5-5"/></svg>`,
+  LINE_NUMBERS: `<svg class="code-block-icon" ${CODE_BLOCK_ICON_ATTRS}><path d="M10 12h11"/><path d="M10 18h11"/><path d="M10 6h11"/><path d="M4 10h2"/><path d="M4 6h1v4"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>`,
+  CHEVRON_DOWN: `<svg class="code-block-icon code-block-fold-icon" ${CODE_BLOCK_ICON_ATTRS}><path d="m6 9 6 6 6-6"/></svg>`,
 } as const
 
 function renderButton(action: CodeBlockAction, label: string, content: string, extra = "") {
