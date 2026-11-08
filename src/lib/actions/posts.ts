@@ -13,9 +13,10 @@ import {
 } from "@/lib/actions/action-state"
 import { requireAdmin } from "@/lib/auth/session"
 import { CACHE_TAG } from "@/lib/cache-tags"
-import { CONTENT_STATUS } from "@/lib/constants/content"
+import { CONTENT_STATUS, isScheduledPublish } from "@/lib/constants/content"
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from "@/lib/content/slug"
 import { ContentValidationError, renderPostContent } from "@/lib/content/render-post"
+import { formatDateTime, toTaipeiDateTimeInput } from "@/lib/format"
 import { createClient } from "@/lib/supabase/server"
 import { ADMIN_POSTS_PAGE_SIZE, DELETE_POSTS_FIELD } from "@/lib/validations/admin-post-list"
 import { POST_FIELDS, POST_INTENT, postFormSchema, type PostField } from "@/lib/validations/post"
@@ -23,6 +24,8 @@ import { POST_FIELDS, POST_INTENT, postFormSchema, type PostField } from "@/lib/
 export type PostFormState = ActionState<PostField> & {
   // 每次成功存檔都會更新，供客戶端判斷是否需要清除本機暫存
   savedAt?: number
+  // 實際寫入的發布時間，供表單同步欄位顯示（留空由伺服器決定、轉草稿時會被清空）
+  publishedAt?: string | null
 }
 
 const POSTGRES_ERROR = {
@@ -69,6 +72,21 @@ function revalidatePostPaths() {
   revalidatePath(ROUTES.LLMS_FULL_TXT)
 }
 
+// 回傳要寫入的發布時間；undefined 表示不更動欄位（首次發布留空時由資料庫觸發器補上當下時間）
+function resolvePublishedAt(requested: Date | undefined, existing: string | null) {
+  if (!requested) {
+    // 排程中的文章清空時間代表立即發布；已發布的文章則維持原本的日期
+    return existing && Date.parse(existing) > Date.now() ? new Date().toISOString() : undefined
+  }
+
+  // 欄位只到分鐘，未修改時不能用它覆蓋，否則原本的秒數會被歸零
+  if (existing && toTaipeiDateTimeInput(existing) === toTaipeiDateTimeInput(requested)) {
+    return undefined
+  }
+
+  return requested.toISOString()
+}
+
 function readPostForm(formData: FormData) {
   return Object.fromEntries(POST_FIELDS.map((field) => [field, formData.get(field)]))
 }
@@ -97,6 +115,7 @@ export async function savePostAction(
     categoryId,
     coverImageUrl,
     contentJson,
+    publishedAt,
     intent,
   } = parsed.data
   const isPublishing = intent === POST_INTENT.PUBLISH
@@ -116,6 +135,25 @@ export async function savePostAction(
     })
   }
 
+  const supabase = await createClient()
+
+  let existingPublishedAt: string | null = null
+
+  if (id && isPublishing) {
+    const { data, error } = await supabase
+      .from("posts")
+      .select("published_at")
+      .eq("id", id)
+      .maybeSingle()
+
+    if (error) return mapDatabaseError(error)
+    existingPublishedAt = data?.published_at ?? null
+  }
+
+  const resolvedPublishedAt = isPublishing
+    ? resolvePublishedAt(publishedAt, existingPublishedAt)
+    : undefined
+
   const record = {
     title,
     slug,
@@ -129,9 +167,8 @@ export async function savePostAction(
     content_html: rendered.html,
     reading_time_minutes: rendered.readingMinutes,
     status: isPublishing ? CONTENT_STATUS.PUBLISHED : CONTENT_STATUS.DRAFT,
+    ...(resolvedPublishedAt ? { published_at: resolvedPublishedAt } : {}),
   }
-
-  const supabase = await createClient()
 
   if (!id) {
     const { data, error } = await supabase.from("posts").insert(record).select("id").single()
@@ -147,7 +184,7 @@ export async function savePostAction(
     .from("posts")
     .update(record)
     .eq("id", id)
-    .select("id")
+    .select("id, status, published_at")
     .maybeSingle()
 
   if (error) return mapDatabaseError(error)
@@ -155,11 +192,16 @@ export async function savePostAction(
 
   revalidatePostPaths()
 
+  const successMessage = isScheduledPublish(data.status, data.published_at)
+    ? `已排程，將於 ${formatDateTime(data.published_at as string)} 發布`
+    : isPublishing
+      ? "文章已發布，前台內容已即時更新"
+      : "草稿已儲存"
+
   return {
-    ...createSuccessState<PostField>(
-      isPublishing ? "文章已發布，前台內容已即時更新" : "草稿已儲存",
-    ),
+    ...createSuccessState<PostField>(successMessage),
     savedAt: Date.now(),
+    publishedAt: data.published_at,
   }
 }
 

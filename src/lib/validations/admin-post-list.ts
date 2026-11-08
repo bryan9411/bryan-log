@@ -19,12 +19,14 @@ export const DELETE_POSTS_FIELD = "ids"
 export const POST_STATUS_FILTER = {
   ALL: "all",
   PUBLISHED: CONTENT_STATUS.PUBLISHED,
+  SCHEDULED: "scheduled",
   DRAFT: CONTENT_STATUS.DRAFT,
 } as const
 
 export const postStatusFilterSchema = z.enum([
   POST_STATUS_FILTER.ALL,
   POST_STATUS_FILTER.PUBLISHED,
+  POST_STATUS_FILTER.SCHEDULED,
   POST_STATUS_FILTER.DRAFT,
 ])
 
@@ -33,6 +35,7 @@ export type PostStatusFilter = z.infer<typeof postStatusFilterSchema>
 export const POST_STATUS_FILTER_LABEL: Record<PostStatusFilter, string> = {
   [POST_STATUS_FILTER.ALL]: "全部",
   [POST_STATUS_FILTER.PUBLISHED]: "已發布",
+  [POST_STATUS_FILTER.SCHEDULED]: "已排程",
   [POST_STATUS_FILTER.DRAFT]: "草稿",
 }
 

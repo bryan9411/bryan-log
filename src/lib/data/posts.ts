@@ -2,7 +2,7 @@ import "server-only"
 
 import type { JSONContent } from "@tiptap/core"
 
-import type { ContentStatus } from "@/lib/constants/content"
+import { CONTENT_STATUS, isScheduledPublish, type ContentStatus } from "@/lib/constants/content"
 import { isAutoExcerpt } from "@/lib/content/render-post"
 import { CATEGORY_WITH_PARENT_SELECT, type CategoryRelation } from "@/lib/data/categories"
 import { POST_DETAIL_COLUMNS, toPostDetail, type PostDetail } from "@/lib/data/public-posts"
@@ -20,6 +20,8 @@ export type AdminPostListItem = {
   slug: string
   section: SectionRef
   status: ContentStatus
+  // 已排程時為預定發布時間，其餘情況為 null
+  scheduledAt: string | null
   viewCount: number
   updatedAt: string
   coverImageUrl: string | null
@@ -38,6 +40,8 @@ export type EditablePost = {
   coverImageUrl: string | null
   contentJson: JSONContent
   status: ContentStatus
+  publishedAt: string | null
+  isScheduled: boolean
   updatedAt: string
 }
 
@@ -49,7 +53,7 @@ export type AdminPostListPage = {
   pageCount: number
 }
 
-const ADMIN_POST_LIST_COLUMNS = `id, title, slug, status, view_count, updated_at, cover_image_url, ${CATEGORY_WITH_PARENT_SELECT}, ${SECTION_RELATION_SELECT}`
+const ADMIN_POST_LIST_COLUMNS = `id, title, slug, status, published_at, view_count, updated_at, cover_image_url, ${CATEGORY_WITH_PARENT_SELECT}, ${SECTION_RELATION_SELECT}`
 
 // PostgREST 回應「請求範圍超出資料筆數」的錯誤代碼
 const RANGE_NOT_SATISFIABLE = "PGRST103"
@@ -76,7 +80,19 @@ async function queryAdminPosts({ query, status }: AdminPostListParams, page: num
     .order("id", { ascending: true })
     .range(from, from + ADMIN_POSTS_PAGE_SIZE - 1)
 
-  if (status !== POST_STATUS_FILTER.ALL) request = request.eq("status", status)
+  const now = new Date().toISOString()
+
+  switch (status) {
+    case POST_STATUS_FILTER.PUBLISHED:
+      request = request.eq("status", CONTENT_STATUS.PUBLISHED).lte("published_at", now)
+      break
+    case POST_STATUS_FILTER.SCHEDULED:
+      request = request.eq("status", CONTENT_STATUS.PUBLISHED).gt("published_at", now)
+      break
+    case POST_STATUS_FILTER.DRAFT:
+      request = request.eq("status", CONTENT_STATUS.DRAFT)
+      break
+  }
 
   if (query) {
     const pattern = toIlikePattern(query)
@@ -117,6 +133,7 @@ export async function listAdminPosts(params: AdminPostListParams): Promise<Admin
       slug: post.slug,
       section: post.section,
       status: post.status,
+      scheduledAt: isScheduledPublish(post.status, post.published_at) ? post.published_at : null,
       viewCount: post.view_count,
       updatedAt: post.updated_at,
       coverImageUrl: post.cover_image_url,
@@ -132,7 +149,7 @@ export async function getEditablePost(id: string): Promise<EditablePost | null> 
   const { data, error } = await supabase
     .from("posts")
     .select(
-      "id, title, slug, excerpt, tldr, section_id, category_id, cover_image_url, content_json, status, updated_at",
+      "id, title, slug, excerpt, tldr, section_id, category_id, cover_image_url, content_json, status, published_at, updated_at",
     )
     .eq("id", id)
     .maybeSingle()
@@ -151,12 +168,15 @@ export async function getEditablePost(id: string): Promise<EditablePost | null> 
     coverImageUrl: data.cover_image_url,
     contentJson: data.content_json as JSONContent,
     status: data.status,
+    publishedAt: data.published_at,
+    isScheduled: isScheduledPublish(data.status, data.published_at),
     updatedAt: data.updated_at,
   }
 }
 
 export type PreviewPost = PostDetail & {
   status: ContentStatus
+  isScheduled: boolean
 }
 
 // 草稿預覽：以管理員身分查詢（RLS 允許讀取草稿），不經過前台快取，每次都讀取最後儲存的版本
@@ -173,7 +193,11 @@ export async function getPreviewPost(id: string): Promise<PreviewPost | null> {
   if (error) throw new Error(`讀取預覽文章失敗：${error.message}`)
   if (!data) return null
 
-  return { ...(await toPostDetail(data)), status: data.status }
+  return {
+    ...(await toPostDetail(data)),
+    status: data.status,
+    isScheduled: isScheduledPublish(data.status, data.published_at),
+  }
 }
 
 export type ExportablePost = {

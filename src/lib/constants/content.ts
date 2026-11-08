@@ -15,6 +15,15 @@ export const CONTENT_STATUS_LABEL: Record<ContentStatus, string> = {
   [CONTENT_STATUS.PUBLISHED]: "已發布",
 }
 
+// 排程不是獨立的資料庫狀態：status 為已發布、發布時間在未來，RLS 就會對訪客隱藏，時間一到自動公開
+export function isScheduledPublish(status: ContentStatus, publishedAt: string | null) {
+  return (
+    status === CONTENT_STATUS.PUBLISHED &&
+    publishedAt !== null &&
+    Date.parse(publishedAt) > Date.now()
+  )
+}
+
 // 與資料庫 enum `category_type` 保持一致
 export const CATEGORY_TYPE = {
   POST: "post",

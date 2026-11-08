@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useEffect, useEffectEvent, useRef, useState } from "react"
+import { useActionState, useEffect, useRef, useState } from "react"
 import type { Editor, JSONContent } from "@tiptap/react"
 import { EyeIcon } from "lucide-react"
 
@@ -28,6 +28,7 @@ import { ACTION_STATUS, initialActionState } from "@/lib/actions/action-state"
 import { savePostAction, type PostFormState } from "@/lib/actions/posts"
 import { CONTENT_STATUS } from "@/lib/constants/content"
 import { slugify } from "@/lib/content/slug"
+import { isFutureTaipeiDateTimeInput, toTaipeiDateTimeInput } from "@/lib/format"
 import type { CategoryTreeNode } from "@/lib/data/categories"
 import type { EditablePost } from "@/lib/data/posts"
 import type { Section } from "@/lib/data/sections"
@@ -51,6 +52,8 @@ type PostDraft = {
   categoryId: string | null
   coverImageUrl: string | null
   content: JSONContent | null
+  // datetime-local 欄位的值（台灣時間），空字串表示未指定
+  publishedAt: string
 }
 
 type PostFormProps = {
@@ -83,22 +86,20 @@ function toDraft(defaultSectionId: string, post?: EditablePost): PostDraft {
     categoryId: post?.categoryId ?? null,
     coverImageUrl: post?.coverImageUrl ?? null,
     content: post?.contentJson ?? null,
+    publishedAt: toTaipeiDateTimeInput(post?.publishedAt),
   }
 }
 
 export function PostForm({ sections, categoriesBySection, post, createdIntent }: PostFormProps) {
-  const [state, formAction] = useActionState<PostFormState, FormData>(
-    savePostAction,
-    initialActionState,
-  )
   // 新文章預設放在排序第一的區塊
   const defaultSectionId = sections[0]?.id ?? ""
   const [draft, setDraft] = useState(() => toDraft(defaultSectionId, post))
   const [baseline, setBaseline] = useState(() => JSON.stringify(toDraft(defaultSectionId, post)))
   const [isSlugTouched, setIsSlugTouched] = useState(Boolean(post))
   const [isBackupResolved, setIsBackupResolved] = useState(false)
+  // 是否為未來時間只影響按鈕文字與提示，在事件中更新以維持渲染純粹；實際行為由伺服器判斷
+  const [isFutureTime, setIsFutureTime] = useState(Boolean(post?.isScheduled))
   const editorRef = useRef<Editor | null>(null)
-  const submittedDraftRef = useRef<string | null>(null)
 
   const storageKey = getStorageKey(post?.id)
   const backup = useAutosaveBackup<PostDraft>(storageKey)
@@ -106,9 +107,9 @@ export function PostForm({ sections, categoriesBySection, post, createdIntent }:
   const serializedDraft = JSON.stringify(draft)
   const isDirty = serializedDraft !== baseline
   const baselineUpdatedAt = post ? Date.parse(post.updatedAt) : 0
-  const fieldErrors = state.fieldErrors ?? {}
   const tldrCount = parseTldrLines(draft.tldr).length
   const isPublished = post?.status === CONTENT_STATUS.PUBLISHED
+  const isScheduled = Boolean(post?.isScheduled)
   const activeSection = sections.find((section) => section.id === draft.sectionId)
   const categories = categoriesBySection[draft.sectionId] ?? []
 
@@ -127,9 +128,34 @@ export function PostForm({ sections, categoriesBySection, post, createdIntent }:
     onSaved: () => setIsBackupResolved(true),
   })
 
+  // 以送出當下的內容作為新基準：存檔期間若繼續輸入，新輸入的部分仍會被視為未儲存
+  // 發布時間以伺服器實際寫入的值為準（留空時由伺服器決定、轉草稿時會被清空）
+  const saveAndSync = async (previous: PostFormState, formData: FormData) => {
+    const result = await savePostAction(previous, formData)
+    if (!result.savedAt) return result
+
+    const publishedAt = toTaipeiDateTimeInput(result.publishedAt)
+    const synced = { ...draft, publishedAt }
+    setDraft((current) => ({ ...current, publishedAt }))
+    setIsFutureTime(isFutureTaipeiDateTimeInput(publishedAt))
+    setBaseline(JSON.stringify(synced))
+    clear()
+    markSynced(synced)
+    return result
+  }
+
+  const [state, formAction] = useActionState<PostFormState, FormData>(
+    saveAndSync,
+    initialActionState,
+  )
+  const fieldErrors = state.fieldErrors ?? {}
+
   const displayedState: PostFormState =
     state.status === ACTION_STATUS.IDLE && createdIntent
-      ? { status: ACTION_STATUS.SUCCESS, message: CREATED_MESSAGE[createdIntent] }
+      ? {
+          status: ACTION_STATUS.SUCCESS,
+          message: isScheduled ? "文章已建立並排程" : CREATED_MESSAGE[createdIntent],
+        }
       : state
 
   useBeforeUnload(isDirty)
@@ -139,19 +165,13 @@ export function PostForm({ sections, categoriesBySection, post, createdIntent }:
     if (createdIntent) removeLocalStorage(getStorageKey())
   }, [createdIntent])
 
-  const syncAfterSave = useEffectEvent(() => {
-    const submitted = submittedDraftRef.current ?? serializedDraft
-    setBaseline(submitted)
-    clear()
-    markSynced(JSON.parse(submitted) as PostDraft)
-  })
-
-  useEffect(() => {
-    if (state.savedAt) syncAfterSave()
-  }, [state.savedAt])
-
   const updateDraft = (patch: Partial<PostDraft>) =>
     setDraft((current) => ({ ...current, ...patch }))
+
+  const handlePublishedAtChange = (publishedAt: string) => {
+    updateDraft({ publishedAt })
+    setIsFutureTime(isFutureTaipeiDateTimeInput(publishedAt))
+  }
 
   const handleTitleChange = (title: string) =>
     setDraft((current) => ({
@@ -166,7 +186,9 @@ export function PostForm({ sections, categoriesBySection, post, createdIntent }:
   const handleRestore = () => {
     if (!backup) return
     // 舊版暫存可能沒有後來新增的欄位（例如 TL;DR、所屬區塊），以目前的預設值補齊
-    setDraft({ ...toDraft(draft.sectionId), ...backup.data })
+    const restored = { ...toDraft(draft.sectionId, post), ...backup.data }
+    setDraft(restored)
+    setIsFutureTime(isFutureTaipeiDateTimeInput(restored.publishedAt))
     editorRef.current?.commands.setContent(backup.data.content ?? EMPTY_DOC)
     setIsSlugTouched(true)
     setIsBackupResolved(true)
@@ -176,12 +198,6 @@ export function PostForm({ sections, categoriesBySection, post, createdIntent }:
   const handleDiscard = () => {
     clear()
     setIsBackupResolved(true)
-  }
-
-  // 記下送出當下的內容：存檔期間若繼續輸入，新輸入的部分仍會被視為未儲存
-  const handleSubmit = (formData: FormData) => {
-    submittedDraftRef.current = serializedDraft
-    formAction(formData)
   }
 
   // React 19 在 action 完成後會呼叫原生 form.reset()，受控的 <select> 會被瀏覽器重設為第一個選項而與狀態脫鉤
@@ -231,12 +247,33 @@ export function PostForm({ sections, categoriesBySection, post, createdIntent }:
   const renderStatusLine = () => (
     <div className="flex items-center justify-between gap-2 text-sm">
       <span className="text-muted-foreground">目前狀態</span>
-      {post ? <PostStatusBadge status={post.status} /> : <span>尚未儲存</span>}
+      {post ? (
+        <PostStatusBadge status={post.status} isScheduled={isScheduled} />
+      ) : (
+        <span>尚未儲存</span>
+      )}
     </div>
   )
 
+  const getPublishLabel = () => {
+    if (isFutureTime) {
+      if (isScheduled) return "更新排程"
+      return isPublished ? "改為排程" : "排程發布"
+    }
+    return isScheduled ? "立即發布" : undefined
+  }
+
+  const getPublishedAtHint = () => {
+    if (isFutureTime && isPublished && !isScheduled) {
+      return "注意：文章會先從前台下架，到這個時間才重新出現"
+    }
+    if (isFutureTime) return "台灣時間。到時間後約 5 分鐘內會出現在前台"
+    if (isPublished) return "台灣時間。前台顯示的日期與排序都以此為準，更新後生效"
+    return "台灣時間。留空為按下發布的當下，選未來時間即為排程；存成草稿不會保留"
+  }
+
   return (
-    <form action={handleSubmit} onReset={handleReset} noValidate className="grid gap-6">
+    <form action={formAction} onReset={handleReset} noValidate className="grid gap-6">
       <input type="hidden" name="id" value={post?.id ?? ""} />
       <input type="hidden" name="sectionId" value={draft.sectionId} />
       <input type="hidden" name="categoryId" value={draft.categoryId ?? ""} />
@@ -307,7 +344,20 @@ export function PostForm({ sections, categoriesBySection, post, createdIntent }:
             </CardHeader>
             <CardContent className="grid gap-4">
               {renderStatusLine()}
-              <PostSubmitButtons isPublished={isPublished} />
+              <FormField
+                name="publishedAt"
+                label="發布時間"
+                type="datetime-local"
+                value={draft.publishedAt}
+                onChange={(event) => handlePublishedAtChange(event.target.value)}
+                errors={fieldErrors.publishedAt}
+                hint={getPublishedAtHint()}
+              />
+              <PostSubmitButtons
+                isPublished={isPublished}
+                draftLabel={isScheduled ? "取消排程" : undefined}
+                publishLabel={getPublishLabel()}
+              />
               <AutosaveStatus lastSavedAt={lastSavedAt} hasStorageError={hasStorageError} />
               {maybeRenderPreviewButton()}
             </CardContent>

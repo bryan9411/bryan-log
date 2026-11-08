@@ -3,7 +3,7 @@ import "server-only"
 import type { JSONContent } from "@tiptap/core"
 import { cacheLife, cacheTag } from "next/cache"
 
-import { CACHE_TAG } from "@/lib/cache-tags"
+import { CACHE_TAG, POSTS_CACHE_LIFE } from "@/lib/cache-tags"
 import { CONTENT_STATUS } from "@/lib/constants/content"
 import { prepareArticleHtml } from "@/lib/content/article-html"
 import type { CategorizedItem } from "@/lib/content/category-filter"
@@ -61,14 +61,14 @@ export function toPostSummary(post: {
   }
 }
 
-// 以 "use cache" 跨請求共用查詢結果；後台存檔時以 updateTag 失效，平時每小時背景重新驗證一次
+// 以 "use cache" 跨請求共用查詢結果；後台存檔時以 updateTag 失效，平時定期背景重新驗證，讓排程文章到時間後能出現
 // 未傳入 sectionId 時涵蓋所有區塊（搜尋索引）；未傳入 limit 時回傳全部，供列表頁的虛擬捲動清單使用
 export async function getPublishedPosts({
   sectionId,
   limit,
 }: { sectionId?: string; limit?: number } = {}): Promise<PostSummary[]> {
   "use cache"
-  cacheLife("hours")
+  cacheLife(POSTS_CACHE_LIFE)
   cacheTag(CACHE_TAG.POSTS)
 
   let query = createPublicClient()
@@ -91,7 +91,7 @@ export async function getPublishedPosts({
 // 即使資料庫遭直接竄改，也不會把惡意腳本送到讀者的瀏覽器；清理結果隨快取保存，不會每次請求重算
 export async function getPublishedPost(slug: string): Promise<PostDetail | null> {
   "use cache"
-  cacheLife("hours")
+  cacheLife(POSTS_CACHE_LIFE)
   cacheTag(CACHE_TAG.POSTS)
 
   const { data, error } = await createPublicClient()
@@ -141,7 +141,7 @@ export type LlmsPost = PostSummary & {
 // /llms-full.txt 使用：已發布文章的完整內容（JSON 文件，由呼叫端轉為 Markdown）
 export async function getPublishedPostsForLlms(): Promise<LlmsPost[]> {
   "use cache"
-  cacheLife("hours")
+  cacheLife(POSTS_CACHE_LIFE)
   cacheTag(CACHE_TAG.POSTS)
 
   const { data, error } = await createPublicClient()

@@ -28,7 +28,7 @@ function PreviewBanner({ post, id }: { post: PreviewPost; id: string }) {
         <p className="flex items-center gap-2 text-muted-foreground">
           <EyeIcon className="size-4 shrink-0" aria-hidden />
           <span>預覽模式・僅管理員可見，顯示最後一次儲存的內容</span>
-          <PostStatusBadge status={post.status} />
+          <PostStatusBadge status={post.status} isScheduled={post.isScheduled} />
         </p>
         <div className="flex items-center gap-1.5">
           <Button asChild variant="ghost" size="sm">

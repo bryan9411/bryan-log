@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from "@/lib/content/slug"
+import { parseTaipeiDateTimeInput } from "@/lib/format"
 
 export const POST_TITLE_MAX_LENGTH = 120
 export const POST_EXCERPT_MAX_LENGTH = 300
@@ -85,6 +86,18 @@ export const postFormSchema = z.object({
         return z.NEVER
       }
     }),
+  publishedAt: z.preprocess(
+    emptyToUndefined,
+    z
+      .string()
+      .transform((value, context) => {
+        const date = parseTaipeiDateTimeInput(value)
+        if (date) return date
+        context.addIssue({ code: "custom", message: "發布時間格式不正確，請重新選擇" })
+        return z.NEVER
+      })
+      .optional(),
+  ),
   intent: postIntentSchema,
 })
 

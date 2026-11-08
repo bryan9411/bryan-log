@@ -13,6 +13,9 @@ type PostSubmitButtonsProps = {
   disabled?: boolean
   // 按鈕文字中的內容名稱，例如「更新文章」、「更新作品」
   noun?: string
+  // 排程相關的按鈕文字；未傳入時依 isPublished 顯示預設文字
+  draftLabel?: string
+  publishLabel?: string
 }
 
 // useFormStatus 的 data 可得知是哪個按鈕觸發送出，只在被點擊的按鈕上顯示載入狀態
@@ -20,6 +23,8 @@ export function PostSubmitButtons({
   isPublished,
   disabled,
   noun = "文章",
+  draftLabel,
+  publishLabel,
 }: PostSubmitButtonsProps) {
   const { pending, data } = useFormStatus()
 
@@ -58,15 +63,15 @@ export function PostSubmitButtons({
     <div className="flex gap-2">
       {renderButton(
         POST_INTENT.SAVE_DRAFT,
-        isPublished ? "轉為草稿" : "儲存草稿",
+        draftLabel ?? (isPublished ? "轉為草稿" : "儲存草稿"),
         "儲存中⋯",
         "outline",
         SaveIcon,
       )}
       {renderButton(
         POST_INTENT.PUBLISH,
-        isPublished ? `更新${noun}` : "正式發布",
-        "發布中⋯",
+        publishLabel ?? (isPublished ? `更新${noun}` : "正式發布"),
+        publishLabel ? "儲存中⋯" : "發布中⋯",
         "default",
         SendIcon,
       )}

@@ -23,6 +23,27 @@ export function formatDateTime(value: string | Date) {
   return dateTimeFormatter.format(new Date(value))
 }
 
+// 全站時間都以台灣時間顯示（無日光節約），datetime-local 欄位也一律以台灣時間解讀，不受瀏覽器時區影響
+const TAIPEI_UTC_OFFSET_MS = 8 * 60 * 60 * 1000
+
+// 轉為 datetime-local 欄位的值，例如 2026-11-09T09:00
+export function toTaipeiDateTimeInput(value: string | Date | null | undefined) {
+  if (!value) return ""
+  return new Date(new Date(value).getTime() + TAIPEI_UTC_OFFSET_MS).toISOString().slice(0, 16)
+}
+
+// 格式錯誤或日期不存在（例如 2 月 31 日）時回傳 null
+export function parseTaipeiDateTimeInput(value: string) {
+  const date = new Date(`${value}:00+08:00`)
+  if (Number.isNaN(date.getTime())) return null
+  return toTaipeiDateTimeInput(date) === value ? date : null
+}
+
+export function isFutureTaipeiDateTimeInput(value: string) {
+  const date = parseTaipeiDateTimeInput(value)
+  return date !== null && date.getTime() > Date.now()
+}
+
 const relativeTimeFormatter = new Intl.RelativeTimeFormat("zh-TW", { numeric: "auto" })
 
 const RELATIVE_TIME_UNITS: Array<{ unit: Intl.RelativeTimeFormatUnit; seconds: number }> = [

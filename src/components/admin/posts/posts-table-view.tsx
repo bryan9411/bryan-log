@@ -116,6 +116,15 @@ export function PostsTableView({ posts, total, pageCount, params, now }: PostsTa
     )
   }
 
+  const maybeRenderScheduledAt = ({ scheduledAt }: AdminPostListItem) => {
+    if (!scheduledAt) return null
+    return (
+      <span className="mt-1 block text-xs text-foreground/80">
+        排程於 <time dateTime={scheduledAt}>{formatDateTime(scheduledAt)}</time>
+      </span>
+    )
+  }
+
   const renderRow = (post: AdminPostListItem) => {
     const isSelected = selectedIds.has(post.id)
 
@@ -151,7 +160,7 @@ export function PostsTableView({ posts, total, pageCount, params, now }: PostsTa
           {renderCategory(post)}
         </TableCell>
         <TableCell className="w-24 px-5 py-4">
-          <PostStatusBadge status={post.status} />
+          <PostStatusBadge status={post.status} isScheduled={post.scheduledAt !== null} />
         </TableCell>
         <TableCell className="w-28 px-5 py-4 text-right text-foreground/80 tabular-nums">
           {post.viewCount.toLocaleString("zh-TW")}
@@ -160,6 +169,7 @@ export function PostsTableView({ posts, total, pageCount, params, now }: PostsTa
           <time dateTime={post.updatedAt} title={formatDateTime(post.updatedAt)}>
             {formatRelativeTime(post.updatedAt, now)}
           </time>
+          {maybeRenderScheduledAt(post)}
         </TableCell>
         <TableCell className="w-40 px-5 py-4">
           <div className="flex items-center justify-end gap-1.5">

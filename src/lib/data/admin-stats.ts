@@ -20,7 +20,12 @@ export async function getContentStats(): Promise<ContentStats> {
   const [totalPosts, publishedPosts, draftPosts, totalProjects, featuredProjects] =
     await Promise.all([
       supabase.from("posts").select("id", countOnly),
-      supabase.from("posts").select("id", countOnly).eq("status", CONTENT_STATUS.PUBLISHED),
+      // 已排程但尚未到時間的文章訪客還看不到，不計入已發布
+      supabase
+        .from("posts")
+        .select("id", countOnly)
+        .eq("status", CONTENT_STATUS.PUBLISHED)
+        .lte("published_at", new Date().toISOString()),
       supabase.from("posts").select("id", countOnly).eq("status", CONTENT_STATUS.DRAFT),
       supabase.from("projects").select("id", countOnly),
       supabase.from("projects").select("id", countOnly).eq("is_featured", true),

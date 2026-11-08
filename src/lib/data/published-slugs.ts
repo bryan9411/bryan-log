@@ -2,7 +2,7 @@ import "server-only"
 
 import { cacheLife, cacheTag } from "next/cache"
 
-import { CACHE_TAG } from "@/lib/cache-tags"
+import { CACHE_TAG, POSTS_CACHE_LIFE } from "@/lib/cache-tags"
 import { CONTENT_STATUS } from "@/lib/constants/content"
 import { createPublicClient } from "@/lib/supabase/public"
 
@@ -18,7 +18,7 @@ export type PublishedPostSlug = PublishedSlug & {
 // 文章網址包含區塊代稱，因此一併取回所屬區塊；section_id 為必填外鍵，關聯一定存在
 export async function getPublishedPostSlugs(): Promise<PublishedPostSlug[]> {
   "use cache"
-  cacheLife("hours")
+  cacheLife(POSTS_CACHE_LIFE)
   cacheTag(CACHE_TAG.POSTS)
 
   const { data, error } = await createPublicClient()

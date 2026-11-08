@@ -6,6 +6,13 @@ const STATUS_VARIANT = {
   [CONTENT_STATUS.DRAFT]: "outline",
 } as const satisfies Record<ContentStatus, React.ComponentProps<typeof Badge>["variant"]>
 
-export function PostStatusBadge({ status }: { status: ContentStatus }) {
+type PostStatusBadgeProps = {
+  status: ContentStatus
+  isScheduled?: boolean
+}
+
+export function PostStatusBadge({ status, isScheduled = false }: PostStatusBadgeProps) {
+  if (isScheduled) return <Badge variant="secondary">已排程</Badge>
+
   return <Badge variant={STATUS_VARIANT[status]}>{CONTENT_STATUS_LABEL[status]}</Badge>
 }
