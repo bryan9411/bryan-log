@@ -62,12 +62,13 @@ export async function recordPostView(slug: string): Promise<number | null> {
   if (await getAdminUser()) return readViewCount(parsed.data)
   if (!(await isViewAllowed(parsed.data))) return readViewCount(parsed.data)
 
-  const { error } = await createPublicClient().rpc("increment_post_view", {
+  const { data, error } = await createPublicClient().rpc("increment_post_view", {
     target_slug: parsed.data,
   })
 
   if (error) return null
-  return readViewCount(parsed.data)
+  // 函式會直接回傳累加後的數字；資料庫尚未套用對應遷移時沒有回傳值，退回再查一次
+  return data ?? readViewCount(parsed.data)
 }
 
 // 冷卻時間內重複造訪時只讀取最新數字，不再累加

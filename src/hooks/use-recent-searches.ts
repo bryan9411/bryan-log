@@ -1,7 +1,6 @@
 "use client"
 
 import { useMemo } from "react"
-import { z } from "zod"
 
 import {
   removeLocalStorage,
@@ -13,15 +12,17 @@ const RECENT_SEARCHES_STORAGE_KEY = "bryan-log-recent-searches"
 const RECENT_SEARCHES_LIMIT = 6
 const RECENT_SEARCH_MAX_LENGTH = 50
 
-const recentSearchesSchema = z.array(z.string().max(RECENT_SEARCH_MAX_LENGTH))
+const isRecentSearch = (value: unknown): value is string =>
+  typeof value === "string" && value.length <= RECENT_SEARCH_MAX_LENGTH
 
 // localStorage 內容可能被手動竄改或來自舊版格式，解析失敗時視為沒有紀錄
 function parseRecentSearches(raw: string | null): string[] {
   if (!raw) return []
 
   try {
-    const result = recentSearchesSchema.safeParse(JSON.parse(raw))
-    return result.success ? result.data.slice(0, RECENT_SEARCHES_LIMIT) : []
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed) || !parsed.every(isRecentSearch)) return []
+    return parsed.slice(0, RECENT_SEARCHES_LIMIT)
   } catch {
     return []
   }

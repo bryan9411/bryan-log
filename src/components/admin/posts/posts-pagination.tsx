@@ -5,7 +5,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 
 import { usePostListNavigation } from "@/components/admin/posts/post-list-navigation"
 import { Button } from "@/components/ui/button"
-import { adminPostListRoute } from "@/config/routes"
+import { adminPostListRoute } from "@/config/admin-routes"
 import { ADMIN_POSTS_PAGE_SIZE, type AdminPostListParams } from "@/lib/validations/admin-post-list"
 
 type PostsPaginationProps = {

@@ -1,11 +1,7 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { connection } from "next/server"
-import { Suspense } from "react"
 
-import { CategoryFilterSkeleton } from "@/components/content/category-filter-skeleton"
 import { PostBrowser } from "@/components/posts/post-browser"
-import { PostListSkeleton } from "@/components/posts/post-list-skeleton"
 import { PageHeader } from "@/components/site/page-header"
 import { SiteContainer } from "@/components/site/site-container"
 import { sectionPath } from "@/config/routes"
@@ -14,8 +10,6 @@ import { getPublishedPosts } from "@/lib/data/public-posts"
 import { getSectionBySlug, getSections, type Section } from "@/lib/data/sections"
 import { createPageMetadata } from "@/lib/seo"
 import { PLACEHOLDER_SLUG } from "@/lib/static-params"
-
-const SKELETON_COUNT = 6
 
 // 區塊列表頁的內容完全由網址決定，允許 blocking 導航；之後新增的區塊於第一次請求時渲染並保存
 export const instant = false
@@ -39,26 +33,14 @@ export async function generateMetadata({ params }: PageProps<"/[section]">): Pro
   })
 }
 
-// 篩選條件來自網址查詢參數，需在請求時渲染；以 connection() 標記後，
-// 客戶端元件的 useSearchParams 才能在伺服器端取得實際參數並直接輸出篩選後的清單
+// 資料有 "use cache"，完整清單會預渲染進靜態外殼；網址上的分類篩選由瀏覽器端套用
 async function PostsExplorer({ section }: { section: Section }) {
-  await connection()
-
   const [posts, categories] = await Promise.all([
     getPublishedPosts({ sectionId: section.id }),
     getSectionCategoryTree(section.id),
   ])
 
   return <PostBrowser posts={posts} categories={categories} sectionName={section.name} />
-}
-
-function PostsExplorerSkeleton() {
-  return (
-    <div className="flex flex-col gap-6">
-      <CategoryFilterSkeleton />
-      <PostListSkeleton count={SKELETON_COUNT} />
-    </div>
-  )
 }
 
 export default async function SectionPage({ params }: PageProps<"/[section]">) {
@@ -69,9 +51,7 @@ export default async function SectionPage({ params }: PageProps<"/[section]">) {
   return (
     <SiteContainer className="flex flex-col gap-10 py-12 sm:py-16">
       <PageHeader title={section.name} description={section.description} />
-      <Suspense fallback={<PostsExplorerSkeleton />}>
-        <PostsExplorer section={section} />
-      </Suspense>
+      <PostsExplorer section={section} />
     </SiteContainer>
   )
 }

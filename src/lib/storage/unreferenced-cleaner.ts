@@ -40,44 +40,67 @@ export type UnreferencedCleanupResult = {
   failedPaths: string[]
 }
 
-// Supabase Storage 的 list 只回傳單層，資料夾以 id 為 null 表示，需逐層展開並分頁讀取
-async function listAllObjects(supabase: TypedClient): Promise<StoredObject[]> {
+type FolderListing = {
+  objects: StoredObject[]
+  subfolders: string[]
+}
+
+// Supabase Storage 的 list 只回傳單層，資料夾以 id 為 null 表示，需分頁讀完
+async function listFolder(supabase: TypedClient, folder: string): Promise<FolderListing> {
   const bucket = supabase.storage.from(STORAGE_BUCKET)
-  const pendingFolders = [""]
+  const listing: FolderListing = { objects: [], subfolders: [] }
+
+  for (let offset = 0; ; offset += STORAGE_LIST_PAGE_SIZE) {
+    const { data, error } = await bucket.list(folder, {
+      limit: STORAGE_LIST_PAGE_SIZE,
+      offset,
+      sortBy: { column: "name", order: "asc" },
+    })
+
+    if (error) throw new Error(`讀取儲存空間失敗：${error.message}`)
+
+    data.forEach((entry) => {
+      const path = folder ? `${folder}/${entry.name}` : entry.name
+
+      if (entry.id === null) {
+        listing.subfolders.push(path)
+        return
+      }
+
+      listing.objects.push({
+        path,
+        size: Number(entry.metadata?.size ?? 0),
+        createdAt: entry.created_at ?? null,
+      })
+    })
+
+    if (data.length < STORAGE_LIST_PAGE_SIZE) return listing
+  }
+}
+
+// 同一層的資料夾並行讀取，總等待時間只隨目錄深度增加，不隨資料夾數量增加
+async function listAllObjects(supabase: TypedClient): Promise<StoredObject[]> {
   const objects: StoredObject[] = []
+  let folders = [""]
 
-  while (pendingFolders.length > 0) {
-    const folder = pendingFolders.shift() ?? ""
-
-    for (let offset = 0; ; offset += STORAGE_LIST_PAGE_SIZE) {
-      const { data, error } = await bucket.list(folder, {
-        limit: STORAGE_LIST_PAGE_SIZE,
-        offset,
-        sortBy: { column: "name", order: "asc" },
-      })
-
-      if (error) throw new Error(`讀取儲存空間失敗：${error.message}`)
-
-      data.forEach((entry) => {
-        const path = folder ? `${folder}/${entry.name}` : entry.name
-
-        if (entry.id === null) {
-          pendingFolders.push(path)
-          return
-        }
-
-        objects.push({
-          path,
-          size: Number(entry.metadata?.size ?? 0),
-          createdAt: entry.created_at ?? null,
-        })
-      })
-
-      if (data.length < STORAGE_LIST_PAGE_SIZE) break
-    }
+  while (folders.length > 0) {
+    const listings = await Promise.all(folders.map((folder) => listFolder(supabase, folder)))
+    objects.push(...listings.flatMap((listing) => listing.objects))
+    folders = listings.flatMap((listing) => listing.subfolders)
   }
 
   return objects
+}
+
+export type StorageUsage = {
+  totalFiles: number
+  totalBytes: number
+}
+
+// 儀表板只顯示總用量，不需比對文章內容；完整的引用掃描留給空間清理頁
+export async function getStorageUsage(): Promise<StorageUsage> {
+  const objects = await listAllObjects(await createClient())
+  return { totalFiles: objects.length, totalBytes: sumBytes(objects) }
 }
 
 // 讀取失敗時直接拋錯中止，寧可不清理也不能在引用清單不完整的情況下誤刪檔案

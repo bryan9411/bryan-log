@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { flushSync } from "react-dom"
 import {
   EditorContent,
   useEditor,
@@ -24,6 +25,9 @@ import { IMAGE_MIME, STORAGE_FOLDER } from "@/lib/storage/constants"
 import { cn } from "@/lib/utils"
 
 const ACCEPTED_IMAGE_TYPES = Object.values(IMAGE_MIME)
+
+// 輸入停頓才把內容同步給表單：輸出整篇 JSON 並重新渲染表單的成本會隨文章長度增加，不能每個按鍵都做
+const CONTENT_SYNC_DELAY_MS = 300
 
 export type TiptapEditorProps = {
   initialContent: JSONContent | null
@@ -62,6 +66,8 @@ export function TiptapEditor({
   const [isShortcutHelpOpen, setIsShortcutHelpOpen] = useState(false)
   const [isSourceMode, setIsSourceMode] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const syncTimerRef = useRef<number | null>(null)
   const onChangeRef = useRef(onChange)
 
   useEffect(() => {
@@ -107,7 +113,14 @@ export function TiptapEditor({
     content: initialContent ?? "",
     editorProps: { attributes: buildContentAttributes(isInvalid, describedBy) },
     onCreate: ({ editor: created }) => onReady?.(created),
-    onUpdate: ({ editor: updated }) => onChangeRef.current(updated.getJSON()),
+    onUpdate: ({ editor: updated }) => {
+      if (syncTimerRef.current !== null) window.clearTimeout(syncTimerRef.current)
+
+      syncTimerRef.current = window.setTimeout(() => {
+        syncTimerRef.current = null
+        if (!updated.isDestroyed) onChangeRef.current(updated.getJSON())
+      }, CONTENT_SYNC_DELAY_MS)
+    },
   })
 
   // useEditor 只在建立時讀取設定，驗證錯誤變動後需手動同步 aria 屬性
@@ -117,6 +130,29 @@ export function TiptapEditor({
       editorProps: { attributes: buildContentAttributes(isInvalid, describedBy) },
     })
   }, [editor, isInvalid, describedBy])
+
+  // 尚未同步的內容不能遺失：卸載時立即同步；
+  // 送出時在表單的捕獲階段同步並以 flushSync 寫回 DOM，React 讀取 FormData 時隱藏欄位已是最新內容
+  useEffect(() => {
+    if (!editor) return
+
+    const flush = () => {
+      if (syncTimerRef.current === null) return
+
+      window.clearTimeout(syncTimerRef.current)
+      syncTimerRef.current = null
+      if (!editor.isDestroyed) onChangeRef.current(editor.getJSON())
+    }
+    const flushBeforeSubmit = () => flushSync(flush)
+    const form = containerRef.current?.closest("form")
+
+    form?.addEventListener("submit", flushBeforeSubmit, true)
+
+    return () => {
+      form?.removeEventListener("submit", flushBeforeSubmit, true)
+      flush()
+    }
+  }, [editor])
 
   const characterCount = useEditorState({
     editor,
@@ -177,6 +213,7 @@ export function TiptapEditor({
 
   return (
     <div
+      ref={containerRef}
       className={cn(
         "overflow-hidden rounded-xl border bg-background",
         isInvalid && "border-destructive ring-3 ring-destructive/20",

@@ -3,7 +3,7 @@ import "server-only"
 import type { JSONContent } from "@tiptap/core"
 import { cacheLife, cacheTag } from "next/cache"
 
-import { CACHE_TAG, POSTS_CACHE_LIFE } from "@/lib/cache-tags"
+import { CACHE_TAG, POSTS_CACHE_LIFE, POSTS_FULL_TEXT_TAG, postContentTag } from "@/lib/cache-tags"
 import { CONTENT_STATUS } from "@/lib/constants/content"
 import { prepareArticleHtml } from "@/lib/content/article-html"
 import type { CategorizedItem } from "@/lib/content/category-filter"
@@ -92,7 +92,7 @@ export async function getPublishedPosts({
 export async function getPublishedPost(slug: string): Promise<PostDetail | null> {
   "use cache"
   cacheLife(POSTS_CACHE_LIFE)
-  cacheTag(CACHE_TAG.POSTS)
+  cacheTag(CACHE_TAG.POSTS, postContentTag(slug))
 
   const { data, error } = await createPublicClient()
     .from("posts")
@@ -142,7 +142,7 @@ export type LlmsPost = PostSummary & {
 export async function getPublishedPostsForLlms(): Promise<LlmsPost[]> {
   "use cache"
   cacheLife(POSTS_CACHE_LIFE)
-  cacheTag(CACHE_TAG.POSTS)
+  cacheTag(CACHE_TAG.POSTS, POSTS_FULL_TEXT_TAG)
 
   const { data, error } = await createPublicClient()
     .from("posts")

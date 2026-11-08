@@ -3,7 +3,7 @@ import { CircleCheckIcon, CircleHelpIcon, CircleXIcon, GaugeIcon } from "lucide-
 
 import { WebVitalValue } from "@/components/admin/dashboard/web-vital-rating"
 import { WebVitalTile } from "@/components/admin/dashboard/web-vital-tile"
-import { WebVitalsTrendChart } from "@/components/admin/dashboard/web-vitals-trend-chart"
+import { LazyWebVitalsTrendChart } from "@/components/admin/dashboard/lazy-charts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { adminDashboardVitalsRoute } from "@/config/routes"
+import { adminDashboardVitalsRoute } from "@/config/admin-routes"
 import {
   CORE_WEB_VITALS,
   formatWebVital,
@@ -222,7 +222,7 @@ export async function WebVitalsCard({ filter }: WebVitalsCardProps) {
             />
           ))}
         </div>
-        <WebVitalsTrendChart daily={report.daily} />
+        <LazyWebVitalsTrendChart daily={report.daily} />
         {maybeRenderPages()}
       </>
     )

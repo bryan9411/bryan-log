@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useEffect, useRef, useState } from "react"
+import { useActionState, useEffect, useMemo, useRef, useState } from "react"
 import type { Editor, JSONContent } from "@tiptap/react"
 import { EyeIcon } from "lucide-react"
 
@@ -105,6 +105,11 @@ export function PostForm({ sections, categoriesBySection, post, createdIntent }:
   const backup = useAutosaveBackup<PostDraft>(storageKey)
 
   const serializedDraft = JSON.stringify(draft)
+  // 內文可能很長，輸入標題等其他欄位時沿用上次的序列化結果
+  const serializedContent = useMemo(
+    () => JSON.stringify(draft.content ?? EMPTY_DOC),
+    [draft.content],
+  )
   const isDirty = serializedDraft !== baseline
   const baselineUpdatedAt = post ? Date.parse(post.updatedAt) : 0
   const tldrCount = parseTldrLines(draft.tldr).length
@@ -278,7 +283,7 @@ export function PostForm({ sections, categoriesBySection, post, createdIntent }:
       <input type="hidden" name="sectionId" value={draft.sectionId} />
       <input type="hidden" name="categoryId" value={draft.categoryId ?? ""} />
       <input type="hidden" name="coverImageUrl" value={draft.coverImageUrl ?? ""} />
-      <input type="hidden" name="contentJson" value={JSON.stringify(draft.content ?? EMPTY_DOC)} />
+      <input type="hidden" name="contentJson" value={serializedContent} />
 
       {maybeRenderRestoreBanner()}
       <FormMessage state={displayedState} />

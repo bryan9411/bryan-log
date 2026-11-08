@@ -1,8 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
-import { connection } from "next/server"
 
-import { Skeleton } from "@/components/ui/skeleton"
 import { sectionPath } from "@/config/routes"
 import { getSectionTone } from "@/lib/content/section-tone"
 import { getPublishedPosts } from "@/lib/data/public-posts"
@@ -33,7 +31,6 @@ function DefaultSectionCover({ name, tone }: { name: string; tone: string }) {
 
 // 每個區塊一張導覽卡，顯示封面、文章數與最新一篇；後台新增區塊後自動出現
 export async function SectionCards({ sections }: { sections: Section[] }) {
-  await connection()
   const posts = await getPublishedPosts()
 
   const renderCover = (section: Section, index: number) => {
@@ -94,23 +91,6 @@ export async function SectionCards({ sections }: { sections: Section[] }) {
           </li>
         )
       })}
-    </ul>
-  )
-}
-
-export function SectionCardsSkeleton({ count }: { count: number }) {
-  return (
-    <ul aria-hidden className={SECTION_GRID_CLASS}>
-      {Array.from({ length: count }, (_, index) => (
-        <li key={index} className="flex flex-col overflow-hidden rounded-xl border">
-          <Skeleton className="aspect-video w-full rounded-none" />
-          <div className="flex flex-col gap-3 p-5">
-            <Skeleton className="h-5 w-24" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="mt-3 h-10 w-full" />
-          </div>
-        </li>
-      ))}
     </ul>
   )
 }

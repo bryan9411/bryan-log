@@ -1,12 +1,11 @@
-import { Suspense } from "react"
 import type { Route } from "next"
 
-import { FeaturedProjects, FeaturedProjectsSkeleton } from "@/components/home/featured-projects"
+import { FeaturedProjects } from "@/components/home/featured-projects"
 import { HeroSection, type HeroAction } from "@/components/home/hero-section"
 import { HomeSection } from "@/components/home/home-section"
-import { LatestPosts, LatestPostsSkeleton } from "@/components/home/latest-posts"
-import { LatestPostsFeed, LatestPostsFeedSkeleton } from "@/components/home/latest-posts-feed"
-import { SectionCards, SectionCardsSkeleton } from "@/components/home/section-cards"
+import { LatestPosts } from "@/components/home/latest-posts"
+import { LatestPostsFeed } from "@/components/home/latest-posts-feed"
+import { SectionCards } from "@/components/home/section-cards"
 import { ROUTES, sectionPath } from "@/config/routes"
 import { getSections, type Section } from "@/lib/data/sections"
 import { createPageMetadata } from "@/lib/seo"
@@ -36,9 +35,7 @@ function renderSingleSection(section: Section) {
       moreHref={sectionPath(section.slug)}
       moreLabel={`所有${section.name}`}
     >
-      <Suspense fallback={<LatestPostsSkeleton />}>
-        <LatestPosts section={section} />
-      </Suspense>
+      <LatestPosts section={section} />
     </HomeSection>
   )
 }
@@ -54,9 +51,7 @@ function renderMultipleSections(sections: Section[]) {
         moreHref={ROUTES.ARCHIVES}
         moreLabel="所有文章"
       >
-        <Suspense fallback={<LatestPostsFeedSkeleton />}>
-          <LatestPostsFeed sections={sections} />
-        </Suspense>
+        <LatestPostsFeed sections={sections} />
       </HomeSection>
       <div className="border-t border-border/60">
         <HomeSection
@@ -64,16 +59,14 @@ function renderMultipleSections(sections: Section[]) {
           title="探索主題"
           description="依主題瀏覽，每個區塊都有獨立的文章列表。"
         >
-          <Suspense fallback={<SectionCardsSkeleton count={sections.length} />}>
-            <SectionCards sections={sections} />
-          </Suspense>
+          <SectionCards sections={sections} />
         </HomeSection>
       </div>
     </>
   )
 }
 
-// Hero 與各區塊標題屬於靜態外殼（區塊清單有 "use cache"），文章查詢各自包在 Suspense 中並行串流，互不阻塞
+// 整頁資料都有 "use cache"，建置時即預渲染完成，不需要 Suspense 與骨架屏
 export default async function HomePage() {
   const sections = await getSections()
 
@@ -95,9 +88,7 @@ export default async function HomePage() {
           moreHref={ROUTES.PROJECTS}
           moreLabel="完整作品集"
         >
-          <Suspense fallback={<FeaturedProjectsSkeleton />}>
-            <FeaturedProjects />
-          </Suspense>
+          <FeaturedProjects />
         </HomeSection>
       </div>
     </>

@@ -1,17 +1,13 @@
-import { connection } from "next/server"
 import { FileTextIcon } from "lucide-react"
 
 import { EmptyState } from "@/components/empty-state"
 import { PostListItem } from "@/components/posts/post-list-item"
-import { PostListSkeleton } from "@/components/posts/post-list-skeleton"
 import { HOME_LATEST_POSTS_LIMIT } from "@/config/home"
 import { getPublishedPosts } from "@/lib/data/public-posts"
 import type { Section } from "@/lib/data/sections"
 
-// connection() 讓此區塊成為請求時才渲染的動態洞，於 Suspense 內串流；
-// 查詢本身仍有 "use cache"，命中快取時幾乎零延遲，後台更新後也能即時反映
+// 查詢有 "use cache"，內容會一併預渲染進靜態外殼由 CDN 回應；後台更新時以快取標籤失效，排程內容則靠快取到期
 export async function LatestPosts({ section }: { section: Section }) {
-  await connection()
   const posts = await getPublishedPosts({ sectionId: section.id, limit: HOME_LATEST_POSTS_LIMIT })
 
   if (posts.length === 0) {
@@ -33,8 +29,4 @@ export async function LatestPosts({ section }: { section: Section }) {
       ))}
     </ul>
   )
-}
-
-export function LatestPostsSkeleton() {
-  return <PostListSkeleton count={HOME_LATEST_POSTS_LIMIT} />
 }

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { createContext, use, useTransition } from "react"
 
-import { adminPostListRoute } from "@/config/routes"
+import { adminPostListRoute } from "@/config/admin-routes"
 import type { AdminPostListParams } from "@/lib/validations/admin-post-list"
 
 type PostListNavigation = {

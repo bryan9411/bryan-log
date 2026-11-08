@@ -1,19 +1,13 @@
-import { connection } from "next/server"
 import { FolderGit2Icon } from "lucide-react"
 
 import { EmptyState } from "@/components/empty-state"
 import { ProjectCard } from "@/components/projects/project-card"
-import {
-  PROJECT_GRID_CLASS,
-  ProjectGridSkeleton,
-} from "@/components/projects/project-grid-skeleton"
-import { HOME_FEATURED_PROJECTS_LIMIT, HOME_FEATURED_PROJECTS_SKELETON_COUNT } from "@/config/home"
+import { PROJECT_GRID_CLASS } from "@/components/projects/project-card"
+import { HOME_FEATURED_PROJECTS_LIMIT } from "@/config/home"
 import { getFeaturedProjects } from "@/lib/data/public-projects"
 
-// connection() 讓此區塊成為請求時才渲染的動態洞，於 Suspense 內串流；
-// 查詢本身仍有 "use cache"，命中快取時幾乎零延遲，後台更新後也能即時反映
+// 查詢有 "use cache"，內容會一併預渲染進靜態外殼由 CDN 回應；後台更新時以快取標籤失效，排程內容則靠快取到期
 export async function FeaturedProjects() {
-  await connection()
   const projects = await getFeaturedProjects(HOME_FEATURED_PROJECTS_LIMIT)
 
   if (projects.length === 0) {
@@ -35,8 +29,4 @@ export async function FeaturedProjects() {
       ))}
     </ul>
   )
-}
-
-export function FeaturedProjectsSkeleton() {
-  return <ProjectGridSkeleton count={HOME_FEATURED_PROJECTS_SKELETON_COUNT} />
 }

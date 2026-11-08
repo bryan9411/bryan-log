@@ -1,13 +1,18 @@
 import { z } from "zod"
 
-// 與資料表 web_vitals 的 check 限制一致
-export const WEB_VITAL_METRIC = {
-  LCP: "LCP",
-  INP: "INP",
-  CLS: "CLS",
-  FCP: "FCP",
-  TTFB: "TTFB",
-} as const
+import {
+  WEB_VITAL_DEVICE,
+  WEB_VITAL_METRIC,
+  type WebVitalMetric,
+} from "@/lib/constants/web-vitals-reporting"
+
+export {
+  MOBILE_MAX_WIDTH,
+  WEB_VITAL_DEVICE,
+  WEB_VITAL_METRIC,
+  WEB_VITALS_BATCH_LIMIT,
+  type WebVitalMetric,
+} from "@/lib/constants/web-vitals-reporting"
 
 export const webVitalMetricSchema = z.enum([
   WEB_VITAL_METRIC.LCP,
@@ -16,8 +21,6 @@ export const webVitalMetricSchema = z.enum([
   WEB_VITAL_METRIC.FCP,
   WEB_VITAL_METRIC.TTFB,
 ])
-
-export type WebVitalMetric = z.infer<typeof webVitalMetricSchema>
 
 // Google 以這三項的 p75 判定頁面是否「通過 Core Web Vitals 評估」，其餘為輔助診斷指標
 export const CORE_WEB_VITALS: WebVitalMetric[] = [
@@ -48,17 +51,9 @@ export const WEB_VITAL_RATING_LABEL: Record<WebVitalRating, string> = {
   [WEB_VITAL_RATING.POOR]: "不佳",
 }
 
-export const WEB_VITAL_DEVICE = {
-  MOBILE: "mobile",
-  DESKTOP: "desktop",
-} as const
-
 export const webVitalDeviceSchema = z.enum([WEB_VITAL_DEVICE.MOBILE, WEB_VITAL_DEVICE.DESKTOP])
 
 export type WebVitalDevice = z.infer<typeof webVitalDeviceSchema>
-
-// 與網站的 md 斷點一致：小於此寬度視為手機
-export const MOBILE_MAX_WIDTH = 767
 
 export const WEB_VITAL_UNIT = {
   MILLISECONDS: "ms",
@@ -134,8 +129,6 @@ export function formatWebVital(metric: WebVitalMetric, value: number) {
 // 數值上限與資料表一致（10 分鐘），超出視為異常資料
 export const WEB_VITAL_MAX_VALUE = 600_000
 export const WEB_VITAL_PATH_MAX_LENGTH = 200
-// 單次回報的指標上限：一次完整載入最多 5 項，保留重複回報（例如 bfcache 還原）的空間
-export const WEB_VITALS_BATCH_LIMIT = 10
 
 // 儀表板的時間範圍與裝置篩選，以網址查詢參數表示
 export const WEB_VITALS_RANGE = {

@@ -104,7 +104,7 @@ export function TableOfContents({ items, variant }: TableOfContentsProps) {
           <button
             type="button"
             aria-label="開啟文章目錄"
-            className="fixed right-4 bottom-5 z-40 flex h-11 max-w-[min(18rem,calc(100vw-2rem))] items-center gap-2 rounded-full border bg-popover/90 px-4 text-sm font-medium text-popover-foreground shadow-lg backdrop-blur-md transition-transform active:scale-95 lg:hidden"
+            className="fixed right-4 bottom-5 z-40 flex h-11 max-w-[min(18rem,calc(100vw-2rem))] items-center gap-2 rounded-full border bg-popover px-4 text-sm font-medium text-popover-foreground shadow-lg transition-transform active:scale-95 lg:hidden"
           >
             <ListIcon className="size-4 shrink-0" aria-hidden />
             <span className="truncate">{activeText ?? "目錄"}</span>

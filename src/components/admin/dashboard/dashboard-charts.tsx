@@ -1,9 +1,7 @@
 import Link from "next/link"
 import { ArrowRightIcon, CircleAlertIcon } from "lucide-react"
 
-import { CategoryDonutChart } from "@/components/admin/dashboard/category-donut-chart"
-import { StorageUsageBar } from "@/components/admin/dashboard/storage-usage-bar"
-import { TopPostsChart } from "@/components/admin/dashboard/top-posts-chart"
+import { LazyCategoryDonutChart, LazyTopPostsChart } from "@/components/admin/dashboard/lazy-charts"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -22,10 +20,8 @@ import {
   type CategoryType,
 } from "@/lib/constants/content"
 import { getCategoryDistribution, getTopViewedPosts } from "@/lib/data/admin-stats"
-import {
-  scanUnreferencedFiles,
-  type UnreferencedScanReport,
-} from "@/lib/storage/unreferenced-cleaner"
+import { formatBytes } from "@/lib/format"
+import { getStorageUsage, type StorageUsage } from "@/lib/storage/unreferenced-cleaner"
 import { cn } from "@/lib/utils"
 
 const TOP_POSTS_LIMIT = 8
@@ -44,7 +40,7 @@ export async function TopPostsCard() {
   const renderChart = () => {
     if (posts.length === 0)
       return <EmptyChartMessage>已發布文章目前還沒有瀏覽紀錄</EmptyChartMessage>
-    return <TopPostsChart posts={posts} />
+    return <LazyTopPostsChart posts={posts} />
   }
 
   return (
@@ -66,7 +62,7 @@ export async function CategoryShareCards() {
 
     const renderChart = () => {
       if (shares.length === 0) return <EmptyChartMessage>尚無任何內容</EmptyChartMessage>
-      return <CategoryDonutChart shares={shares} unit={CATEGORY_COUNT_UNIT[type]} />
+      return <LazyCategoryDonutChart shares={shares} unit={CATEGORY_COUNT_UNIT[type]} />
     }
 
     return (
@@ -84,36 +80,41 @@ export async function CategoryShareCards() {
 }
 
 export async function StorageUsageCard() {
-  let report: UnreferencedScanReport | null = null
+  let usage: StorageUsage | null = null
   let errorMessage: string | null = null
 
   try {
-    report = await scanUnreferencedFiles()
+    usage = await getStorageUsage()
   } catch (error) {
     errorMessage = error instanceof Error ? error.message : "未知錯誤"
   }
 
   const renderContent = () => {
-    if (!report) {
+    if (!usage) {
       return (
         <div
           role="alert"
           className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
         >
           <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          <span>儲存空間掃描失敗：{errorMessage}</span>
+          <span>儲存空間讀取失敗：{errorMessage}</span>
         </div>
       )
     }
 
-    return <StorageUsageBar report={report} />
+    return (
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-3xl font-semibold tabular-nums">{formatBytes(usage.totalBytes)}</p>
+        <p className="text-sm text-muted-foreground">共 {usage.totalFiles} 個檔案</p>
+      </div>
+    )
   }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>儲存空間</CardTitle>
-        <CardDescription>未引用檔案：已上傳但沒有任何文章或作品使用的圖片</CardDescription>
+        <CardDescription>已上傳的圖片總用量；未引用的檔案可到空間清理頁掃描</CardDescription>
         <CardAction>
           <Button asChild variant="ghost" size="sm">
             <Link href={ROUTES.ADMIN_STORAGE}>

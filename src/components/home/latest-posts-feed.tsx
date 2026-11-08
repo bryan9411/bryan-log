@@ -1,9 +1,7 @@
-import { connection } from "next/server"
 import { FileTextIcon } from "lucide-react"
 
 import { EmptyState } from "@/components/empty-state"
 import { PostListItem } from "@/components/posts/post-list-item"
-import { PostListSkeleton } from "@/components/posts/post-list-skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { HOME_LATEST_POSTS_LIMIT } from "@/config/home"
 import { getSectionTone } from "@/lib/content/section-tone"
@@ -45,7 +43,6 @@ function buildFeedTabs(sections: Section[], posts: PostSummary[]): FeedTab[] {
 // 多個區塊時首頁只保留一段最新文章，以分頁籤切換區塊，避免首頁隨區塊增加而無限拉長
 // 所有分頁的文章都在伺服器端備妥，切換時不需要再次請求；查詢與搜尋索引、歸檔頁共用同一份快取
 export async function LatestPostsFeed({ sections }: { sections: Section[] }) {
-  await connection()
   const posts = await getPublishedPosts()
 
   if (posts.length === 0) {
@@ -106,8 +103,4 @@ export async function LatestPostsFeed({ sections }: { sections: Section[] }) {
       ))}
     </Tabs>
   )
-}
-
-export function LatestPostsFeedSkeleton() {
-  return <PostListSkeleton count={HOME_LATEST_POSTS_LIMIT} />
 }

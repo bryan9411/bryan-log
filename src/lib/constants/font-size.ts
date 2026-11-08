@@ -1,14 +1,15 @@
-import { z } from "zod"
-
 export const FONT_SIZE = {
   NORMAL: "normal",
   LARGE: "large",
   XLARGE: "xlarge",
 } as const
 
-export const fontSizeSchema = z.enum([FONT_SIZE.NORMAL, FONT_SIZE.LARGE, FONT_SIZE.XLARGE])
+export type FontSize = (typeof FONT_SIZE)[keyof typeof FONT_SIZE]
 
-export type FontSize = z.infer<typeof fontSizeSchema>
+// 此檔會進入所有頁面的前端程式，以簡單判斷取代 zod，避免全站多載入一份驗證函式庫
+export function isFontSize(value: unknown): value is FontSize {
+  return Object.values<unknown>(FONT_SIZE).includes(value)
+}
 
 export const FONT_SIZE_OPTIONS: Array<{ value: FontSize; label: string }> = [
   { value: FONT_SIZE.NORMAL, label: "標準" },

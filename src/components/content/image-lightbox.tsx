@@ -19,6 +19,8 @@ const KEY = {
 
 type LightboxImage = {
   src: string
+  // 檢視原始尺寸時使用的原圖網址
+  fullSrc: string
   alt: string
 }
 
@@ -36,7 +38,10 @@ function collectImages(trigger: Element): LightboxState | null {
   const images = triggers.flatMap((element) => {
     const image = element.querySelector("img")
     // currentSrc 為瀏覽器實際選用的來源（含 srcset），燈箱可直接使用已下載的圖片
-    return image ? [{ src: image.currentSrc || image.src, alt: image.alt }] : []
+    if (!image) return []
+
+    const src = image.currentSrc || image.src
+    return [{ src, fullSrc: image.dataset.fullSrc ?? src, alt: image.alt }]
   })
 
   const index = triggers.indexOf(trigger)
@@ -191,7 +196,7 @@ export function ImageLightbox() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           key={current.src}
-          src={current.src}
+          src={isZoomed ? current.fullSrc : current.src}
           alt={current.alt}
           onClick={() => setIsZoomed((zoomed) => !zoomed)}
           className={cn(

@@ -12,6 +12,9 @@ import { cn } from "@/lib/utils"
 
 const PROJECT_LINK_CLASS = cn(buttonVariants({ variant: "outline", size: "sm" }), "relative z-10")
 
+// 首頁精選與作品列表共用的格線
+export const PROJECT_GRID_CLASS = "grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+
 type ProjectCardProps = {
   project: ProjectSummary
 }

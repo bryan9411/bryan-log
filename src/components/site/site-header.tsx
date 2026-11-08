@@ -16,7 +16,7 @@ export async function SiteHeader() {
   const navItems = buildSiteNavItems(await getSections())
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md supports-backdrop-filter:bg-background/70">
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background">
       <SiteContainer className="flex h-16 items-center justify-between gap-4">
         <Link href={ROUTES.HOME} className="font-semibold tracking-tight">
           {siteConfig.name}

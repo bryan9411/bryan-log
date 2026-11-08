@@ -5,7 +5,7 @@ import { CheckIcon, MonitorIcon, MoonIcon, SunIcon, type LucideIcon } from "luci
 import { useTheme } from "next-themes"
 
 import { Button } from "@/components/ui/button"
-import { THEME, themeSchema, type Theme } from "@/lib/constants/theme"
+import { isTheme, THEME, type Theme } from "@/lib/constants/theme"
 import { cn } from "@/lib/utils"
 
 const THEME_OPTIONS: Array<{ value: Theme; label: string; icon: LucideIcon }> = [
@@ -25,8 +25,7 @@ export function ThemeToggle({ contentClassName }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme()
 
   const handleValueChange = (value: string) => {
-    const result = themeSchema.safeParse(value)
-    if (result.success) setTheme(result.data)
+    if (isTheme(value)) setTheme(value)
   }
 
   const renderOption = ({ value, label, icon: Icon }: (typeof THEME_OPTIONS)[number]) => (

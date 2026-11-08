@@ -6,11 +6,11 @@ import { useReportWebVitals } from "next/web-vitals"
 import { API_ROUTES } from "@/config/routes"
 import { isTrackedPath } from "@/lib/analytics/tracked-paths"
 import {
+  isWebVitalMetric,
   MOBILE_MAX_WIDTH,
   WEB_VITAL_DEVICE,
   WEB_VITALS_BATCH_LIMIT,
-  webVitalMetricSchema,
-} from "@/lib/constants/web-vitals"
+} from "@/lib/constants/web-vitals-reporting"
 import type { WebVitalEntry } from "@/lib/validations/web-vitals"
 
 const VISIBILITY_HIDDEN = "hidden"
@@ -50,21 +50,20 @@ type ReportedMetric = Parameters<Parameters<typeof useReportWebVitals>[0]>[0]
 function reportMetric(metric: ReportedMetric) {
   if (process.env.NODE_ENV !== "production") return
 
-  const parsedMetric = webVitalMetricSchema.safeParse(metric.name)
-  if (!parsedMetric.success) return
+  if (!isWebVitalMetric(metric.name)) return
 
   const path = getLandingPath()
   if (!isTrackedPath(path)) return
 
   queue.push({
-    metric: parsedMetric.data,
+    metric: metric.name,
     value: metric.value,
     path,
     device: detectDevice(),
   })
 }
 
-// 自行收集真實訪客的 Web Vitals 供後台儀表板分析（與 Vercel Speed Insights 並行）；
+// 自行收集真實訪客的 Web Vitals 供後台儀表板分析；
 // 只在正式環境回報，開發模式的數值未經最佳化，會污染統計
 export function WebVitalsReporter() {
   useReportWebVitals(reportMetric)

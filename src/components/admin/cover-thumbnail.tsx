@@ -28,7 +28,7 @@ export function CoverThumbnail({ src }: CoverThumbnailProps) {
   // 與前台封面一致完整顯示不裁切，比例不同的部分以模糊背景補滿
   return (
     <div className={cn(THUMBNAIL_CLASS, "bg-muted")}>
-      <ContainedCover src={src} alt="" sizes="56px" blur="sm" />
+      <ContainedCover src={src} alt="" sizes="56px" />
     </div>
   )
 }

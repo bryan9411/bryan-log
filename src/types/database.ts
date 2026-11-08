@@ -194,7 +194,7 @@ export type Database = {
     Functions: {
       increment_post_view: {
         Args: { target_slug: string }
-        Returns: undefined
+        Returns: number | null
       }
       record_web_vitals: {
         Args: { entries: Json }

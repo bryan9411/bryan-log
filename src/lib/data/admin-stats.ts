@@ -1,6 +1,13 @@
 import "server-only"
 
-import { CATEGORY_TYPE, CONTENT_STATUS, type CategoryType } from "@/lib/constants/content"
+import { cache } from "react"
+
+import {
+  CATEGORY_TYPE,
+  CONTENT_STATUS,
+  isScheduledPublish,
+  type CategoryType,
+} from "@/lib/constants/content"
 import { getAdminCategoryTrees } from "@/lib/data/admin-categories"
 import { createClient } from "@/lib/supabase/server"
 
@@ -12,31 +19,34 @@ export type ContentStats = {
   featuredProjects: number
 }
 
-// head: true 只回傳筆數不傳輸資料列，五個查詢並行以縮短等待時間
-export async function getContentStats(): Promise<ContentStats> {
+// 儀表板的統計、排行與分類占比都由這兩個查詢算出：只取少量欄位，同一次請求內以 React cache 共用
+const getDashboardRows = cache(async () => {
   const supabase = await createClient()
-  const countOnly = { count: "exact", head: true } as const
 
-  const [totalPosts, publishedPosts, draftPosts, totalProjects, featuredProjects] =
-    await Promise.all([
-      supabase.from("posts").select("id", countOnly),
-      // 已排程但尚未到時間的文章訪客還看不到，不計入已發布
-      supabase
-        .from("posts")
-        .select("id", countOnly)
-        .eq("status", CONTENT_STATUS.PUBLISHED)
-        .lte("published_at", new Date().toISOString()),
-      supabase.from("posts").select("id", countOnly).eq("status", CONTENT_STATUS.DRAFT),
-      supabase.from("projects").select("id", countOnly),
-      supabase.from("projects").select("id", countOnly).eq("is_featured", true),
-    ])
+  const [posts, projects] = await Promise.all([
+    supabase.from("posts").select("id, title, status, published_at, view_count, category_id"),
+    supabase.from("projects").select("id, is_featured, category_id"),
+  ])
+
+  if (posts.error) throw new Error(`讀取文章統計失敗：${posts.error.message}`)
+  if (projects.error) throw new Error(`讀取作品統計失敗：${projects.error.message}`)
+
+  return { posts: posts.data, projects: projects.data }
+})
+
+export async function getContentStats(): Promise<ContentStats> {
+  const { posts, projects } = await getDashboardRows()
 
   return {
-    totalPosts: totalPosts.count ?? 0,
-    publishedPosts: publishedPosts.count ?? 0,
-    draftPosts: draftPosts.count ?? 0,
-    totalProjects: totalProjects.count ?? 0,
-    featuredProjects: featuredProjects.count ?? 0,
+    totalPosts: posts.length,
+    // 已排程但尚未到時間的文章訪客還看不到，不計入已發布
+    publishedPosts: posts.filter(
+      ({ status, published_at }) =>
+        status === CONTENT_STATUS.PUBLISHED && !isScheduledPublish(status, published_at),
+    ).length,
+    draftPosts: posts.filter(({ status }) => status === CONTENT_STATUS.DRAFT).length,
+    totalProjects: projects.length,
+    featuredProjects: projects.filter(({ is_featured }) => is_featured).length,
   }
 }
 
@@ -48,20 +58,13 @@ export type TopViewedPost = {
 
 // 已發布文章中瀏覽數最高的前幾篇；瀏覽數為 0 的文章不列入排行
 export async function getTopViewedPosts(limit: number): Promise<TopViewedPost[]> {
-  const supabase = await createClient()
+  const { posts } = await getDashboardRows()
 
-  const { data, error } = await supabase
-    .from("posts")
-    .select("id, title, view_count")
-    .eq("status", CONTENT_STATUS.PUBLISHED)
-    .gt("view_count", 0)
-    .order("view_count", { ascending: false })
-    .order("title", { ascending: true })
-    .limit(limit)
-
-  if (error) throw new Error(`讀取瀏覽排行失敗：${error.message}`)
-
-  return data.map((post) => ({ id: post.id, title: post.title, views: post.view_count }))
+  return posts
+    .filter(({ status, view_count }) => status === CONTENT_STATUS.PUBLISHED && view_count > 0)
+    .sort((a, b) => b.view_count - a.view_count || a.title.localeCompare(b.title))
+    .slice(0, limit)
+    .map((post) => ({ id: post.id, title: post.title, views: post.view_count }))
 }
 
 export type CategoryShare = {
@@ -90,18 +93,17 @@ const UNCATEGORIZED_COLOR = "var(--chart-muted)"
 
 // 以父分類為單位彙總（含其子分類的內容），依分類排序固定順序，讓同一分類在每次載入時顏色不變
 export async function getCategoryDistribution(): Promise<CategoryDistribution> {
-  const supabase = await createClient()
-  const countOnly = { count: "exact", head: true } as const
-
-  const [trees, uncategorizedPosts, uncategorizedProjects] = await Promise.all([
+  const [trees, { posts, projects }] = await Promise.all([
     getAdminCategoryTrees(),
-    supabase.from("posts").select("id", countOnly).is("category_id", null),
-    supabase.from("projects").select("id", countOnly).is("category_id", null),
+    getDashboardRows(),
   ])
 
+  const countUncategorized = (rows: Array<{ category_id: string | null }>) =>
+    rows.filter(({ category_id }) => category_id === null).length
+
   const uncategorized: Record<CategoryType, number> = {
-    [CATEGORY_TYPE.POST]: uncategorizedPosts.count ?? 0,
-    [CATEGORY_TYPE.PROJECT]: uncategorizedProjects.count ?? 0,
+    [CATEGORY_TYPE.POST]: countUncategorized(posts),
+    [CATEGORY_TYPE.PROJECT]: countUncategorized(projects),
   }
 
   const summarize = (type: CategoryType): CategoryShare[] => {

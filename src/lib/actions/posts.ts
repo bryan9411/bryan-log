@@ -4,7 +4,13 @@ import { revalidatePath, updateTag } from "next/cache"
 import { redirect } from "next/navigation"
 import { z } from "zod"
 
-import { adminEditPostRoute, POST_CREATED_PARAM, ROUTE_PATTERN, ROUTES } from "@/config/routes"
+import {
+  adminEditPostRoute,
+  POST_CREATED_PARAM,
+  postDetailPath,
+  ROUTE_PATTERN,
+  ROUTES,
+} from "@/config/routes"
 import {
   createErrorState,
   createSuccessState,
@@ -12,10 +18,11 @@ import {
   type ActionState,
 } from "@/lib/actions/action-state"
 import { requireAdmin } from "@/lib/auth/session"
-import { CACHE_TAG } from "@/lib/cache-tags"
-import { CONTENT_STATUS, isScheduledPublish } from "@/lib/constants/content"
+import { CACHE_TAG, POSTS_FULL_TEXT_TAG, postContentTag } from "@/lib/cache-tags"
+import { CONTENT_STATUS, isScheduledPublish, type ContentStatus } from "@/lib/constants/content"
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from "@/lib/content/slug"
 import { ContentValidationError, renderPostContent } from "@/lib/content/render-post"
+import { SECTION_RELATION_SELECT, type SectionRef } from "@/lib/data/sections"
 import { formatDateTime, toTaipeiDateTimeInput } from "@/lib/format"
 import { createClient } from "@/lib/supabase/server"
 import { ADMIN_POSTS_PAGE_SIZE, DELETE_POSTS_FIELD } from "@/lib/validations/admin-post-list"
@@ -65,11 +72,67 @@ function revalidatePostPaths() {
   revalidatePath(ROUTE_PATTERN.SECTION, "page")
   revalidatePath(ROUTE_PATTERN.POST_DETAIL, "page")
   revalidatePath(ROUTES.ARCHIVES)
+  revalidatePath(ROUTES.LLMS_TXT)
+  revalidatePath(ROUTES.LLMS_FULL_TXT)
+  revalidateAdminPostPaths()
+}
+
+function revalidateAdminPostPaths() {
   revalidatePath(ROUTES.ADMIN_POSTS)
   revalidatePath(ROUTES.ADMIN_POST_CATEGORIES)
   revalidatePath(ROUTES.ADMIN_DASHBOARD)
-  revalidatePath(ROUTES.LLMS_TXT)
+}
+
+// 列表、搜尋與上下篇會用到的欄位；這些沒變動時，修改只影響文章自己的內頁
+const POST_LISTING_FIELDS = [
+  "title",
+  "slug",
+  "excerpt",
+  "section_id",
+  "category_id",
+  "reading_time_minutes",
+  "published_at",
+] as const
+
+const PREVIOUS_POST_COLUMNS = `status, ${POST_LISTING_FIELDS.join(", ")}`
+
+type PostVisibilityRow = {
+  status: ContentStatus
+  title: string
+  slug: string
+  excerpt: string | null
+  section_id: string
+  category_id: string | null
+  reading_time_minutes: number
+  published_at: string | null
+}
+
+// 只讓真正受影響的快取失效：草稿不動前台；內文修改只更新該篇；其餘才全站更新
+function revalidateSavedPost(
+  previous: PostVisibilityRow,
+  saved: PostVisibilityRow & { section: SectionRef },
+) {
+  const wasPublic = previous.status === CONTENT_STATUS.PUBLISHED
+  const isPublic = saved.status === CONTENT_STATUS.PUBLISHED
+
+  if (!wasPublic && !isPublic) {
+    revalidateAdminPostPaths()
+    return
+  }
+
+  const isListingChanged =
+    wasPublic !== isPublic || POST_LISTING_FIELDS.some((field) => previous[field] !== saved[field])
+
+  if (isListingChanged) {
+    revalidatePostPaths()
+    return
+  }
+
+  updateTag(postContentTag(saved.slug))
+  updateTag(POSTS_FULL_TEXT_TAG)
+  revalidatePath(postDetailPath(saved.section.slug, saved.slug))
   revalidatePath(ROUTES.LLMS_FULL_TXT)
+  revalidateAdminPostPaths()
 }
 
 // 回傳要寫入的發布時間；undefined 表示不更動欄位（首次發布留空時由資料庫觸發器補上當下時間）
@@ -137,21 +200,22 @@ export async function savePostAction(
 
   const supabase = await createClient()
 
-  let existingPublishedAt: string | null = null
+  let previous: PostVisibilityRow | null = null
 
-  if (id && isPublishing) {
+  if (id) {
     const { data, error } = await supabase
       .from("posts")
-      .select("published_at")
+      .select(PREVIOUS_POST_COLUMNS)
       .eq("id", id)
       .maybeSingle()
+      .overrideTypes<PostVisibilityRow, { merge: false }>()
 
     if (error) return mapDatabaseError(error)
-    existingPublishedAt = data?.published_at ?? null
+    previous = data
   }
 
   const resolvedPublishedAt = isPublishing
-    ? resolvePublishedAt(publishedAt, existingPublishedAt)
+    ? resolvePublishedAt(publishedAt, previous?.published_at ?? null)
     : undefined
 
   const record = {
@@ -175,7 +239,8 @@ export async function savePostAction(
 
     if (error) return mapDatabaseError(error)
 
-    revalidatePostPaths()
+    if (isPublishing) revalidatePostPaths()
+    else revalidateAdminPostPaths()
     // 新文章建立後轉往編輯頁，之後的存檔都會更新同一筆資料，避免重複新增
     redirect(`${adminEditPostRoute(data.id)}?${POST_CREATED_PARAM}=${intent}`)
   }
@@ -184,13 +249,15 @@ export async function savePostAction(
     .from("posts")
     .update(record)
     .eq("id", id)
-    .select("id, status, published_at")
+    .select(`${PREVIOUS_POST_COLUMNS}, ${SECTION_RELATION_SELECT}`)
     .maybeSingle()
+    .overrideTypes<PostVisibilityRow & { section: SectionRef }, { merge: false }>()
 
   if (error) return mapDatabaseError(error)
   if (!data) return createErrorState("找不到這篇文章，可能已被刪除")
 
-  revalidatePostPaths()
+  if (previous) revalidateSavedPost(previous, data)
+  else revalidatePostPaths()
 
   const successMessage = isScheduledPublish(data.status, data.published_at)
     ? `已排程，將於 ${formatDateTime(data.published_at as string)} 發布`

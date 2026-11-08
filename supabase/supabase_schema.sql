@@ -333,7 +333,7 @@ create trigger projects_set_updated_at
 -- 瀏覽數遞增：以 SECURITY DEFINER 執行，只允許對已發布文章 +1
 -- =============================================================================
 create or replace function public.increment_post_view(target_slug text)
-returns void
+returns bigint
 language sql
 security definer
 set search_path = ''
@@ -342,7 +342,8 @@ as $$
   set view_count = view_count + 1
   where slug = target_slug
     and status = 'published'
-    and published_at <= now();
+    and published_at <= now()
+  returning view_count;
 $$;
 
 revoke all on function public.increment_post_view(text) from public;

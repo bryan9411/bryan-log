@@ -184,6 +184,12 @@ body.dark:has(.site-theme) {
   contain-intrinsic-size: auto 800px;
 }
 
+/* 清單項目：略過視窗外項目的排版與繪製，預留高度接近一列文章 */
+@utility content-auto-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 150px;
+}
+
 /* =============================================================================
  * 程式碼區塊：前台（存檔時由伺服器預先高亮）與編輯器（即時高亮）共用同一套樣式
  * Shiki 以 --shiki-light / --shiki-dark 輸出雙主題色彩，依目前主題切換
@@ -345,6 +351,12 @@ body.dark:has(.site-theme) {
   /* 互動 Demo：預設只顯示原本的程式碼區塊（未啟用 JavaScript 時的樣子），
    * 瀏覽器可執行腳本時預留執行畫面的高度並切換版面，hydration 前後不會跳版；執行失敗時退回預設樣子 */
   .article-content > .demo-block {
+    content-visibility: visible;
+    contain-intrinsic-size: none;
+  }
+
+  /* 圖片已由寬高屬性預留正確空間並延遲載入，不需再以預估高度佔位，捲動時版面才不會跳動 */
+  .article-content > .article-image-zoom {
     content-visibility: visible;
     contain-intrinsic-size: none;
   }
