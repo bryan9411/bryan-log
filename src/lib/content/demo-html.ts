@@ -67,7 +67,8 @@ function renderDemo(config: DemoConfig, source: string, pairedCode: string | nul
 }
 
 // 把合法的 demo 程式碼區塊包成互動區塊。原本的程式碼區塊完整保留在輸出中，
-// 未啟用 JavaScript 或執行失敗時由 CSS 顯示回來；格式錯誤或沒有可配對的程式碼時則完全不改動。
+// 未啟用 JavaScript 或執行失敗時由 CSS 顯示回來；格式錯誤時則完全不改動。
+// code="previous" 找不到可配對的程式碼時改以單欄顯示，避免讀者只看到 Demo 的原始碼。
 // 輸入為高亮後的 HTML（需早於工具列步驟，此時每個區塊都只有單一 <pre>）；只有空白相隔才算緊鄰
 export function wrapDemoBlocks(html: string) {
   const blocks = [...html.matchAll(CODE_BLOCK_PATTERN)].map(parseBlock)
@@ -81,17 +82,17 @@ export function wrapDemoBlocks(html: string) {
     if (!config) return
 
     const previous = blocks[index - 1]
-    const canPair =
+    const paired =
+      config.pairWithPrevious &&
       previous !== undefined &&
       !previous.isDemo &&
       html.slice(previous.end, block.start).trim() === ""
+        ? previous
+        : null
 
-    if (config.pairWithPrevious && !canPair) return
+    const start = paired ? paired.start : block.start
 
-    const start = config.pairWithPrevious ? previous.start : block.start
-    const pairedCode = config.pairWithPrevious ? previous.html : null
-
-    output += html.slice(cursor, start) + renderDemo(config, block.html, pairedCode)
+    output += html.slice(cursor, start) + renderDemo(config, block.html, paired?.html ?? null)
     cursor = block.end
   })
 
