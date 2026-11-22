@@ -52,7 +52,7 @@ export type RevalidatePathInput = z.infer<typeof revalidatePathSchema>
 export type RevalidateField = "path" | "type"
 
 export const cacheTagSchema = z.enum(
-  [CACHE_TAG.POSTS, CACHE_TAG.PROJECTS, CACHE_TAG.CATEGORIES, CACHE_TAG.SECTIONS],
+  [CACHE_TAG.POSTS, CACHE_TAG.PROJECTS, CACHE_TAG.CATEGORIES, CACHE_TAG.SECTIONS, CACHE_TAG.RADAR],
   { error: "未知的快取標籤" },
 )
 
@@ -61,6 +61,7 @@ export const CACHE_TAG_LABEL: Record<CacheTag, string> = {
   [CACHE_TAG.PROJECTS]: "作品資料",
   [CACHE_TAG.CATEGORIES]: "分類資料",
   [CACHE_TAG.SECTIONS]: "內容區塊（導覽列）",
+  [CACHE_TAG.RADAR]: "雷達榜單",
 }
 
 export type RevalidatePreset = {

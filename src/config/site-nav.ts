@@ -1,6 +1,7 @@
 import type { Route } from "next"
 
 import { ROUTES, sectionPath } from "@/config/routes"
+import type { PublicRadarModule } from "@/lib/data/public-radar"
 import type { Section } from "@/lib/data/sections"
 
 export type SiteNavLink = {
@@ -26,15 +27,36 @@ const MAX_INLINE_SECTIONS = 1
 
 const SECTION_GROUP_LABEL = "文章"
 
-// 固定在內容區塊之後的導覽項目
-const FIXED_NAV_ITEMS: SiteNavLink[] = [
-  { href: ROUTES.PROJECTS, label: "精選專案" },
-  { href: ROUTES.ARCHIVES, label: "歸檔" },
-]
+const PROJECTS_NAV_ITEM: SiteNavLink = { href: ROUTES.PROJECTS, label: "精選專案" }
+const ARCHIVES_NAV_ITEM: SiteNavLink = { href: ROUTES.ARCHIVES, label: "歸檔" }
 
-// 內容區塊依後台設定的排序排列，作品集與歸檔固定在最後
+const RADAR_GROUP_LABEL = "週榜"
+
+type RadarNavModule = Pick<PublicRadarModule, "label" | "description" | "href">
+
+// 公開的雷達模組：沒有就不顯示；只有一個時直接連到該榜單；兩個以上收進「週榜」下拉並附上總覽
+function buildRadarNavItems(modules: RadarNavModule[]): SiteNavItem[] {
+  if (modules.length === 0) return []
+  if (modules.length === 1) {
+    const [{ href, label, description }] = modules
+    return [{ href, label, description }]
+  }
+
+  return [
+    {
+      label: RADAR_GROUP_LABEL,
+      items: [
+        { href: ROUTES.RADAR, label: "週榜總覽", description: "所有榜單的前幾名" },
+        ...modules.map(({ href, label, description }) => ({ href, label, description })),
+      ],
+    },
+  ]
+}
+
+// 內容區塊依後台設定的排序排列，之後依序為作品集、週榜與歸檔
 export function buildSiteNavItems(
   sections: Pick<Section, "name" | "slug" | "description">[],
+  radarModules: RadarNavModule[] = [],
 ): SiteNavItem[] {
   const sectionLinks = sections.map(({ name, slug, description }) => ({
     href: sectionPath(slug),
@@ -46,7 +68,12 @@ export function buildSiteNavItems(
       ? [{ label: SECTION_GROUP_LABEL, items: sectionLinks }]
       : sectionLinks
 
-  return [...sectionItems, ...FIXED_NAV_ITEMS]
+  return [
+    ...sectionItems,
+    PROJECTS_NAV_ITEM,
+    ...buildRadarNavItems(radarModules),
+    ARCHIVES_NAV_ITEM,
+  ]
 }
 
 const FOOTER_SITE_GROUP_LABEL = "網站"

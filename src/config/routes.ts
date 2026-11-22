@@ -17,6 +17,12 @@ export const ROUTES = {
   ADMIN_PROJECT_CATEGORIES: "/admin/project-categories",
   ADMIN_STORAGE: "/admin/storage",
   ADMIN_TOOLS: "/admin/tools",
+  ADMIN_RADAR: "/admin/radar",
+  ADMIN_RADAR_GITHUB: "/admin/radar/github",
+  ADMIN_RADAR_HN: "/admin/radar/hn",
+  RADAR: "/radar",
+  RADAR_GITHUB: "/radar/github",
+  RADAR_HN: "/radar/hn",
   // AI 爬蟲專用的 Markdown 索引與全文（llmstxt.org 協定）
   LLMS_TXT: "/llms.txt",
   LLMS_FULL_TXT: "/llms-full.txt",
@@ -37,6 +43,8 @@ export const API_ROUTES = {
   PREVIEW_DISABLE: `${API_ROOT}/preview/disable`,
   POSTS_EXPORT: `${API_ROOT}/admin/export/posts`,
   WEB_VITALS: `${API_ROOT}/vitals`,
+  // Vercel Cron 每日呼叫，需帶 Authorization: Bearer <CRON_SECRET>
+  CRON_RADAR: `${API_ROOT}/cron/radar`,
 } as const
 
 export const REDIRECT_PARAM = "next"

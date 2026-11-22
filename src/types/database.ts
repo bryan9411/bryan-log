@@ -3,6 +3,25 @@
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
+// 雷達各模組排名函式共用的欄位：前台卡片只依賴這些欄位，score 為排名依據（GitHub 為 7 日新增 star、HN 為分數）
+type RadarRankingRow = {
+  item_id: string
+  title: string
+  url: string
+  summary: string | null
+  categories: string[]
+  data: Json
+  score: number
+  total: number
+}
+
+type RadarGithubRankingRow = RadarRankingRow & {
+  window_days: number
+  latest_date: string
+}
+
+type RadarHnRankingRow = RadarRankingRow
+
 type Timestamps = {
   created_at: string
   updated_at: string
@@ -189,6 +208,94 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["web_vitals"]["Insert"]>
         Relationships: []
       }
+      radar_modules: {
+        Row: {
+          key: string
+          name: string
+          visibility: Database["public"]["Enums"]["radar_visibility"]
+          sort_order: number
+          last_synced_at: string | null
+          last_sync_status: "success" | "failed" | null
+          last_sync_error: string | null
+          updated_at: string
+        }
+        Insert: {
+          key: string
+          name: string
+          visibility?: Database["public"]["Enums"]["radar_visibility"]
+          sort_order?: number
+          last_synced_at?: string | null
+          last_sync_status?: "success" | "failed" | null
+          last_sync_error?: string | null
+          updated_at?: string
+        }
+        Update: Partial<Database["public"]["Tables"]["radar_modules"]["Insert"]>
+        Relationships: []
+      }
+      radar_items: {
+        Row: {
+          id: string
+          module_key: string
+          external_id: string
+          title: string
+          url: string
+          summary: string | null
+          categories: string[]
+          data: Json
+          is_blocked: boolean
+          blocked_at: string | null
+          first_seen_at: string
+          last_seen_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          module_key: string
+          external_id: string
+          title: string
+          url: string
+          summary?: string | null
+          categories?: string[]
+          data?: Json
+          is_blocked?: boolean
+          blocked_at?: string | null
+          first_seen_at?: string
+          last_seen_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database["public"]["Tables"]["radar_items"]["Insert"]>
+        Relationships: [
+          {
+            foreignKeyName: "radar_items_module_key_fkey"
+            columns: ["module_key"]
+            isOneToOne: false
+            referencedRelation: "radar_modules"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      radar_metric_snapshots: {
+        Row: {
+          item_id: string
+          snapshot_date: string
+          value: number
+        }
+        Insert: {
+          item_id: string
+          snapshot_date: string
+          value: number
+        }
+        Update: Partial<Database["public"]["Tables"]["radar_metric_snapshots"]["Insert"]>
+        Relationships: [
+          {
+            foreignKeyName: "radar_metric_snapshots_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "radar_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: Record<never, never>
     Functions: {
@@ -225,10 +332,36 @@ export type Database = {
           cls_p75: number | null
         }>
       }
+      get_public_radar_modules: {
+        Args: Record<PropertyKey, never>
+        Returns: Array<{
+          key: string
+          name: string
+          sort_order: number
+          last_synced_at: string | null
+        }>
+      }
+      radar_github_ranking: {
+        Args: { p_limit?: number }
+        Returns: Array<RadarGithubRankingRow>
+      }
+      get_github_weekly_ranking: {
+        Args: { p_limit?: number }
+        Returns: Array<RadarGithubRankingRow>
+      }
+      radar_hn_ranking: {
+        Args: { p_show_hn: boolean; p_limit?: number }
+        Returns: Array<RadarHnRankingRow>
+      }
+      get_hn_weekly_ranking: {
+        Args: { p_show_hn: boolean; p_limit?: number }
+        Returns: Array<RadarHnRankingRow>
+      }
     }
     Enums: {
       post_status: "draft" | "published"
       category_type: "post" | "project"
+      radar_visibility: "hidden" | "public"
     }
     CompositeTypes: Record<never, never>
   }

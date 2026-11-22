@@ -63,9 +63,15 @@ export function formatCategoryContentCount(type: CategoryType, count: number) {
     : `尚無${CATEGORY_CONTENT_NOUN[type]}`
 }
 
-// 內容區塊的網址是 /{代稱}，不可與固定路由撞名；資料庫 sections.slug 的 check constraint 擋下前三個，
-// 之後新增的固定路由（歸檔、草稿預覽）由伺服器端驗證擋下
-export const RESERVED_SECTION_SLUGS = ["admin", "api", "projects", "archives", "preview"] as const
+// 內容區塊的網址是 /{代稱}，不可與固定路由撞名；伺服器端驗證與資料庫 sections.slug 的 check constraint 使用同一份清單
+export const RESERVED_SECTION_SLUGS = [
+  "admin",
+  "api",
+  "projects",
+  "archives",
+  "preview",
+  "radar",
+] as const
 
 export function isReservedSectionSlug(slug: string) {
   return (RESERVED_SECTION_SLUGS as readonly string[]).includes(slug)

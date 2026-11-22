@@ -4,13 +4,22 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Suspense } from "react"
 
-import { ADMIN_NAV_GROUPS, type AdminNavItem } from "@/config/admin-nav"
+import { ADMIN_NAV_GROUPS, ADMIN_NAV_ITEMS, type AdminNavItem } from "@/config/admin-nav"
 import { isActiveHref } from "@/lib/navigation"
 import { cn } from "@/lib/utils"
 
+// 項目之間有父子路徑時（例如 /admin/radar 與 /admin/radar/github），只標示最精確的那一個
+function findActiveHref(pathname: string | null) {
+  return ADMIN_NAV_ITEMS.filter(({ href }) => isActiveHref(pathname, href)).sort(
+    (a, b) => b.href.length - a.href.length,
+  )[0]?.href
+}
+
 function AdminNavList({ pathname }: { pathname: string | null }) {
+  const activeHref = findActiveHref(pathname)
+
   const renderItem = ({ href, label, icon: Icon }: AdminNavItem) => {
-    const isActive = isActiveHref(pathname, href)
+    const isActive = href === activeHref
 
     return (
       <Link

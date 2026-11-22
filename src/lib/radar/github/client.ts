@@ -1,0 +1,64 @@
+import "server-only"
+
+import { fetchJson } from "@/lib/radar/http"
+
+const GITHUB_API = "https://api.github.com"
+const GITHUB_API_VERSION = "2022-11-28"
+
+// 搜尋結果與 GraphQL 回傳格式不同，統一轉成這個結構再寫入資料庫
+export type GithubRepo = {
+  nodeId: string
+  fullName: string
+  url: string
+  description: string | null
+  language: string | null
+  topics: string[]
+  license: string | null
+  stars: number
+  forks: number
+  archived: boolean
+  isFork: boolean
+  pushedAt: string | null
+  createdAt: string | null
+}
+
+function githubHeaders(token: string) {
+  return {
+    Accept: "application/vnd.github+json",
+    Authorization: `Bearer ${token}`,
+    "X-GitHub-Api-Version": GITHUB_API_VERSION,
+    "User-Agent": "radar-sync",
+  }
+}
+
+export function githubRest<T>(token: string, path: string) {
+  return fetchJson<T>(`${GITHUB_API}${path}`, { headers: githubHeaders(token) })
+}
+
+type GraphqlResponse<T> = {
+  data?: T
+  errors?: Array<{ type?: string; message: string }>
+}
+
+// GraphQL 查無節點時會在 errors 回報 NOT_FOUND、對應的節點為 null，這種情況交由呼叫端處理
+export async function githubGraphql<T>(token: string, query: string, variables: object) {
+  const response = await fetchJson<GraphqlResponse<T>>(`${GITHUB_API}/graphql`, {
+    method: "POST",
+    headers: { ...githubHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ query, variables }),
+  })
+
+  const fatalErrors = (response?.errors ?? []).filter((error) => error.type !== "NOT_FOUND")
+  if (fatalErrors.length > 0 || !response?.data) {
+    const message = fatalErrors.map((error) => error.message).join("；") || "沒有回傳資料"
+    throw new Error(`GitHub GraphQL 錯誤：${message}`)
+  }
+
+  return response.data
+}
+
+// GitHub 對未知授權回傳 NOASSERTION，顯示成「其他」比較好懂
+export function normalizeLicense(spdxId: string | null | undefined) {
+  if (!spdxId) return null
+  return spdxId === "NOASSERTION" ? "Other" : spdxId
+}

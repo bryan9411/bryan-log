@@ -73,3 +73,19 @@ const dateFormatter = new Intl.DateTimeFormat("zh-TW", {
 export function formatDate(value: string | Date) {
   return dateFormatter.format(new Date(value))
 }
+
+const integerFormatter = new Intl.NumberFormat("zh-TW")
+const compactFormatter = new Intl.NumberFormat("zh-TW", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+})
+
+// 例如 12,345
+export function formatInteger(value: number) {
+  return integerFormatter.format(value)
+}
+
+// 例如 1.2萬、3,456（小於一萬時與 formatInteger 相同）
+export function formatCompactNumber(value: number) {
+  return compactFormatter.format(value)
+}

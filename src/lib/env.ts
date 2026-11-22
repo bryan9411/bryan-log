@@ -26,3 +26,33 @@ export function getPublicEnv(): PublicEnv {
   cachedEnv = result.data
   return cachedEnv
 }
+
+// 只在伺服器端使用的機密：排程寫入資料庫、驗證 Vercel Cron、呼叫 GitHub API
+// 讀取這些值的模組都必須 import "server-only"，避免被打包進瀏覽器端
+const serverEnvSchema = z.object({
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, "缺少 SUPABASE_SERVICE_ROLE_KEY"),
+  CRON_SECRET: z.string().min(16, "CRON_SECRET 至少需要 16 個字元"),
+  GITHUB_TOKEN: z.string().min(1, "缺少 GITHUB_TOKEN"),
+})
+
+export type ServerEnv = z.infer<typeof serverEnvSchema>
+
+let cachedServerEnv: ServerEnv | null = null
+
+export function getServerEnv(): ServerEnv {
+  if (cachedServerEnv) return cachedServerEnv
+
+  const result = serverEnvSchema.safeParse({
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    CRON_SECRET: process.env.CRON_SECRET,
+    GITHUB_TOKEN: process.env.GITHUB_TOKEN,
+  })
+
+  if (!result.success) {
+    const issues = result.error.issues.map((issue) => `- ${issue.message}`).join("\n")
+    throw new Error(`伺服器端環境變數設定錯誤，請參考 .env.example：\n${issues}`)
+  }
+
+  cachedServerEnv = result.data
+  return cachedServerEnv
+}

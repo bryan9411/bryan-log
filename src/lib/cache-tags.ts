@@ -4,6 +4,8 @@ export const CACHE_TAG = {
   PROJECTS: "public-projects",
   CATEGORIES: "public-categories",
   SECTIONS: "public-sections",
+  // 雷達榜單與公開模組清單（導覽列）；每日排程同步後以 revalidateTag 失效
+  RADAR: "public-radar",
 } as const
 
 // 內文修改只影響單篇內頁與全文輸出，不必牽動列表；這兩類標籤不開放在後台手動失效，要全部更新時使用 POSTS

@@ -9,11 +9,13 @@ import { SiteNavLinks } from "@/components/site/site-nav-links"
 import { ROUTES } from "@/config/routes"
 import { siteConfig } from "@/config/site"
 import { buildSiteNavItems } from "@/config/site-nav"
+import { getPublicRadarModules } from "@/lib/data/public-radar"
 import { getSections } from "@/lib/data/sections"
 
-// 導覽項目來自後台設定的內容區塊；查詢有 "use cache"，會一併預渲染進靜態外殼
+// 導覽項目來自後台設定的內容區塊與公開的雷達模組；查詢有 "use cache"，會一併預渲染進靜態外殼
 export async function SiteHeader() {
-  const navItems = buildSiteNavItems(await getSections())
+  const [sections, radarModules] = await Promise.all([getSections(), getPublicRadarModules()])
+  const navItems = buildSiteNavItems(sections, radarModules)
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background">

@@ -4,6 +4,9 @@ import {
   FolderTreeIcon,
   HardDriveIcon,
   LayoutDashboardIcon,
+  NewspaperIcon,
+  RadarIcon,
+  StarIcon,
   TagsIcon,
   WrenchIcon,
 } from "lucide-react"
@@ -24,7 +27,7 @@ export type AdminNavGroup = {
   items: AdminNavItem[]
 }
 
-// 文章與作品集各自一組，兩組結構對稱：內容管理 + 分類
+// 文章與作品集各自一組，兩組結構對稱：內容管理 + 分類；雷達為每日同步的情報榜單
 export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   {
     label: null,
@@ -42,6 +45,14 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { href: ROUTES.ADMIN_PROJECTS, label: "專案管理", icon: FolderKanbanIcon },
       { href: ROUTES.ADMIN_PROJECT_CATEGORIES, label: "專案分類", icon: TagsIcon },
+    ],
+  },
+  {
+    label: "雷達",
+    items: [
+      { href: ROUTES.ADMIN_RADAR, label: "雷達總覽", icon: RadarIcon },
+      { href: ROUTES.ADMIN_RADAR_GITHUB, label: "GitHub 週榜", icon: StarIcon },
+      { href: ROUTES.ADMIN_RADAR_HN, label: "HN 週榜", icon: NewspaperIcon },
     ],
   },
   {

@@ -6,6 +6,7 @@ import { SiteContainer } from "@/components/site/site-container"
 import { ROUTES } from "@/config/routes"
 import { siteConfig } from "@/config/site"
 import { buildFooterNavGroups, buildSiteNavItems, type SiteNavGroup } from "@/config/site-nav"
+import { getPublicRadarModules } from "@/lib/data/public-radar"
 import { getSections } from "@/lib/data/sections"
 
 const FOOTER_MAX_GROUP_LINKS = 8
@@ -25,7 +26,8 @@ async function CopyrightYears() {
 }
 
 export async function SiteFooter() {
-  const navGroups = buildFooterNavGroups(buildSiteNavItems(await getSections()))
+  const [sections, radarModules] = await Promise.all([getSections(), getPublicRadarModules()])
+  const navGroups = buildFooterNavGroups(buildSiteNavItems(sections, radarModules))
 
   // 區塊很多時只列前幾個，其餘以「全部文章」連到歸檔頁，避免頁尾無限拉長
   const renderNavGroup = ({ label, items }: SiteNavGroup) => {
