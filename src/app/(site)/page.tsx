@@ -5,6 +5,7 @@ import { HeroSection, type HeroAction } from "@/components/home/hero-section"
 import { HomeSection } from "@/components/home/home-section"
 import { LatestPosts } from "@/components/home/latest-posts"
 import { LatestPostsFeed } from "@/components/home/latest-posts-feed"
+import { RadarPicks } from "@/components/home/radar-picks"
 import { SectionCards } from "@/components/home/section-cards"
 import { ROUTES, sectionPath } from "@/config/routes"
 import { getSections, type Section } from "@/lib/data/sections"
@@ -53,6 +54,7 @@ function renderMultipleSections(sections: Section[]) {
       >
         <LatestPostsFeed sections={sections} />
       </HomeSection>
+      <RadarPicks />
       <div className="border-t border-border/60">
         <HomeSection
           id="explore-sections"
@@ -70,9 +72,17 @@ function renderMultipleSections(sections: Section[]) {
 export default async function HomePage() {
   const sections = await getSections()
 
+  // 雷達精選放在最新文章之後、探索主題之前；單一區塊（沒有探索主題）時接在最新文章之後
   const maybeRenderSections = () => {
-    if (sections.length === 0) return null
-    if (sections.length === 1) return renderSingleSection(sections[0])
+    if (sections.length === 0) return <RadarPicks />
+    if (sections.length === 1) {
+      return (
+        <>
+          {renderSingleSection(sections[0])}
+          <RadarPicks />
+        </>
+      )
+    }
     return renderMultipleSections(sections)
   }
 
