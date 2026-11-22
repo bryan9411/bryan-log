@@ -29,6 +29,9 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,
+  experimental: {
+    agentUpgrade: "security",
+  },
   images: {
     remotePatterns: buildSupabaseImagePatterns(),
     // 上傳的檔名都是 UUID，內容不會變動，最佳化結果可長期保存，不必反覆重新產生
