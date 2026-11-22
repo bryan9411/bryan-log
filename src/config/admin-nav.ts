@@ -6,6 +6,7 @@ import {
   LayoutDashboardIcon,
   NewspaperIcon,
   RadarIcon,
+  ShieldAlertIcon,
   StarIcon,
   TagsIcon,
   WrenchIcon,
@@ -53,6 +54,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: ROUTES.ADMIN_RADAR, label: "雷達總覽", icon: RadarIcon },
       { href: ROUTES.ADMIN_RADAR_GITHUB, label: "GitHub 週榜", icon: StarIcon },
       { href: ROUTES.ADMIN_RADAR_HN, label: "HN 週榜", icon: NewspaperIcon },
+      { href: ROUTES.ADMIN_RADAR_SECURITY, label: "資安情資", icon: ShieldAlertIcon },
     ],
   },
   {

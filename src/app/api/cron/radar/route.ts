@@ -5,9 +5,10 @@ import { revalidateTag } from "next/cache"
 import { CACHE_TAG } from "@/lib/cache-tags"
 import { getServerEnv } from "@/lib/env"
 import { revalidateRadarPaths } from "@/lib/radar/revalidate"
-import { runRadarSync } from "@/lib/radar/sync"
+import { parseRadarModuleParam, runRadarSync } from "@/lib/radar/sync"
 
 // Vercel 免費方案函式最長 300 秒；GitHub 候選池約 1,000 個 repo，實際約需 30～90 秒
+// 資安同步另以 ?module=security 獨立排程，不和 GitHub／HN 共用時間，失敗也互不影響
 export const maxDuration = 300
 
 const BEARER_PREFIX = "Bearer "
@@ -31,14 +32,20 @@ function isAuthorized(request: Request) {
   }
 }
 
-// Vercel Cron 每天 UTC 18:00（台灣 02:00）以 GET 呼叫，並自動帶上 Authorization: Bearer <CRON_SECRET>
+// Vercel Cron 每天 UTC 18:00／18:30（台灣 02:00／02:30）以 GET 呼叫，並自動帶上 Authorization: Bearer <CRON_SECRET>
+// ?module=github,hn 只同步指定模組；沒有帶參數時同步全部模組
 export async function GET(request: Request) {
   if (!isAuthorized(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  const keys = parseRadarModuleParam(new URL(request.url).searchParams.get("module"))
+  if (!keys) {
+    return Response.json({ error: "Unknown module" }, { status: 400 })
+  }
+
   const startedAt = Date.now()
-  const reports = await runRadarSync()
+  const reports = await runRadarSync(keys)
 
   // Route Handler 不能使用 updateTag；以 stale-while-revalidate 方式失效，下一位訪客觸發重新查詢
   revalidateTag(CACHE_TAG.RADAR, "max")

@@ -1,17 +1,24 @@
 import "server-only"
 
-import { RADAR_MODULE, RADAR_MODULE_KEYS, type RadarModuleKey } from "@/config/radar"
+import {
+  isRadarModuleKey,
+  RADAR_MODULE,
+  RADAR_MODULE_KEYS,
+  type RadarModuleKey,
+} from "@/config/radar"
 import { syncGithub } from "@/lib/radar/github"
 import { syncHn } from "@/lib/radar/hn"
+import { syncSecurity } from "@/lib/radar/security"
 import type { RadarSyncResult } from "@/lib/radar/sync-result"
 import { createServiceClient, type ServiceClient } from "@/lib/supabase/service"
 
 type RadarSyncer = (client: ServiceClient, now: number) => Promise<RadarSyncResult>
 
-// 模組 key → 同步函式；第二期新增資安模組時只要在這裡註冊
+// 模組 key → 同步函式；新增模組時只要在這裡註冊
 const RADAR_SYNCERS: Record<RadarModuleKey, RadarSyncer> = {
   [RADAR_MODULE.GITHUB]: syncGithub,
   [RADAR_MODULE.HN]: syncHn,
+  [RADAR_MODULE.SECURITY]: syncSecurity,
 }
 
 // 錯誤訊息存進資料庫並顯示在後台，過長時截斷
@@ -60,6 +67,7 @@ async function syncModule(
 }
 
 // 依序執行，任一模組失敗不影響其他模組；呼叫端負責驗證身分（CRON_SECRET 或 requireAdmin）
+// Vercel Cron 以 ?module= 拆成兩個排程（GitHub／HN 一個、資安一個），各自有完整的 300 秒
 export async function runRadarSync(keys: readonly RadarModuleKey[] = RADAR_MODULE_KEYS) {
   const client = createServiceClient()
   const reports: RadarModuleSyncReport[] = []
@@ -69,4 +77,20 @@ export async function runRadarSync(keys: readonly RadarModuleKey[] = RADAR_MODUL
   }
 
   return reports
+}
+
+// 解析 Cron 的 ?module=github,hn 參數；沒有帶參數時同步全部模組，含未知 key 時回傳 null
+export function parseRadarModuleParam(value: string | null): RadarModuleKey[] | null {
+  if (value === null || value.trim() === "") return [...RADAR_MODULE_KEYS]
+
+  const keys = [
+    ...new Set(
+      value
+        .split(",")
+        .map((key) => key.trim())
+        .filter(Boolean),
+    ),
+  ]
+  if (keys.length === 0 || !keys.every(isRadarModuleKey)) return null
+  return keys
 }

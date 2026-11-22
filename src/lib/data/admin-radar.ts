@@ -15,6 +15,12 @@ import {
   type GithubRanking,
   type HnRankingItem,
 } from "@/lib/radar/ranking"
+import { listKeywordRules, type RadarKeywordRule } from "@/lib/radar/keyword-rules"
+import {
+  toAdvisoryRankingItem,
+  toKevRankingItem,
+  type SecurityRanking,
+} from "@/lib/radar/security/ranking"
 import { createClient } from "@/lib/supabase/server"
 
 export type AdminRadarModule = {
@@ -36,6 +42,9 @@ export type BlockedRadarItem = {
   url: string
   summary: string | null
   blockedAt: string | null
+  // 被排除關鍵字自動隱藏時為「排除關鍵字：xxx」；手動隱藏為 null
+  blockedReason: string | null
+  blockedByRule: boolean
 }
 
 async function countItems(moduleKey: RadarModuleKey, blocked?: boolean) {
@@ -136,7 +145,7 @@ export async function listBlockedRadarItems(
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("radar_items")
-    .select("id, title, url, summary, blocked_at")
+    .select("id, title, url, summary, blocked_at, blocked_reason, blocked_rule_id")
     .eq("module_key", moduleKey)
     .eq("is_blocked", true)
     .order("blocked_at", { ascending: false, nullsFirst: false })
@@ -149,5 +158,33 @@ export async function listBlockedRadarItems(
     url: row.url,
     summary: row.summary,
     blockedAt: row.blocked_at,
+    blockedReason: row.blocked_reason,
+    blockedByRule: row.blocked_rule_id !== null,
   }))
+}
+
+// 後台多取候選（上限 100），主題篩選後仍能顯示到第 25 名
+const ADMIN_SECURITY_CANDIDATE_LIMIT = 100
+
+export async function getAdminSecurityRanking(): Promise<SecurityRanking> {
+  const supabase = await createClient()
+  const [kev, advisory] = await Promise.all([
+    supabase.rpc("radar_security_kev_ranking", { p_limit: ADMIN_SECURITY_CANDIDATE_LIMIT }),
+    supabase.rpc("radar_security_advisory_ranking", { p_limit: ADMIN_SECURITY_CANDIDATE_LIMIT }),
+  ])
+
+  const error = kev.error ?? advisory.error
+  if (error) throw new Error(`讀取資安榜單失敗：${error.message}`)
+
+  return {
+    kev: (kev.data ?? []).map(toKevRankingItem),
+    advisory: (advisory.data ?? []).map(toAdvisoryRankingItem),
+  }
+}
+
+export async function listAdminKeywordRules(
+  moduleKey: RadarModuleKey,
+): Promise<RadarKeywordRule[]> {
+  const supabase = await createClient()
+  return listKeywordRules(supabase, moduleKey)
 }

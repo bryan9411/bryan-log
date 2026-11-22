@@ -5,6 +5,7 @@ import {
   GITHUB_LIST_TOPICS,
   type GithubCategory,
 } from "@/config/radar"
+import { buildKeywordPattern } from "@/lib/radar/keywords"
 
 export type CategorizeInput = {
   // owner/repo
@@ -16,16 +17,6 @@ export type CategorizeInput = {
 export type CategorizeResult = {
   categories: GithubCategory[]
   isList: boolean
-}
-
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-}
-
-// 以「整個單字」比對，前後不能緊接英數字；名稱中的 - _ / 視為單字邊界，例如 react-agent 會命中 agent
-function buildKeywordPattern(keywords: string[]) {
-  const alternatives = keywords.map(escapeRegExp).join("|")
-  return new RegExp(`(?<![a-z0-9])(?:${alternatives})(?![a-z0-9])`, "i")
 }
 
 const KEYWORD_PATTERNS = Object.fromEntries(

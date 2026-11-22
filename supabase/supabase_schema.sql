@@ -7,7 +7,7 @@
 --   2. 寫入（INSERT / UPDATE / DELETE）僅限已認證用戶（管理員帳號由後台手動建立，請關閉公開註冊）
 --   3. 瀏覽數透過 SECURITY DEFINER 函式遞增，匿名訪客無需任何 UPDATE 權限
 --   4. 效能指標（web_vitals）匿名僅能經由 record_web_vitals 寫入，讀取限已認證用戶
---   5. 雷達（radar_*）匿名對資料表沒有權限，前台只能透過 get_*_weekly_ranking 讀取公開模組；排程以 service role 寫入
+--   5. 雷達（radar_*）匿名對資料表沒有權限，前台只能透過 get_*_ranking 等 SECURITY DEFINER 函式讀取公開模組；排程以 service role 寫入
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -687,6 +687,9 @@ create table if not exists public.radar_items (
   data jsonb not null default '{}'::jsonb,
   is_blocked boolean not null default false,
   blocked_at timestamptz,
+  -- 手動隱藏時為 null；被排除關鍵字隱藏時記錄規則與原因（刻意不設外鍵，規則刪除後由應用程式還原）
+  blocked_reason text,
+  blocked_rule_id uuid,
   first_seen_at timestamptz not null default now(),
   last_seen_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -718,7 +721,7 @@ create trigger radar_items_set_updated_at
 
 -- 預設模組：一律先隱藏，資料累積且確認同步正常後再於後台公開
 insert into public.radar_modules (key, name, sort_order)
-values ('github', 'GitHub 週榜', 0), ('hn', 'Hacker News 週榜', 1)
+values ('github', 'GitHub 週榜', 0), ('hn', 'Hacker News 週榜', 1), ('security', '資安情資', 2)
 on conflict (key) do nothing;
 
 -- -----------------------------------------------------------------------------
@@ -949,3 +952,154 @@ grant execute on function public.get_public_radar_modules() to anon, authenticat
 grant execute on function public.get_github_weekly_ranking(integer) to anon, authenticated;
 grant execute on function public.get_hn_weekly_ranking(boolean, integer) to anon, authenticated;
 
+-- =============================================================================
+-- 雷達第二期：資安情資（security 模組）與關鍵字規則
+-- =============================================================================
+-- -----------------------------------------------------------------------------
+-- 關鍵字規則：exclude 命中即自動隱藏；watch 只在 data.watch_keywords 記錄並顯示徽章，不影響名次
+-- 規則表不綁定資安模組，第一期的 GitHub／HN 之後也能使用；keyword 一律以小寫儲存
+-- -----------------------------------------------------------------------------
+create table if not exists public.radar_keyword_rules (
+  id uuid primary key default gen_random_uuid(),
+  module_key text not null references public.radar_modules (key) on delete cascade,
+  kind text not null check (kind in ('exclude', 'watch')),
+  keyword text not null check (char_length(keyword) between 2 and 60),
+  created_at timestamptz not null default now(),
+  unique (module_key, kind, keyword)
+);
+
+alter table public.radar_keyword_rules enable row level security;
+
+revoke all on public.radar_keyword_rules from anon;
+grant select, insert, update, delete on public.radar_keyword_rules to authenticated, service_role;
+
+drop policy if exists "radar_keyword_rules_all_authenticated" on public.radar_keyword_rules;
+create policy "radar_keyword_rules_all_authenticated" on public.radar_keyword_rules
+  for all to authenticated
+  using (true) with check (true);
+
+-- -----------------------------------------------------------------------------
+-- 排名函式
+-- radar_security_*_ranking：不檢查模組公開狀態，供後台使用（SECURITY INVOKER，受 RLS 限制）
+-- get_security_*_ranking：前台專用（SECURITY DEFINER），模組公開時才回傳資料
+-- 兩者都已排除被隱藏的項目，前台榜單因此會自動遞補
+-- -----------------------------------------------------------------------------
+
+-- 實戰遭利用：近 30 天（台灣日期）加入 KEV；勒索軟體利用優先 → EPSS 高到低 → 加入日期新到舊
+create or replace function public.radar_security_kev_ranking(p_limit integer default 25)
+returns table (
+  item_id uuid,
+  title text,
+  url text,
+  summary text,
+  categories text[],
+  data jsonb
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select items.id, items.title, items.url, items.summary, items.categories, items.data
+  from public.radar_items as items
+  where items.module_key = 'security'
+    and items.data ->> 'source' = 'kev'
+    and not items.is_blocked
+    and (items.data ->> 'date_added')::date >= (now() at time zone 'Asia/Taipei')::date - 30
+  order by
+    coalesce((items.data ->> 'ransomware')::boolean, false) desc,
+    coalesce((items.data ->> 'epss')::numeric, 0) desc,
+    (items.data ->> 'date_added')::date desc,
+    items.id
+  limit least(greatest(p_limit, 1), 100);
+$$;
+
+-- 開發生態漏洞：近 7 天發布；惡意套件與 critical 同級 > high → EPSS → npm 週下載量 → 發布時間新到舊
+-- 惡意套件週下載量未達門檻時 below_threshold 為 true（門檻在 src/config/radar.ts），資料只作為查詢快取
+create or replace function public.radar_security_advisory_ranking(p_limit integer default 25)
+returns table (
+  item_id uuid,
+  title text,
+  url text,
+  summary text,
+  categories text[],
+  data jsonb
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select items.id, items.title, items.url, items.summary, items.categories, items.data
+  from public.radar_items as items
+  where items.module_key = 'security'
+    and items.data ->> 'source' = 'advisory'
+    and not items.is_blocked
+    and not coalesce((items.data ->> 'below_threshold')::boolean, false)
+    and (items.data ->> 'published_at')::timestamptz >= now() - interval '7 days'
+  order by
+    case
+      when items.data ->> 'type' = 'malware' or items.data ->> 'severity' = 'critical' then 2
+      when items.data ->> 'severity' = 'high' then 1
+      else 0
+    end desc,
+    coalesce((items.data ->> 'epss')::numeric, 0) desc,
+    coalesce((items.data ->> 'npm_weekly_downloads')::bigint, 0) desc,
+    (items.data ->> 'published_at')::timestamptz desc,
+    items.id
+  limit least(greatest(p_limit, 1), 100);
+$$;
+
+create or replace function public.get_security_kev_ranking(p_limit integer default 25)
+returns table (
+  item_id uuid,
+  title text,
+  url text,
+  summary text,
+  categories text[],
+  data jsonb
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select ranking.*
+  from public.radar_security_kev_ranking(least(greatest(p_limit, 1), 50)) as ranking
+  where exists (
+    select 1 from public.radar_modules
+    where key = 'security' and visibility = 'public'
+  );
+$$;
+
+create or replace function public.get_security_advisory_ranking(p_limit integer default 25)
+returns table (
+  item_id uuid,
+  title text,
+  url text,
+  summary text,
+  categories text[],
+  data jsonb
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select ranking.*
+  from public.radar_security_advisory_ranking(least(greatest(p_limit, 1), 50)) as ranking
+  where exists (
+    select 1 from public.radar_modules
+    where key = 'security' and visibility = 'public'
+  );
+$$;
+
+revoke all on function public.radar_security_kev_ranking(integer) from public;
+revoke all on function public.radar_security_advisory_ranking(integer) from public;
+revoke all on function public.get_security_kev_ranking(integer) from public;
+revoke all on function public.get_security_advisory_ranking(integer) from public;
+
+grant execute on function public.radar_security_kev_ranking(integer) to authenticated, service_role;
+grant execute on function public.radar_security_advisory_ranking(integer) to authenticated, service_role;
+grant execute on function public.get_security_kev_ranking(integer) to anon, authenticated;
+grant execute on function public.get_security_advisory_ranking(integer) to anon, authenticated;

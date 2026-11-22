@@ -44,11 +44,12 @@ export default function AdminRadarPage() {
     <>
       <AdminPageHeader
         title="雷達總覽"
-        description="每天台灣時間 02:00 左右由 Vercel Cron 自動同步；模組公開前前台一律回應 404"
+        description="每天台灣時間 02:00（GitHub／HN）與 02:30（資安情資）左右由 Vercel Cron 自動同步；模組公開前前台一律回應 404"
       />
       <Suspense
         fallback={
           <div className="grid gap-6 xl:grid-cols-2">
+            <Skeleton className="h-72 rounded-xl" />
             <Skeleton className="h-72 rounded-xl" />
             <Skeleton className="h-72 rounded-xl" />
           </div>

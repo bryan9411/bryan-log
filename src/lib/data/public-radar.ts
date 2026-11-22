@@ -16,6 +16,11 @@ import {
   type GithubRanking,
   type HnRankingItem,
 } from "@/lib/radar/ranking"
+import {
+  toAdvisoryRankingItem,
+  toKevRankingItem,
+  type SecurityRanking,
+} from "@/lib/radar/security/ranking"
 import { createPublicClient } from "@/lib/supabase/public"
 
 export type PublicRadarModule = {
@@ -100,5 +105,26 @@ export async function getHnWeeklyRanking(): Promise<HnRanking> {
   return {
     top: (top.data ?? []).map(toHnRankingItem),
     show: (show.data ?? []).map(toHnRankingItem),
+  }
+}
+
+// 兩個資安榜單一起讀取：同一頁的兩個分頁與總覽頁區塊共用；多取幾筆候選讓主題篩選後仍能湊滿 10 名
+export async function getSecurityRanking(): Promise<SecurityRanking> {
+  "use cache"
+  cacheLife("hours")
+  cacheTag(CACHE_TAG.RADAR)
+
+  const client = createPublicClient()
+  const [kev, advisory] = await Promise.all([
+    client.rpc("get_security_kev_ranking", { p_limit: RADAR_CANDIDATE_LIMIT }),
+    client.rpc("get_security_advisory_ranking", { p_limit: RADAR_CANDIDATE_LIMIT }),
+  ])
+
+  const error = kev.error ?? advisory.error
+  if (error) throw new Error(`讀取資安榜單失敗：${error.message}`)
+
+  return {
+    kev: (kev.data ?? []).map(toKevRankingItem),
+    advisory: (advisory.data ?? []).map(toAdvisoryRankingItem),
   }
 }

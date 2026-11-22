@@ -38,6 +38,57 @@ export const hnStoryDataSchema = z.object({
 
 export type HnStoryData = z.infer<typeof hnStoryDataSchema>
 
+const stringArray = z.array(z.string()).catch([]).default([])
+
+// CVSS 分數：KEV 由 NVD 補查（undefined 代表還沒查過、null 代表 NVD 尚未提供分數）
+const cvssSchema = z.object({ score: z.number(), version: z.string() }).nullable().catch(null)
+
+export const kevDataSchema = z.object({
+  source: z.literal("kev").catch("kev"),
+  cve: z.string().catch("").default(""),
+  vendor: nullableString.default(null),
+  product: nullableString.default(null),
+  date_added: z.string().catch("").default(""),
+  due_date: nullableString.default(null),
+  // CISA 的值為 Known 或 Unknown
+  ransomware: z.boolean().catch(false).default(false),
+  short_description: nullableString.default(null),
+  required_action: nullableString.default(null),
+  cwes: stringArray,
+  epss: nullableNumber.default(null),
+  epss_percentile: nullableNumber.default(null),
+  cvss: cvssSchema.optional(),
+  cvss_checked_at: nullableString.optional(),
+  watch_keywords: stringArray,
+})
+
+export type KevData = z.infer<typeof kevDataSchema>
+
+export const advisoryDataSchema = z.object({
+  source: z.literal("advisory").catch("advisory"),
+  ghsa: z.string().catch("").default(""),
+  cve: nullableString.default(null),
+  type: z.enum(["reviewed", "malware"]).catch("reviewed"),
+  severity: z.string().catch("").default(""),
+  ecosystem: z.string().catch("").default(""),
+  package: z.string().catch("").default(""),
+  vulnerable_range: nullableString.default(null),
+  patched_version: nullableString.default(null),
+  cwes: stringArray,
+  epss: nullableNumber.default(null),
+  epss_percentile: nullableNumber.default(null),
+  // 只有 npm 套件會查詢；undefined 代表還沒查過
+  npm_weekly_downloads: nullableNumber.optional(),
+  npm_checked_at: nullableString.optional(),
+  in_kev: z.boolean().catch(false).default(false),
+  // 惡意套件週下載量未達門檻（或還沒查到）：資料保留作為查詢快取，但不列入榜單
+  below_threshold: z.boolean().catch(false).default(false),
+  published_at: z.string().catch("").default(""),
+  watch_keywords: stringArray,
+})
+
+export type AdvisoryData = z.infer<typeof advisoryDataSchema>
+
 function asObject(value: unknown) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {}
 }
@@ -48,4 +99,12 @@ export function parseGithubRepoData(value: unknown): GithubRepoData {
 
 export function parseHnStoryData(value: unknown): HnStoryData {
   return hnStoryDataSchema.parse(asObject(value))
+}
+
+export function parseKevData(value: unknown): KevData {
+  return kevDataSchema.parse(asObject(value))
+}
+
+export function parseAdvisoryData(value: unknown): AdvisoryData {
+  return advisoryDataSchema.parse(asObject(value))
 }

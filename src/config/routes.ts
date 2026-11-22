@@ -20,9 +20,11 @@ export const ROUTES = {
   ADMIN_RADAR: "/admin/radar",
   ADMIN_RADAR_GITHUB: "/admin/radar/github",
   ADMIN_RADAR_HN: "/admin/radar/hn",
+  ADMIN_RADAR_SECURITY: "/admin/radar/security",
   RADAR: "/radar",
   RADAR_GITHUB: "/radar/github",
   RADAR_HN: "/radar/hn",
+  RADAR_SECURITY: "/radar/security",
   // AI 爬蟲專用的 Markdown 索引與全文（llmstxt.org 協定）
   LLMS_TXT: "/llms.txt",
   LLMS_FULL_TXT: "/llms-full.txt",

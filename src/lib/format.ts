@@ -89,3 +89,17 @@ export function formatInteger(value: number) {
 export function formatCompactNumber(value: number) {
   return compactFormatter.format(value)
 }
+
+const percentFormatter = new Intl.NumberFormat("zh-TW", {
+  style: "percent",
+  maximumFractionDigits: 1,
+})
+const smallPercentFormatter = new Intl.NumberFormat("zh-TW", {
+  style: "percent",
+  maximumFractionDigits: 2,
+})
+
+// 0～1 的機率，例如 0.942 → 94.2%；小於 1% 時多保留一位，避免全部顯示成 0%
+export function formatProbability(value: number) {
+  return (value < 0.01 ? smallPercentFormatter : percentFormatter).format(value)
+}

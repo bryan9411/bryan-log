@@ -9,7 +9,9 @@ export function revalidateRadarPaths() {
   revalidatePath(ROUTES.RADAR)
   revalidatePath(ROUTES.RADAR_GITHUB)
   revalidatePath(ROUTES.RADAR_HN)
+  revalidatePath(ROUTES.RADAR_SECURITY)
   revalidatePath(ROUTES.ADMIN_RADAR)
   revalidatePath(ROUTES.ADMIN_RADAR_GITHUB)
   revalidatePath(ROUTES.ADMIN_RADAR_HN)
+  revalidatePath(ROUTES.ADMIN_RADAR_SECURITY)
 }

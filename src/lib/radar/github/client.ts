@@ -1,6 +1,6 @@
 import "server-only"
 
-import { fetchJson } from "@/lib/radar/http"
+import { fetchJson, fetchJsonResponse } from "@/lib/radar/http"
 
 const GITHUB_API = "https://api.github.com"
 const GITHUB_API_VERSION = "2022-11-28"
@@ -33,6 +33,15 @@ function githubHeaders(token: string) {
 
 export function githubRest<T>(token: string, path: string) {
   return fetchJson<T>(`${GITHUB_API}${path}`, { headers: githubHeaders(token) })
+}
+
+// 分頁查詢：回傳 Link 標頭中的下一頁網址（GitHub Advisory API 以 after 游標分頁）
+// 只接受 api.github.com 的完整網址，避免把 token 送到其他主機
+export async function githubRestPage<T>(token: string, pathOrUrl: string) {
+  const url = pathOrUrl.startsWith(`${GITHUB_API}/`) ? pathOrUrl : `${GITHUB_API}${pathOrUrl}`
+  const { data, headers } = await fetchJsonResponse<T>(url, { headers: githubHeaders(token) })
+  const next = /<([^>]+)>;\s*rel="next"/.exec(headers.get("link") ?? "")?.[1] ?? null
+  return { data, next }
 }
 
 type GraphqlResponse<T> = {

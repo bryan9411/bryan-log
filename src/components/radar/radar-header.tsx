@@ -15,53 +15,70 @@ type RadarHeaderProps = {
   accumulatingDays?: number | null
 }
 
-export function RadarHeader({
-  title,
-  description,
+type RadarBasisPanelProps = Omit<RadarHeaderProps, "title" | "description"> & {
+  // 榜單的一句話說明（例如同一頁有多個榜單時，各自說明統計方式）
+  summary?: string
+}
+
+// 統計期間、最後同步時間與可展開的排名依據；同一頁有多個榜單時（資安情資）各自顯示一份
+export function RadarBasisPanel({
   basis,
   period,
   lastSyncedAt,
   accumulatingDays,
-}: RadarHeaderProps) {
+  summary,
+}: RadarBasisPanelProps) {
   const maybeRenderAccumulating = () => {
     if (accumulatingDays === null || accumulatingDays === undefined) return null
     return <Badge variant="outline">資料累積中（已有 {accumulatingDays} 天快照）</Badge>
   }
 
+  const maybeRenderSummary = () => {
+    if (!summary) return null
+    return <p className="leading-relaxed text-pretty">{summary}</p>
+  }
+
+  return (
+    <section
+      aria-label="統計方式"
+      className="flex flex-col gap-4 rounded-xl border bg-muted/30 px-5 py-4 text-sm"
+    >
+      {maybeRenderSummary()}
+      <dl className="grid gap-x-8 gap-y-2 sm:grid-cols-[auto_1fr] sm:items-center">
+        <dt className="text-muted-foreground">統計期間</dt>
+        <dd className="flex flex-wrap items-center gap-2 font-medium tabular-nums">
+          {period}
+          {maybeRenderAccumulating()}
+        </dd>
+        <dt className="text-muted-foreground">最後同步</dt>
+        <dd className="font-medium tabular-nums">
+          {lastSyncedAt ? (
+            <time dateTime={lastSyncedAt}>{formatDateTime(lastSyncedAt)}</time>
+          ) : (
+            "尚未同步"
+          )}
+        </dd>
+      </dl>
+      <details className="group">
+        <summary className="flex w-fit cursor-pointer items-center gap-1.5 text-muted-foreground transition-colors select-none hover:text-foreground">
+          <InfoIcon className="size-4" aria-hidden />
+          排名依據
+        </summary>
+        <ul className="mt-3 grid list-disc gap-1.5 pl-5 leading-relaxed text-muted-foreground">
+          {basis.map((rule) => (
+            <li key={rule}>{rule}</li>
+          ))}
+        </ul>
+      </details>
+    </section>
+  )
+}
+
+export function RadarHeader({ title, description, ...panel }: RadarHeaderProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={title} description={description} />
-      <section
-        aria-label="統計方式"
-        className="flex flex-col gap-4 rounded-xl border bg-muted/30 px-5 py-4 text-sm"
-      >
-        <dl className="grid gap-x-8 gap-y-2 sm:grid-cols-[auto_1fr] sm:items-center">
-          <dt className="text-muted-foreground">統計期間</dt>
-          <dd className="flex flex-wrap items-center gap-2 font-medium tabular-nums">
-            {period}
-            {maybeRenderAccumulating()}
-          </dd>
-          <dt className="text-muted-foreground">最後同步</dt>
-          <dd className="font-medium tabular-nums">
-            {lastSyncedAt ? (
-              <time dateTime={lastSyncedAt}>{formatDateTime(lastSyncedAt)}</time>
-            ) : (
-              "尚未同步"
-            )}
-          </dd>
-        </dl>
-        <details className="group">
-          <summary className="flex w-fit cursor-pointer items-center gap-1.5 text-muted-foreground transition-colors select-none hover:text-foreground">
-            <InfoIcon className="size-4" aria-hidden />
-            排名依據
-          </summary>
-          <ul className="mt-3 grid list-disc gap-1.5 pl-5 leading-relaxed text-muted-foreground">
-            {basis.map((rule) => (
-              <li key={rule}>{rule}</li>
-            ))}
-          </ul>
-        </details>
-      </section>
+      <RadarBasisPanel {...panel} />
     </div>
   )
 }

@@ -1,16 +1,27 @@
+import type { ReactNode } from "react"
 import { notFound } from "next/navigation"
 
 import { SectionHeading } from "@/components/home/section-heading"
 import { GithubRankCard } from "@/components/radar/github-rank-card"
 import { HnRankingList } from "@/components/radar/hn-ranking"
+import { AdvisoryCard } from "@/components/radar/security/advisory-card"
+import { KevCard } from "@/components/radar/security/kev-card"
 import { PageHeader } from "@/components/site/page-header"
 import { SiteContainer } from "@/components/site/site-container"
-import { RADAR_MODULE, RADAR_OVERVIEW_SIZE, RADAR_OVERVIEW_DESCRIPTION } from "@/config/radar"
+import {
+  RADAR_MODULE,
+  RADAR_OVERVIEW_DESCRIPTION,
+  RADAR_OVERVIEW_SIZE,
+  SECURITY_OVERVIEW_SIZE,
+  SECURITY_TAB,
+  SECURITY_TAB_LABEL,
+} from "@/config/radar"
 import { ROUTES } from "@/config/routes"
 import {
   getGithubWeeklyRanking,
   getHnWeeklyRanking,
   getPublicRadarModules,
+  getSecurityRanking,
   type PublicRadarModule,
 } from "@/lib/data/public-radar"
 import { formatDateTime } from "@/lib/format"
@@ -53,9 +64,49 @@ async function HnPreview() {
   return <HnRankingList items={top.slice(0, RADAR_OVERVIEW_SIZE)} />
 }
 
+// 資安情資兩個榜單各取前 3 名，並排顯示
+async function SecurityPreview() {
+  const { kev, advisory } = await getSecurityRanking()
+
+  const renderColumn = (title: string, cards: ReactNode[]) => (
+    <div className="flex flex-col gap-2">
+      <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
+      {cards.length === 0 ? (
+        <EmptyRanking />
+      ) : (
+        <ol aria-label={title} className="-mx-4 sm:-mx-5">
+          {cards}
+        </ol>
+      )}
+    </div>
+  )
+
+  return (
+    <div className="grid gap-8 lg:grid-cols-2">
+      {renderColumn(
+        SECURITY_TAB_LABEL[SECURITY_TAB.KEV],
+        kev.slice(0, SECURITY_OVERVIEW_SIZE).map((item) => (
+          <li key={item.id}>
+            <KevCard item={item} />
+          </li>
+        )),
+      )}
+      {renderColumn(
+        SECURITY_TAB_LABEL[SECURITY_TAB.ADVISORY],
+        advisory.slice(0, SECURITY_OVERVIEW_SIZE).map((item) => (
+          <li key={item.id}>
+            <AdvisoryCard item={item} />
+          </li>
+        )),
+      )}
+    </div>
+  )
+}
+
 const PREVIEWS = {
   [RADAR_MODULE.GITHUB]: GithubPreview,
   [RADAR_MODULE.HN]: HnPreview,
+  [RADAR_MODULE.SECURITY]: SecurityPreview,
 }
 
 function renderModule(radarModule: PublicRadarModule) {
@@ -82,7 +133,7 @@ function renderModule(radarModule: PublicRadarModule) {
   )
 }
 
-// 每個公開模組顯示前 5 名；沒有任何公開模組時整個雷達視為不存在
+// 每個公開模組顯示前 5 名（資安情資兩個榜單各 3 名）；沒有任何公開模組時整個雷達視為不存在
 export default async function RadarPage() {
   const modules = await getPublicRadarModules()
 

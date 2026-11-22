@@ -21,7 +21,11 @@ type FetchJsonOptions = RequestInit & {
 }
 
 // 外部 API 一律設定逾時，避免單一請求卡住整個排程（Vercel 函式最長 300 秒）
-export async function fetchJson<T>(url: string, options: FetchJsonOptions = {}): Promise<T | null> {
+// 需要讀取回應標頭（例如 GitHub 分頁的 Link）時使用，data 為 null 代表狀態碼在 allowStatus 內
+export async function fetchJsonResponse<T>(
+  url: string,
+  options: FetchJsonOptions = {},
+): Promise<{ data: T | null; headers: Headers; status: number }> {
   const { timeoutMs = DEFAULT_TIMEOUT_MS, allowStatus = [], ...init } = options
   const response = await fetch(url, {
     ...init,
@@ -29,7 +33,9 @@ export async function fetchJson<T>(url: string, options: FetchJsonOptions = {}):
     signal: AbortSignal.timeout(timeoutMs),
   })
 
-  if (allowStatus.includes(response.status)) return null
+  if (allowStatus.includes(response.status)) {
+    return { data: null, headers: response.headers, status: response.status }
+  }
 
   if (!response.ok) {
     const body = (await response.text().catch(() => "")).slice(0, MAX_ERROR_BODY_LENGTH)
@@ -40,7 +46,19 @@ export async function fetchJson<T>(url: string, options: FetchJsonOptions = {}):
     )
   }
 
-  return (await response.json()) as T
+  return {
+    data: (await response.json()) as T,
+    headers: response.headers,
+    status: response.status,
+  }
+}
+
+export async function fetchJson<T>(url: string, options: FetchJsonOptions = {}): Promise<T | null> {
+  return (await fetchJsonResponse<T>(url, options)).data
+}
+
+export function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 // 以固定併發數執行非同步工作，避免同時對外部 API 發出過多請求

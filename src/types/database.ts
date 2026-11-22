@@ -22,6 +22,11 @@ type RadarGithubRankingRow = RadarRankingRow & {
 
 type RadarHnRankingRow = RadarRankingRow
 
+// 資安榜單的排序依據都在 data 內（EPSS、等級、下載量），因此不回傳 score／total
+type RadarSecurityRankingRow = Omit<RadarRankingRow, "score" | "total">
+
+type RadarKeywordRuleKind = "exclude" | "watch"
+
 type Timestamps = {
   created_at: string
   updated_at: string
@@ -244,6 +249,8 @@ export type Database = {
           data: Json
           is_blocked: boolean
           blocked_at: string | null
+          blocked_reason: string | null
+          blocked_rule_id: string | null
           first_seen_at: string
           last_seen_at: string
           updated_at: string
@@ -259,6 +266,8 @@ export type Database = {
           data?: Json
           is_blocked?: boolean
           blocked_at?: string | null
+          blocked_reason?: string | null
+          blocked_rule_id?: string | null
           first_seen_at?: string
           last_seen_at?: string
           updated_at?: string
@@ -293,6 +302,32 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "radar_items"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      radar_keyword_rules: {
+        Row: {
+          id: string
+          module_key: string
+          kind: RadarKeywordRuleKind
+          keyword: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          module_key: string
+          kind: RadarKeywordRuleKind
+          keyword: string
+          created_at?: string
+        }
+        Update: Partial<Database["public"]["Tables"]["radar_keyword_rules"]["Insert"]>
+        Relationships: [
+          {
+            foreignKeyName: "radar_keyword_rules_module_key_fkey"
+            columns: ["module_key"]
+            isOneToOne: false
+            referencedRelation: "radar_modules"
+            referencedColumns: ["key"]
           },
         ]
       }
@@ -356,6 +391,22 @@ export type Database = {
       get_hn_weekly_ranking: {
         Args: { p_show_hn: boolean; p_limit?: number }
         Returns: Array<RadarHnRankingRow>
+      }
+      radar_security_kev_ranking: {
+        Args: { p_limit?: number }
+        Returns: Array<RadarSecurityRankingRow>
+      }
+      get_security_kev_ranking: {
+        Args: { p_limit?: number }
+        Returns: Array<RadarSecurityRankingRow>
+      }
+      radar_security_advisory_ranking: {
+        Args: { p_limit?: number }
+        Returns: Array<RadarSecurityRankingRow>
+      }
+      get_security_advisory_ranking: {
+        Args: { p_limit?: number }
+        Returns: Array<RadarSecurityRankingRow>
       }
     }
     Enums: {

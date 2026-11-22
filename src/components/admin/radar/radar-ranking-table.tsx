@@ -19,27 +19,40 @@ export type RadarTableColumn<T> = {
   render: (row: T) => ReactNode
 }
 
-type RadarRankingTableProps<T extends { id: string; title: string }> = {
+// blockedByRule：被排除關鍵字自動隱藏的項目不能手動還原，要刪除規則才會還原
+type RadarTableRow = { id: string; title: string; blockedByRule?: boolean }
+
+type RadarRankingTableProps<T extends RadarTableRow> = {
   rows: T[]
   columns: RadarTableColumn<T>[]
   // 目前榜單顯示名次與「隱藏」；已隱藏清單不顯示名次，按鈕改為「還原」
   mode: "ranking" | "blocked"
   minWidth?: string
   footer?: ReactNode
+  // 前台顯示的名次數，之後的列以淡色顯示為遞補候選
+  rankingSize?: number
 }
 
-// 各模組後台共用的表格：第 11 名之後以淡色顯示，方便判斷隱藏後由誰遞補
-export function RadarRankingTable<T extends { id: string; title: string }>({
+// 各模組後台共用的表格：超過前台名次的列以淡色顯示，方便判斷隱藏後由誰遞補
+export function RadarRankingTable<T extends RadarTableRow>({
   rows,
   columns,
   mode,
   minWidth = "min-w-[960px]",
   footer,
+  rankingSize = RADAR_RANKING_SIZE,
 }: RadarRankingTableProps<T>) {
   const isRanking = mode === "ranking"
 
+  const renderAction = (row: T) => {
+    if (!isRanking && row.blockedByRule) {
+      return <span className="text-xs text-muted-foreground">刪除規則後自動還原</span>
+    }
+    return <RadarBlockButton id={row.id} title={row.title} block={isRanking} />
+  }
+
   const renderRow = (row: T, index: number) => {
-    const isReserve = isRanking && index >= RADAR_RANKING_SIZE
+    const isReserve = isRanking && index >= rankingSize
 
     return (
       <TableRow
@@ -56,9 +69,7 @@ export function RadarRankingTable<T extends { id: string; title: string }>({
             {column.render(row)}
           </TableCell>
         ))}
-        <TableCell className="w-28 py-3.5 pr-5 text-right">
-          <RadarBlockButton id={row.id} title={row.title} block={isRanking} />
-        </TableCell>
+        <TableCell className="w-28 py-3.5 pr-5 text-right">{renderAction(row)}</TableCell>
       </TableRow>
     )
   }
