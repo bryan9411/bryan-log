@@ -21,6 +21,7 @@ export const ROUTES = {
   ADMIN_RADAR_GITHUB: "/admin/radar/github",
   ADMIN_RADAR_HN: "/admin/radar/hn",
   ADMIN_RADAR_SECURITY: "/admin/radar/security",
+  ADMIN_RADAR_COLLECTIONS: "/admin/radar/collections",
   RADAR: "/radar",
   RADAR_GITHUB: "/radar/github",
   RADAR_HN: "/radar/hn",
@@ -77,6 +78,10 @@ export function adminEditPostRoute(id: string): Route {
 
 export function adminEditProjectRoute(id: string): Route {
   return `/admin/projects/${id}/edit` as Route
+}
+
+export function adminRadarCollectionRoute(id: string): Route {
+  return `${ROUTES.ADMIN_RADAR_COLLECTIONS}/${id}` as Route
 }
 
 // typedRoutes 無法由字串組合推導出動態路徑，因此明確轉型為 Route

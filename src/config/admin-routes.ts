@@ -11,6 +11,10 @@ import {
   buildAdminPostListQuery,
   type AdminPostListParams,
 } from "@/lib/validations/admin-post-list"
+import {
+  buildRadarCollectionListQuery,
+  type AdminRadarCollectionListParams,
+} from "@/lib/validations/radar-collection"
 
 // 依賴 zod 驗證模組的後台路由獨立成檔，避免 config/routes 被前台引入時把 zod 帶進所有頁面
 
@@ -18,6 +22,14 @@ import {
 export function adminPostListRoute(params: AdminPostListParams): Route {
   const query = buildAdminPostListQuery(params)
   return (query ? `${ROUTES.ADMIN_POSTS}?${query}` : ROUTES.ADMIN_POSTS) as Route
+}
+
+// 收藏列表的狀態分頁、模組／標籤／標題篩選與分頁都以查詢參數表示
+export function adminRadarCollectionListRoute(params: AdminRadarCollectionListParams): Route {
+  const query = buildRadarCollectionListQuery(params)
+  return (
+    query ? `${ROUTES.ADMIN_RADAR_COLLECTIONS}?${query}` : ROUTES.ADMIN_RADAR_COLLECTIONS
+  ) as Route
 }
 
 // 儀表板效能監控的時間範圍與裝置篩選；預設值不寫進網址，保持網址簡潔

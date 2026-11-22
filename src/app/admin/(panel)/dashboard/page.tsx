@@ -13,9 +13,13 @@ import {
 import { WebVitalsCard } from "@/components/admin/dashboard/web-vitals-card"
 import { StatCard, StatCardSkeleton } from "@/components/admin/stat-card"
 import { ADMIN_NAV_ITEMS } from "@/config/admin-nav"
+import { adminRadarCollectionListRoute } from "@/config/admin-routes"
+import { RADAR_COLLECTION_STATUS, RADAR_COLLECTION_STATUS_LABEL } from "@/config/radar"
 import { ROUTES } from "@/config/routes"
 import { WEB_VITALS_SEARCH_PARAM, webVitalsFilterSchema } from "@/lib/constants/web-vitals"
+import { getCollectionDashboardCounts } from "@/lib/data/admin-radar-collections"
 import { getContentStats } from "@/lib/data/admin-stats"
+import { ALL_FILTER } from "@/lib/validations/radar-collection"
 
 export const metadata: Metadata = {
   title: "管理儀表板",
@@ -44,6 +48,42 @@ async function ContentStatsGrid() {
         hint={`其中 ${stats.featuredProjects} 個為精選`}
       />
     </>
+  )
+}
+
+const COLLECTION_STAT_STATUSES = [
+  RADAR_COLLECTION_STATUS.TO_RESEARCH,
+  RADAR_COLLECTION_STATUS.EVALUATING,
+] as const
+
+// 雷達收藏的研究進度；收藏遷移尚未執行時整段不顯示
+async function CollectionStatsSection() {
+  const counts = await getCollectionDashboardCounts()
+  if (!counts) return null
+
+  return (
+    <section className="grid gap-3" aria-labelledby="collection-stats-title">
+      <h2 id="collection-stats-title" className="text-sm font-medium text-muted-foreground">
+        雷達收藏
+      </h2>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {COLLECTION_STAT_STATUSES.map((status) => (
+          <StatCard
+            key={status}
+            label={RADAR_COLLECTION_STATUS_LABEL[status]}
+            value={counts[status]}
+            hint="點擊查看收藏列表"
+            href={adminRadarCollectionListRoute({
+              status,
+              module: ALL_FILTER,
+              tag: "",
+              query: "",
+              page: 1,
+            })}
+          />
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -106,6 +146,9 @@ export default function AdminDashboardPage({ searchParams }: PageProps<"/admin/d
           <ContentStatsGrid />
         </Suspense>
       </section>
+      <Suspense fallback={null}>
+        <CollectionStatsSection />
+      </Suspense>
       {/* 各圖表獨立串流：儲存空間掃描較慢，不會拖住其他圖表 */}
       <section className="grid gap-4 lg:grid-cols-5" aria-label="內容分析">
         <div className="lg:col-span-3">

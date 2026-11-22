@@ -232,13 +232,18 @@ async function writeOutcomes(
   return failed
 }
 
-// 在各模組同步完後執行，只處理狀態不是「封存」的收藏；呼叫端負責捕捉錯誤，不影響各模組的同步結果
-export async function refreshCollections(
+type RefreshContext = {
+  // 今天已同步的項目 data（item_id → data）；手動更新時為空，一律向來源查詢
+  fresh: ReadonlyMap<string, Json>
+  deadline: number
+  nowIso: string
+}
+
+async function refreshTargets(
   client: ServiceClient,
-  { moduleKeys, since, deadline, now = Date.now() }: RefreshOptions,
+  targets: CollectionTarget[],
+  { fresh, deadline, nowIso }: RefreshContext,
 ): Promise<CollectionRefreshResult> {
-  const nowIso = new Date(now).toISOString()
-  const targets = await loadTargets(client, moduleKeys)
   const result: CollectionRefreshResult = {
     total: targets.length,
     copied: 0,
@@ -248,12 +253,6 @@ export async function refreshCollections(
     skipped: 0,
   }
   if (targets.length === 0) return result
-
-  const fresh = await loadFreshItemData(
-    client,
-    targets.flatMap((target) => (target.item_id ? [target.item_id] : [])),
-    since,
-  )
 
   const outcomes = new Map<string, Outcome>()
   const stale: Record<"github" | "hn" | "kev" | "advisory", CollectionTarget[]> = {
@@ -317,4 +316,47 @@ export async function refreshCollections(
 
   result.failed += await writeOutcomes(client, outcomes, nowIso)
   return result
+}
+
+// 在各模組同步完後執行，只處理狀態不是「封存」的收藏；呼叫端負責捕捉錯誤，不影響各模組的同步結果
+export async function refreshCollections(
+  client: ServiceClient,
+  { moduleKeys, since, deadline, now = Date.now() }: RefreshOptions,
+): Promise<CollectionRefreshResult> {
+  const targets = await loadTargets(client, moduleKeys)
+  const fresh = await loadFreshItemData(
+    client,
+    targets.flatMap((target) => (target.item_id ? [target.item_id] : [])),
+    since,
+  )
+
+  return refreshTargets(client, targets, { fresh, deadline, nowIso: new Date(now).toISOString() })
+}
+
+export type SingleCollectionRefresh = "updated" | "unavailable" | "not_found" | "failed"
+
+// 收藏詳細頁的「重新整理最新數據」：不論狀態（含封存）一律直接向來源查詢，不沿用今天同步的 data
+export async function refreshCollection(
+  client: ServiceClient,
+  id: string,
+  { deadline, now = Date.now() }: { deadline: number; now?: number },
+): Promise<SingleCollectionRefresh> {
+  const { data: target, error } = await client
+    .from("radar_collections")
+    .select("id, item_id, module_key, external_id, latest_data, snapshot_at_save")
+    .eq("id", id)
+    .maybeSingle()
+
+  if (error) throw new Error(`讀取收藏失敗：${error.message}`)
+  if (!target) return "not_found"
+
+  const result = await refreshTargets(client, [target], {
+    fresh: new Map(),
+    deadline,
+    nowIso: new Date(now).toISOString(),
+  })
+
+  if (result.fetched > 0) return "updated"
+  if (result.unavailable > 0 && result.failed === 0) return "unavailable"
+  return "failed"
 }

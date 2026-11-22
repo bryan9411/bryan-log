@@ -50,7 +50,7 @@ export type BlockedRadarItem = {
   blockedByRule: boolean
 }
 
-// 後台榜單的每一列附上收藏編號：null 代表尚未收藏（第 2 階段改成連到收藏詳細頁）
+// 後台榜單的每一列附上收藏編號：null 代表尚未收藏，有值時「已收藏」連到收藏詳細頁
 export type WithCollection<T> = T & { collectionId: string | null }
 
 export type AdminGithubRanking = Omit<GithubRanking, "items"> & {

@@ -1,4 +1,5 @@
 import {
+  BookmarkIcon,
   FileTextIcon,
   FolderKanbanIcon,
   FolderTreeIcon,
@@ -55,6 +56,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: ROUTES.ADMIN_RADAR_GITHUB, label: "GitHub 週榜", icon: StarIcon },
       { href: ROUTES.ADMIN_RADAR_HN, label: "HN 週榜", icon: NewspaperIcon },
       { href: ROUTES.ADMIN_RADAR_SECURITY, label: "資安情資", icon: ShieldAlertIcon },
+      { href: ROUTES.ADMIN_RADAR_COLLECTIONS, label: "收藏", icon: BookmarkIcon },
     ],
   },
   {
