@@ -34,15 +34,16 @@ import type { Database } from "@/types/database"
 
 type RadarItemInsert = Database["public"]["Tables"]["radar_items"]["Insert"]
 
-const KEV_PREFIX = "kev:"
-const GHSA_PREFIX = "ghsa:"
+// external_id 以來源前綴區分 KEV 與 Advisory；收藏每日更新也依前綴判斷來源
+export const KEV_PREFIX = "kev:"
+export const GHSA_PREFIX = "ghsa:"
 
 const kevExternalId = (cve: string) => `${KEV_PREFIX}${cve}`
 const ghsaExternalId = (ghsa: string) => `${GHSA_PREFIX}${ghsa}`
 
 type ExistingItem = { id: string; data: unknown }
 
-function toKevRow(
+export function toKevRow(
   entry: KevEntry,
   epss: EpssScore | undefined,
   previous: KevData | null,
@@ -87,7 +88,7 @@ function toKevRow(
   }
 }
 
-function toAdvisoryRow(
+export function toAdvisoryRow(
   advisory: NormalizedAdvisory,
   kevCves: ReadonlySet<string>,
   downloads: {

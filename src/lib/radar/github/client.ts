@@ -31,8 +31,13 @@ function githubHeaders(token: string) {
   }
 }
 
-export function githubRest<T>(token: string, path: string) {
-  return fetchJson<T>(`${GITHUB_API}${path}`, { headers: githubHeaders(token) })
+// allowStatus：例如單筆查詢公告時，404 代表公告已不存在，回傳 null 交由呼叫端處理
+export function githubRest<T>(
+  token: string,
+  path: string,
+  options: { allowStatus?: number[] } = {},
+) {
+  return fetchJson<T>(`${GITHUB_API}${path}`, { headers: githubHeaders(token), ...options })
 }
 
 // 分頁查詢：回傳 Link 標頭中的下一頁網址（GitHub Advisory API 以 after 游標分頁）

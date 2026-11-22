@@ -6,11 +6,11 @@ import { EmptyState } from "@/components/empty-state"
 import { Badge } from "@/components/ui/badge"
 import { GITHUB_CATEGORY_RULES, RADAR_RANKING_SIZE, RADAR_WINDOW_DAYS } from "@/config/radar"
 import { formatCompactNumber, formatInteger } from "@/lib/format"
-import type { GithubRanking } from "@/lib/radar/ranking"
+import type { AdminGithubRanking } from "@/lib/data/admin-radar"
 
 const muted = <span className="text-muted-foreground">—</span>
 
-export function GithubRankingTable({ ranking }: { ranking: GithubRanking }) {
+export function GithubRankingTable({ ranking }: { ranking: AdminGithubRanking }) {
   if (ranking.items.length === 0) {
     return (
       <EmptyState
@@ -29,7 +29,7 @@ export function GithubRankingTable({ ranking }: { ranking: GithubRanking }) {
   return (
     <RadarRankingTable
       mode="ranking"
-      minWidth="min-w-[1100px]"
+      minWidth="min-w-[1200px]"
       rows={ranking.items.map((item) => ({ ...item, title: item.fullName }))}
       columns={[
         {

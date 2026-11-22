@@ -506,3 +506,37 @@ export const RADAR_KEYWORD_RULE_KIND_LABEL: Record<RadarKeywordRuleKind, string>
 }
 
 export const RADAR_KEYWORD_LENGTH = { MIN: 2, MAX: 60 } as const
+
+// -----------------------------------------------------------------------------
+// 收藏工作台（第三期）
+// -----------------------------------------------------------------------------
+
+// 與資料庫 enum `radar_collection_status` 一致；封存的收藏不再每日更新最新數據
+export const RADAR_COLLECTION_STATUS = {
+  TO_RESEARCH: "to_research",
+  EVALUATING: "evaluating",
+  ADOPTED: "adopted",
+  ARCHIVED: "archived",
+} as const
+
+export type RadarCollectionStatus =
+  (typeof RADAR_COLLECTION_STATUS)[keyof typeof RADAR_COLLECTION_STATUS]
+
+export const RADAR_COLLECTION_STATUS_LABEL: Record<RadarCollectionStatus, string> = {
+  [RADAR_COLLECTION_STATUS.TO_RESEARCH]: "待研究",
+  [RADAR_COLLECTION_STATUS.EVALUATING]: "評估中",
+  [RADAR_COLLECTION_STATUS.ADOPTED]: "已採用",
+  [RADAR_COLLECTION_STATUS.ARCHIVED]: "封存",
+}
+
+export const RADAR_COLLECTION_REFRESH = {
+  // 各模組同步完後才更新收藏；距離本次同步開始超過這個時間就不再呼叫外部 API，
+  // 留給 Vercel 函式（最長 300 秒）收尾，未更新的收藏下次同步再補
+  API_BUDGET_MS: 240_000,
+  // HN Algolia 以 story_<id> 標籤一次查多筆
+  HN_BATCH_SIZE: 50,
+  // GitHub Advisory 單筆查詢的併發數
+  ADVISORY_CONCURRENCY: 4,
+  // 寫回資料庫的併發數（每筆收藏的最新數據不同，逐筆更新）
+  WRITE_CONCURRENCY: 5,
+} as const

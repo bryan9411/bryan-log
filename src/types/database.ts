@@ -331,6 +331,68 @@ export type Database = {
           },
         ]
       }
+      radar_collections: {
+        Row: Timestamps & {
+          id: string
+          item_id: string | null
+          module_key: string
+          external_id: string
+          title: string
+          url: string
+          snapshot_at_save: Json
+          saved_at: string
+          latest_data: Json | null
+          latest_refreshed_at: string | null
+          latest_unavailable: boolean
+          status: Database["public"]["Enums"]["radar_collection_status"]
+          note: string
+          tags: string[]
+          post_id: string | null
+        }
+        Insert: {
+          id?: string
+          item_id?: string | null
+          module_key: string
+          external_id: string
+          title: string
+          url: string
+          snapshot_at_save: Json
+          saved_at?: string
+          latest_data?: Json | null
+          latest_refreshed_at?: string | null
+          latest_unavailable?: boolean
+          status?: Database["public"]["Enums"]["radar_collection_status"]
+          note?: string
+          tags?: string[]
+          post_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database["public"]["Tables"]["radar_collections"]["Insert"]>
+        Relationships: [
+          {
+            foreignKeyName: "radar_collections_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: true
+            referencedRelation: "radar_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "radar_collections_module_key_fkey"
+            columns: ["module_key"]
+            isOneToOne: false
+            referencedRelation: "radar_modules"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "radar_collections_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: Record<never, never>
     Functions: {
@@ -413,6 +475,7 @@ export type Database = {
       post_status: "draft" | "published"
       category_type: "post" | "project"
       radar_visibility: "hidden" | "public"
+      radar_collection_status: "to_research" | "evaluating" | "adopted" | "archived"
     }
     CompositeTypes: Record<never, never>
   }

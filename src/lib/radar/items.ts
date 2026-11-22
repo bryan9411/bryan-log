@@ -2,6 +2,7 @@ import "server-only"
 
 import type { RadarModuleKey } from "@/config/radar"
 import { chunk } from "@/lib/radar/http"
+import { isMissingTableError } from "@/lib/supabase/errors"
 import type { ServiceClient } from "@/lib/supabase/service"
 import type { Database } from "@/types/database"
 
@@ -62,11 +63,30 @@ export async function upsertRadarItems(
   return idsByExternalId
 }
 
-// 所有模組刪除項目都經過這個函式：第三期會在這裡加上「已收藏的項目不刪除」的條件
+async function loadCollectedItemIds(client: ServiceClient, ids: string[]) {
+  const { data, error } = await client
+    .from("radar_collections")
+    .select("item_id")
+    .in("item_id", ids)
+
+  if (error) {
+    // 收藏遷移尚未執行時沒有任何收藏，照常清理，避免同步因此失敗
+    if (isMissingTableError(error)) return new Set<string>()
+    throw new Error(`讀取收藏失敗：${error.message}`)
+  }
+  return new Set(data.flatMap(({ item_id }) => (item_id ? [item_id] : [])))
+}
+
+// 所有模組刪除項目都經過這個函式：已收藏的項目一律保留，收藏才能持續每日更新最新數據
+// 保留的項目仍受各排名函式的統計期間限制，過期後不會出現在榜單上
 export async function removeRadarItems(client: ServiceClient, ids: string[]) {
   let removed = 0
 
-  for (const batch of chunk(ids, DELETE_BATCH_SIZE)) {
+  for (const candidates of chunk(ids, DELETE_BATCH_SIZE)) {
+    const collected = await loadCollectedItemIds(client, candidates)
+    const batch = candidates.filter((id) => !collected.has(id))
+    if (batch.length === 0) continue
+
     const { error, count } = await client
       .from("radar_items")
       .delete({ count: "exact" })

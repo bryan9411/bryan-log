@@ -13,14 +13,17 @@ import {
   toGithubRanking,
   toHnRankingItem,
   type GithubRanking,
+  type GithubRankingItem,
   type HnRankingItem,
 } from "@/lib/radar/ranking"
 import { listKeywordRules, type RadarKeywordRule } from "@/lib/radar/keyword-rules"
 import {
   toAdvisoryRankingItem,
   toKevRankingItem,
-  type SecurityRanking,
+  type AdvisoryRankingItem,
+  type KevRankingItem,
 } from "@/lib/radar/security/ranking"
+import { isMissingTableError } from "@/lib/supabase/errors"
 import { createClient } from "@/lib/supabase/server"
 
 export type AdminRadarModule = {
@@ -45,6 +48,47 @@ export type BlockedRadarItem = {
   // 被排除關鍵字自動隱藏時為「排除關鍵字：xxx」；手動隱藏為 null
   blockedReason: string | null
   blockedByRule: boolean
+}
+
+// 後台榜單的每一列附上收藏編號：null 代表尚未收藏（第 2 階段改成連到收藏詳細頁）
+export type WithCollection<T> = T & { collectionId: string | null }
+
+export type AdminGithubRanking = Omit<GithubRanking, "items"> & {
+  items: WithCollection<GithubRankingItem>[]
+}
+
+export type AdminSecurityRanking = {
+  kev: WithCollection<KevRankingItem>[]
+  advisory: WithCollection<AdvisoryRankingItem>[]
+}
+
+async function loadCollectionIds(itemIds: string[]) {
+  const collectionIds = new Map<string, string>()
+  if (itemIds.length === 0) return collectionIds
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("radar_collections")
+    .select("id, item_id")
+    .in("item_id", [...new Set(itemIds)])
+
+  if (error) {
+    // 收藏遷移尚未執行時榜單照常顯示，按下收藏才提示執行遷移
+    if (isMissingTableError(error)) return collectionIds
+    throw new Error(`讀取收藏失敗：${error.message}`)
+  }
+
+  data.forEach(({ id, item_id }) => {
+    if (item_id) collectionIds.set(item_id, id)
+  })
+  return collectionIds
+}
+
+function withCollection<T extends { id: string }>(
+  items: T[],
+  collectionIds: Map<string, string>,
+): WithCollection<T>[] {
+  return items.map((item) => ({ ...item, collectionId: collectionIds.get(item.id) ?? null }))
 }
 
 async function countItems(moduleKey: RadarModuleKey, blocked?: boolean) {
@@ -110,19 +154,22 @@ export async function listAdminRadarModules(now: number): Promise<AdminRadarModu
 }
 
 // 後台榜單不檢查模組是否公開，讓模組隱藏期間也能先檢視與整理
-export async function getAdminGithubRanking(): Promise<GithubRanking> {
+export async function getAdminGithubRanking(): Promise<AdminGithubRanking> {
   const supabase = await createClient()
   const { data, error } = await supabase.rpc("radar_github_ranking", {
     p_limit: RADAR_CANDIDATE_LIMIT,
   })
 
   if (error) throw new Error(`讀取 GitHub 週榜失敗：${error.message}`)
-  return toGithubRanking(data)
+
+  const ranking = toGithubRanking(data)
+  const collectionIds = await loadCollectionIds(ranking.items.map((item) => item.id))
+  return { ...ranking, items: withCollection(ranking.items, collectionIds) }
 }
 
 export async function getAdminHnRanking(): Promise<{
-  top: HnRankingItem[]
-  show: HnRankingItem[]
+  top: WithCollection<HnRankingItem>[]
+  show: WithCollection<HnRankingItem>[]
 }> {
   const supabase = await createClient()
   const [top, show] = await Promise.all([
@@ -133,9 +180,13 @@ export async function getAdminHnRanking(): Promise<{
   const error = top.error ?? show.error
   if (error) throw new Error(`讀取 HN 週榜失敗：${error.message}`)
 
+  const topItems = (top.data ?? []).map(toHnRankingItem)
+  const showItems = (show.data ?? []).map(toHnRankingItem)
+  const collectionIds = await loadCollectionIds([...topItems, ...showItems].map((item) => item.id))
+
   return {
-    top: (top.data ?? []).map(toHnRankingItem),
-    show: (show.data ?? []).map(toHnRankingItem),
+    top: withCollection(topItems, collectionIds),
+    show: withCollection(showItems, collectionIds),
   }
 }
 
@@ -166,7 +217,7 @@ export async function listBlockedRadarItems(
 // 後台多取候選（上限 100），主題篩選後仍能顯示到第 25 名
 const ADMIN_SECURITY_CANDIDATE_LIMIT = 100
 
-export async function getAdminSecurityRanking(): Promise<SecurityRanking> {
+export async function getAdminSecurityRanking(): Promise<AdminSecurityRanking> {
   const supabase = await createClient()
   const [kev, advisory] = await Promise.all([
     supabase.rpc("radar_security_kev_ranking", { p_limit: ADMIN_SECURITY_CANDIDATE_LIMIT }),
@@ -176,9 +227,15 @@ export async function getAdminSecurityRanking(): Promise<SecurityRanking> {
   const error = kev.error ?? advisory.error
   if (error) throw new Error(`讀取資安榜單失敗：${error.message}`)
 
+  const kevItems = (kev.data ?? []).map(toKevRankingItem)
+  const advisoryItems = (advisory.data ?? []).map(toAdvisoryRankingItem)
+  const collectionIds = await loadCollectionIds(
+    [...kevItems, ...advisoryItems].map((item) => item.id),
+  )
+
   return {
-    kev: (kev.data ?? []).map(toKevRankingItem),
-    advisory: (advisory.data ?? []).map(toAdvisoryRankingItem),
+    kev: withCollection(kevItems, collectionIds),
+    advisory: withCollection(advisoryItems, collectionIds),
   }
 }
 

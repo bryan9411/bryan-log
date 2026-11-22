@@ -125,7 +125,7 @@ export async function syncRadarModuleAction(
 
   let reports
   try {
-    reports = await runRadarSync([parsed.data])
+    reports = (await runRadarSync([parsed.data])).modules
   } catch (error) {
     // 通常是缺少 SUPABASE_SERVICE_ROLE_KEY 或 GITHUB_TOKEN
     console.error("[radar] 手動同步無法執行：", error)

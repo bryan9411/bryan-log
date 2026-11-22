@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { SECURITY_ADMIN_RANKING_SIZE, SECURITY_RANKING_SIZE } from "@/config/radar"
 import { formatCompactNumber, formatDate, formatProbability } from "@/lib/format"
+import type { WithCollection } from "@/lib/data/admin-radar"
 import type { AdvisoryRankingItem, KevRankingItem } from "@/lib/radar/security/ranking"
 
 const muted = <span className="text-muted-foreground">—</span>
@@ -47,7 +48,7 @@ function badgesCell(item: Pick<KevRankingItem, "cwes" | "topics" | "watchKeyword
   )
 }
 
-type TableProps<T> = { items: T[]; filtered: boolean }
+type TableProps<T> = { items: WithCollection<T>[]; filtered: boolean }
 
 export function KevRankingTable({ items, filtered }: TableProps<KevRankingItem>) {
   if (items.length === 0) return <EmptyRanking topic={filtered} />
@@ -55,7 +56,7 @@ export function KevRankingTable({ items, filtered }: TableProps<KevRankingItem>)
   return (
     <RadarRankingTable
       mode="ranking"
-      minWidth="min-w-[1100px]"
+      minWidth="min-w-[1200px]"
       rankingSize={SECURITY_RANKING_SIZE}
       rows={items.slice(0, SECURITY_ADMIN_RANKING_SIZE)}
       columns={[
@@ -119,7 +120,7 @@ export function AdvisoryRankingTable({ items, filtered }: TableProps<AdvisoryRan
   return (
     <RadarRankingTable
       mode="ranking"
-      minWidth="min-w-[1180px]"
+      minWidth="min-w-[1280px]"
       rankingSize={SECURITY_RANKING_SIZE}
       rows={items.slice(0, SECURITY_ADMIN_RANKING_SIZE)}
       columns={[

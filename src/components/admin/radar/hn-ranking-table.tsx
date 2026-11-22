@@ -6,9 +6,10 @@ import { EmptyState } from "@/components/empty-state"
 import { ExternalLink } from "@/components/site/external-link"
 import { RADAR_RANKING_SIZE } from "@/config/radar"
 import { formatDateTime, formatInteger } from "@/lib/format"
+import type { WithCollection } from "@/lib/data/admin-radar"
 import type { HnRankingItem } from "@/lib/radar/ranking"
 
-export function HnRankingTable({ items }: { items: HnRankingItem[] }) {
+export function HnRankingTable({ items }: { items: WithCollection<HnRankingItem>[] }) {
   if (items.length === 0) {
     return (
       <EmptyState
@@ -22,6 +23,7 @@ export function HnRankingTable({ items }: { items: HnRankingItem[] }) {
   return (
     <RadarRankingTable
       mode="ranking"
+      minWidth="min-w-[1060px]"
       rows={items}
       columns={[
         {

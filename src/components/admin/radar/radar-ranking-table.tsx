@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 
 import { RadarBlockButton } from "@/components/admin/radar/radar-block-button"
+import { RadarCollectButton } from "@/components/admin/radar/radar-collect-button"
 import {
   Table,
   TableBody,
@@ -20,7 +21,13 @@ export type RadarTableColumn<T> = {
 }
 
 // blockedByRule：被排除關鍵字自動隱藏的項目不能手動還原，要刪除規則才會還原
-type RadarTableRow = { id: string; title: string; blockedByRule?: boolean }
+// collectionId：榜單列才有（null 代表尚未收藏）；已隱藏清單不提供收藏
+type RadarTableRow = {
+  id: string
+  title: string
+  blockedByRule?: boolean
+  collectionId?: string | null
+}
 
 type RadarRankingTableProps<T extends RadarTableRow> = {
   rows: T[]
@@ -43,12 +50,21 @@ export function RadarRankingTable<T extends RadarTableRow>({
   rankingSize = RADAR_RANKING_SIZE,
 }: RadarRankingTableProps<T>) {
   const isRanking = mode === "ranking"
+  const actionWidth = isRanking ? "w-52" : "w-28"
 
   const renderAction = (row: T) => {
     if (!isRanking && row.blockedByRule) {
       return <span className="text-xs text-muted-foreground">刪除規則後自動還原</span>
     }
-    return <RadarBlockButton id={row.id} title={row.title} block={isRanking} />
+    if (!isRanking || row.collectionId === undefined) {
+      return <RadarBlockButton id={row.id} title={row.title} block={isRanking} />
+    }
+    return (
+      <div className="flex items-start justify-end gap-1">
+        <RadarCollectButton id={row.id} title={row.title} collectionId={row.collectionId} />
+        <RadarBlockButton id={row.id} title={row.title} block />
+      </div>
+    )
   }
 
   const renderRow = (row: T, index: number) => {
@@ -69,7 +85,9 @@ export function RadarRankingTable<T extends RadarTableRow>({
             {column.render(row)}
           </TableCell>
         ))}
-        <TableCell className="w-28 py-3.5 pr-5 text-right">{renderAction(row)}</TableCell>
+        <TableCell className={cn(actionWidth, "py-3.5 pr-5 text-right")}>
+          {renderAction(row)}
+        </TableCell>
       </TableRow>
     )
   }
@@ -86,7 +104,7 @@ export function RadarRankingTable<T extends RadarTableRow>({
                   {column.header}
                 </TableHead>
               ))}
-              <TableHead className="w-28 py-3 pr-5 text-right">
+              <TableHead className={cn(actionWidth, "py-3 pr-5 text-right")}>
                 <span className="sr-only">操作</span>
               </TableHead>
             </TableRow>

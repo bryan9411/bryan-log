@@ -7,7 +7,7 @@
 --   2. 寫入（INSERT / UPDATE / DELETE）僅限已認證用戶（管理員帳號由後台手動建立，請關閉公開註冊）
 --   3. 瀏覽數透過 SECURITY DEFINER 函式遞增，匿名訪客無需任何 UPDATE 權限
 --   4. 效能指標（web_vitals）匿名僅能經由 record_web_vitals 寫入，讀取限已認證用戶
---   5. 雷達（radar_*）匿名對資料表沒有權限，前台只能透過 get_*_ranking 等 SECURITY DEFINER 函式讀取公開模組；排程以 service role 寫入
+--   5. 雷達（radar_*）匿名對資料表沒有權限，前台只能透過 get_*_ranking 等 SECURITY DEFINER 函式讀取公開模組；排程以 service role 寫入；收藏（radar_collections）一律私人，前台 RPC 不讀取
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -1103,3 +1103,73 @@ grant execute on function public.radar_security_kev_ranking(integer) to authenti
 grant execute on function public.radar_security_advisory_ranking(integer) to authenticated, service_role;
 grant execute on function public.get_security_kev_ranking(integer) to anon, authenticated;
 grant execute on function public.get_security_advisory_ranking(integer) to anon, authenticated;
+
+-- =============================================================================
+-- 雷達第三期：收藏工作台（雙層快照收藏、研究狀態／筆記／標籤）
+-- 收藏一律私人：匿名對收藏表沒有任何權限，前台 RPC 也不讀這張表
+-- =============================================================================
+do $$
+begin
+  if not exists (select 1 from pg_type where typname = 'radar_collection_status') then
+    create type public.radar_collection_status as enum
+      ('to_research', 'evaluating', 'adopted', 'archived');
+  end if;
+end
+$$;
+
+-- -----------------------------------------------------------------------------
+-- 收藏：item_id 在項目被刪除後設為 null，收藏仍保留；module_key + external_id 用來辨識與防止重複收藏
+-- snapshot_at_save 為收藏當下凍結的 data 與排名情境，之後永不修改；latest_data 由每日同步更新
+-- -----------------------------------------------------------------------------
+create table if not exists public.radar_collections (
+  id uuid primary key default gen_random_uuid(),
+  item_id uuid unique references public.radar_items (id) on delete set null,
+  module_key text not null references public.radar_modules (key) on delete restrict,
+  external_id text not null,
+  -- 複製一份標題與連結，項目被刪除後仍看得到
+  title text not null,
+  url text not null check (url ~ '^https?://'),
+
+  -- 雙層快照
+  snapshot_at_save jsonb not null,
+  saved_at timestamptz not null default now(),
+  latest_data jsonb,
+  latest_refreshed_at timestamptz,
+  -- 來源已刪除或改名（例如 repo 404），保留最後一次的 latest_data
+  latest_unavailable boolean not null default false,
+
+  -- 研究工作台
+  status public.radar_collection_status not null default 'to_research',
+  note text not null default '' check (char_length(note) <= 20000),
+  tags text[] not null default '{}' check (cardinality(tags) <= 10),
+  -- 保留給暫緩項目（關聯文章），本期不提供介面
+  post_id uuid references public.posts (id) on delete set null,
+
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (module_key, external_id)
+);
+
+create index if not exists radar_collections_status_idx
+  on public.radar_collections (status, updated_at desc);
+create index if not exists radar_collections_tags_idx
+  on public.radar_collections using gin (tags);
+
+drop trigger if exists radar_collections_set_updated_at on public.radar_collections;
+create trigger radar_collections_set_updated_at
+  before update on public.radar_collections
+  for each row execute function public.set_updated_at();
+
+-- -----------------------------------------------------------------------------
+-- Row Level Security：收藏一律私人，匿名訪客沒有任何權限，前台 RPC 也不讀這張表
+-- 排程以 service role 更新最新數據（不受 RLS 限制）；已認證用戶（管理員）可讀寫全部
+-- -----------------------------------------------------------------------------
+alter table public.radar_collections enable row level security;
+
+revoke all on public.radar_collections from anon;
+grant select, insert, update, delete on public.radar_collections to authenticated, service_role;
+
+drop policy if exists "radar_collections_all_authenticated" on public.radar_collections;
+create policy "radar_collections_all_authenticated" on public.radar_collections
+  for all to authenticated
+  using (true) with check (true);

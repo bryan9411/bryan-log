@@ -18,7 +18,8 @@ import type { Json } from "@/types/database"
 
 const SNAPSHOT_BATCH_SIZE = 500
 
-function toItemData(repo: GithubRepo, previous: Json, lastSearchHitAt: string | null) {
+// 收藏每日更新（collections/refresh.ts）也用這個函式組出與同步一致的 data
+export function toGithubItemData(repo: GithubRepo, previous: Json, lastSearchHitAt: string | null) {
   const { isList } = categorizeRepo(repo)
 
   return {
@@ -69,7 +70,7 @@ export async function syncGithub(client: ServiceClient, now: number): Promise<Ra
         url: repo.url,
         summary: repo.description,
         categories: categorizeRepo(repo).categories,
-        data: toItemData(repo, previous, lastSearchHitAt),
+        data: toGithubItemData(repo, previous, lastSearchHitAt),
         last_seen_at: nowIso,
       },
     ]

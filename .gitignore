@@ -42,3 +42,6 @@ next-env.d.ts
 
 # 允許提交環境變數範本
 !.env.example
+
+# 不允許 codegraph 上傳 git
+/.codegraph/

@@ -106,12 +106,12 @@ create index radar_collections_tags_idx on public.radar_collections using gin (t
    - 已收藏：顯示「已收藏」徽章（第 2 階段改成連到詳細頁）；不提供在榜單上取消收藏，避免誤刪筆記
 5. 每日更新最新數據：`src/lib/radar/collections/refresh.ts` 的 `refreshCollections()`，在 `src/lib/radar/sync.ts` 所有模組同步完後執行，只處理狀態不是「封存」的收藏：
 
-| 模組                 | 做法                                                    |
-| -------------------- | ------------------------------------------------------- |
-| github               | 和第一期一樣用 GraphQL `nodes(ids: [...])`，每次 100 個 |
-| hn                   | Algolia `GET /api/v1/items/{id}` 取最新分數與留言數     |
-| security（KEV）      | 項目超過 60 天被清理後，從整份 KEV 目錄比對             |
-| security（Advisory） | `GET /advisories/{ghsa_id}`                             |
+| 模組                 | 做法                                                        |
+| -------------------- | ----------------------------------------------------------- |
+| github               | 和第一期一樣用 GraphQL `nodes(ids: [...])`，每次 100 個     |
+| hn                   | Algolia 搜尋 `tags=story,(story_<id>,…)` 批次取分數與留言數 |
+| security（KEV）      | 項目超過 60 天被清理後，從整份 KEV 目錄比對                 |
+| security（Advisory） | `GET /advisories/{ghsa_id}`                                 |
 
 - 項目仍在 `radar_items` 時，直接複製當天同步好的 `data`，不重複呼叫 API
 - 來源回 404 時設 `latest_unavailable = true`，保留最後一次的 `latest_data`

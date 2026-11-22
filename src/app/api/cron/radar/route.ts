@@ -45,15 +45,16 @@ export async function GET(request: Request) {
   }
 
   const startedAt = Date.now()
-  const reports = await runRadarSync(keys)
+  const { modules, collections } = await runRadarSync(keys)
 
   // Route Handler 不能使用 updateTag；以 stale-while-revalidate 方式失效，下一位訪客觸發重新查詢
   revalidateTag(CACHE_TAG.RADAR, "max")
   revalidateRadarPaths()
 
-  const ok = reports.every((report) => report.ok)
+  // 收藏更新失敗不影響同步結果，只列在回應中
+  const ok = modules.every((report) => report.ok)
   return Response.json(
-    { ok, durationMs: Date.now() - startedAt, modules: reports },
+    { ok, durationMs: Date.now() - startedAt, modules, collections },
     { status: ok ? 200 : 500 },
   )
 }

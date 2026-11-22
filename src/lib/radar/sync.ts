@@ -2,10 +2,12 @@ import "server-only"
 
 import {
   isRadarModuleKey,
+  RADAR_COLLECTION_REFRESH,
   RADAR_MODULE,
   RADAR_MODULE_KEYS,
   type RadarModuleKey,
 } from "@/config/radar"
+import { refreshCollections, type CollectionRefreshResult } from "@/lib/radar/collections/refresh"
 import { syncGithub } from "@/lib/radar/github"
 import { syncHn } from "@/lib/radar/hn"
 import { syncSecurity } from "@/lib/radar/security"
@@ -27,6 +29,15 @@ const MAX_ERROR_LENGTH = 1000
 export type RadarModuleSyncReport =
   | { key: RadarModuleKey; ok: true; durationMs: number; result: RadarSyncResult }
   | { key: RadarModuleKey; ok: false; durationMs: number; error: string }
+
+export type CollectionRefreshReport =
+  | { ok: true; durationMs: number; result: CollectionRefreshResult }
+  | { ok: false; durationMs: number; error: string }
+
+export type RadarSyncRun = {
+  modules: RadarModuleSyncReport[]
+  collections: CollectionRefreshReport
+}
 
 function toErrorMessage(error: unknown) {
   const message = error instanceof Error ? error.message : String(error)
@@ -66,17 +77,43 @@ async function syncModule(
   return report
 }
 
-// 依序執行，任一模組失敗不影響其他模組；呼叫端負責驗證身分（CRON_SECRET 或 requireAdmin）
+// 收藏的最新數據：失敗只記錄在回報中，不影響各模組的同步結果
+async function refreshModuleCollections(
+  client: ServiceClient,
+  keys: readonly RadarModuleKey[],
+  since: number,
+): Promise<CollectionRefreshReport> {
+  const startedAt = Date.now()
+
+  try {
+    const result = await refreshCollections(client, {
+      moduleKeys: keys,
+      since,
+      deadline: since + RADAR_COLLECTION_REFRESH.API_BUDGET_MS,
+    })
+    return { ok: true, durationMs: Date.now() - startedAt, result }
+  } catch (error) {
+    console.error("[radar] 收藏更新失敗：", error)
+    return { ok: false, durationMs: Date.now() - startedAt, error: toErrorMessage(error) }
+  }
+}
+
+// 依序執行，任一模組失敗不影響其他模組；全部同步完後更新這些模組的收藏
+// 呼叫端負責驗證身分（CRON_SECRET 或 requireAdmin）
 // Vercel Cron 以 ?module= 拆成兩個排程（GitHub／HN 一個、資安一個），各自有完整的 300 秒
-export async function runRadarSync(keys: readonly RadarModuleKey[] = RADAR_MODULE_KEYS) {
+export async function runRadarSync(
+  keys: readonly RadarModuleKey[] = RADAR_MODULE_KEYS,
+): Promise<RadarSyncRun> {
+  const startedAt = Date.now()
   const client = createServiceClient()
-  const reports: RadarModuleSyncReport[] = []
+  const modules: RadarModuleSyncReport[] = []
 
   for (const key of keys) {
-    reports.push(await syncModule(client, key))
+    modules.push(await syncModule(client, key))
   }
 
-  return reports
+  const collections = await refreshModuleCollections(client, keys, startedAt)
+  return { modules, collections }
 }
 
 // 解析 Cron 的 ?module=github,hn 參數；沒有帶參數時同步全部模組，含未知 key 時回傳 null

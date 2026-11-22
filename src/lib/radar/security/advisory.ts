@@ -1,7 +1,7 @@
 import "server-only"
 
 import { SECURITY_ADVISORY } from "@/config/radar"
-import { githubRestPage } from "@/lib/radar/github/client"
+import { githubRest, githubRestPage } from "@/lib/radar/github/client"
 import { normalizeCwes } from "@/lib/radar/security/kev"
 
 const PER_PAGE = 100
@@ -82,7 +82,11 @@ async function listAdvisories(token: string, query: AdvisoryQuery) {
 
 const MAX_RANGE_LENGTH = 200
 
-function normalize(advisory: GithubAdvisory, ecosystem: string): NormalizedAdvisory | null {
+// 已撤回、未審核或不含指定生態系套件的公告回傳 null
+export function normalizeAdvisory(
+  advisory: GithubAdvisory,
+  ecosystem: string,
+): NormalizedAdvisory | null {
   if (advisory.withdrawn_at) return null
   if (advisory.type !== "reviewed" && advisory.type !== "malware") return null
 
@@ -133,7 +137,7 @@ export async function fetchReviewedAdvisories(token: string, since: string) {
         severity,
         since,
       })
-      return advisories.map((advisory) => normalize(advisory, ecosystem))
+      return advisories.map((advisory) => normalizeAdvisory(advisory, ecosystem))
     }),
   )
 
@@ -148,6 +152,13 @@ export async function fetchReviewedAdvisories(token: string, since: string) {
 export async function fetchNpmMalwareAdvisories(token: string, since: string) {
   const advisories = await listAdvisories(token, { type: "malware", ecosystem: "npm", since })
   return advisories
-    .map((advisory) => normalize(advisory, "npm"))
+    .map((advisory) => normalizeAdvisory(advisory, "npm"))
     .filter((advisory): advisory is NormalizedAdvisory => advisory !== null)
+}
+
+// 單筆查詢（收藏每日更新用）；公告不存在時 GitHub 回 404，回傳 null
+export function fetchAdvisory(token: string, ghsa: string) {
+  return githubRest<GithubAdvisory>(token, `/advisories/${encodeURIComponent(ghsa)}`, {
+    allowStatus: [404],
+  })
 }
